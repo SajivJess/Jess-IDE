@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Jess • Laptop</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body><main><header><div class="brand">J<span>Jess Ide Dev</span></div><span class="badge">YOUR LAPTOP</span></header>
+<section id="login"><p class="eyebrow">YOUR WORK, WHEREVER YOU ARE</p><h1>Nagercoil to<br>your pocket.</h1><p class="muted">Secure access to the backend running on your laptop.</p><form id="login-form"><label for="password">Access password</label><input id="password" type="password" autocomplete="current-password" required maxlength="256"><button>Unlock workspace <span>→</span></button></form></section>
+<section id="workspace" hidden><div class="top"><div><p class="eyebrow">CONNECTED TO NAGERCOIL</p><h1>Your workspace.</h1></div><button id="logout" class="quiet">Sign out</button></div><p id="connection" class="muted">Checking laptop…</p><aside><strong>Prototype · simulated agent</strong><br>Tasks demonstrate the queue and progress. They do not edit files or run a real coding agent.</aside>
+<form id="project-form"><label for="project-name">New project</label><div class="row"><input id="project-name" placeholder="My project" maxlength="100" required><button>Create</button></div></form>
+<form id="task-form"><label for="project">Project</label><select id="project" required></select><label for="prompt">Task</label><textarea id="prompt" rows="5" maxlength="8000" placeholder="Describe a task to simulate…" required></textarea><button id="submit-task">Run simulated task <span>→</span></button></form>
+<div class="task-heading"><h2>Recent tasks</h2><span class="muted">Saved on this browser</span></div><div id="tasks"></div></section>
+<p id="message" role="status"></p><footer>Hosted on your laptop · Private access</footer></main></body></html>
