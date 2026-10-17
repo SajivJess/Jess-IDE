@@ -2,7 +2,9 @@
 
 Milestone 1 implements a development-only Fastify API, PostgreSQL persistence and a separate durable worker. It supports owned projects, queued coding tasks, cancellation, ordered events and reconnectable delivery.
 
-The `fake-v1` agent is a deterministic simulation. Its sample files and check results are labelled simulated: **it does not change files, execute commands, run project tests or call an AI provider**. Antigravity is not installed, authenticated or integrated.
+The `fake-v1` agent is a deterministic simulation. Its sample files and check results are labelled simulated: **it does not change files, execute commands, run project tests or call an AI provider**. It remains the default adapter.
+
+An optional [Antigravity CLI development adapter](docs/antigravity-cli.md) is now implemented. The verified CLI is installed on this laptop; Google authentication and a live model run remain pending. The adapter can prepare separate task clones, invoke the CLI, run checks and return actual diffs. The simulator remains the default, and the public portal blocks real-agent task submission. See the linked guide for local-only commands, authentication and isolation limits.
 
 ## Requirements
 
@@ -184,6 +186,6 @@ tests/        Configuration/HTTP-boundary and real PostgreSQL integration tests
 
 ## Limitations and next milestone
 
-No real identity provider, public deployment, mobile app, GitHub import/push, filesystem modification, diff generation, sandbox provisioning, actual previews, billing or Antigravity integration exists yet. Simulated results must not be presented as real builds or passing project tests. There is no claim of production readiness or complete workspace isolation: this milestone executes no repository code.
+The default milestone remains simulated. The optional Antigravity CLI runner executes trusted local repository code and returns actual diffs, subject to the authentication and isolation limits documented above. The password-protected mobile portal supports the simulator; real-agent submissions through it are disabled. Production identity, per-project repository import, approval-driven commits/pushes, OS sandbox provisioning, actual previews and billing remain unimplemented.
 
-The next milestone is one isolated workspace provider and one supported agent adapter, subject to Antigravity's authentication and usage requirements. Before running untrusted code, add sandbox resource/network boundaries, credential isolation, safe checkpoint recovery, per-project execution coordination, enforceable supported approvals and authenticated preview/file access. Keep agent and cloud-specific behavior behind their respective boundaries.
+The next validation step is an authenticated Antigravity CLI task in its separate local clone. Before running untrusted code, add sandbox resource/network boundaries, credential isolation, safe checkpoint recovery, per-project execution coordination, enforceable supported approvals and authenticated preview/file access. Keep agent and cloud-specific behavior behind their respective boundaries.

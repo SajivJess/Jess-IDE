@@ -10,9 +10,12 @@ export const idParams = object({ id: uuid });
 export const projectSchema = object({ id: uuid, name: text, createdAt: date });
 export const resultSchema = object({
   summary: text, simulated: { type: 'boolean' },
-  files: { type: 'array', items: object({ path: text, change: { enum: ['added', 'modified'] } }) },
+  files: { type: 'array', items: object({ path: text, change: { enum: ['added', 'modified', 'deleted'] } }) },
   checks: { type: 'array', items: object({ name: text, status: { enum: ['simulated', 'passed', 'failed', 'skipped'] } }) },
+  execution: object({ branch: text, baseCommit: text, diff: text, truncated: { type: 'boolean' } }),
 });
+// Existing simulated results do not contain workspace execution metadata.
+resultSchema.required = ['summary', 'simulated', 'files', 'checks'];
 export const statusSchema = { enum: ['QUEUED', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'] };
 export const taskSchema = object({
   id: uuid, projectId: uuid, prompt: text, status: statusSchema,

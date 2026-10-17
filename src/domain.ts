@@ -10,8 +10,9 @@ export interface Project {
 export interface AgentResult {
   summary: string;
   simulated: boolean;
-  files: { path: string; change: 'added' | 'modified' }[];
+  files: { path: string; change: 'added' | 'modified' | 'deleted' }[];
   checks: { name: string; status: 'simulated' | 'passed' | 'failed' | 'skipped' }[];
+  execution?: { branch: string; baseCommit: string; diff: string; truncated: boolean };
 }
 
 export interface Task {

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 const page = readFileSync(new URL('./index.html', import.meta.url));
-export function buildPortal({ password, token, owner, origin, backend = 'http://127.0.0.1:3000' }) {
+export function buildPortal({ password, token, owner, origin, backend = 'http://127.0.0.1:3000', allowTaskSubmission = true }) {
   if (!password || password.length < 20 || !token || !owner || !origin) throw new Error('Remote access configuration missing');
   const salt = randomBytes(32);
   const expected = scryptSync(password, salt, 32);
@@ -80,6 +80,7 @@ export function buildPortal({ password, token, owner, origin, backend = 'http://
       const allowed = (req.method === 'GET' && (url.pathname === '/api/ready' || new RegExp(`^/api/tasks/${uuid}(/events)?$`).test(url.pathname))) ||
         (req.method === 'POST' && (['/api/projects', '/api/tasks'].includes(url.pathname) || new RegExp(`^/api/tasks/${uuid}/cancel$`).test(url.pathname)));
       if (!allowed) return json(res, 404, { error: 'Not found' });
+      if (!allowTaskSubmission && req.method === 'POST' && url.pathname === '/api/tasks') return json(res, 403, { error: 'Real agent execution is available only locally during development' });
       const target = new URL(url.pathname.slice(4), backend);
       if (url.pathname.endsWith('/events')) {
         for (const key of ['after', 'limit']) if (url.searchParams.has(key)) target.searchParams.set(key, url.searchParams.get(key));
@@ -101,5 +102,5 @@ export function buildPortal({ password, token, owner, origin, backend = 'http://
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const config = JSON.parse(readFileSync(new URL('../.local/remote-config.json', import.meta.url)));
-  buildPortal({ ...config, token: process.env.DEV_AUTH_TOKEN }).listen(3001, '127.0.0.1', () => console.log('Password-protected mobile portal listening on loopback port 3001'));
+  buildPortal({ ...config, token: process.env.DEV_AUTH_TOKEN, allowTaskSubmission: (process.env.AGENT_PROVIDER ?? 'fake') === 'fake' }).listen(3001, '127.0.0.1', () => console.log('Password-protected mobile portal listening on loopback port 3001'));
 }

@@ -16,7 +16,8 @@
     "lint": "eslint . --max-warnings 0",
     "test": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run",
     "test:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run tests/integration.test.ts",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+    "test:portal": "node --test remote/security.test.mjs",
+    "check": "npm run typecheck && npm run lint && npm test && npm run test:portal && npm run build"
   },
   "dependencies": {
     "@fastify/rate-limit": "^11.2.1",

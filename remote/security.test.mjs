@@ -43,3 +43,21 @@ test('remote gateway requires login, checks origin, and isolates backend credent
     await Promise.all([new Promise(resolve => portal.close(resolve)), new Promise(resolve => backend.close(resolve))]);
   }
 });
+
+test('public task execution stays disabled for the real local adapter', async () => {
+  const origin = 'https://portal.example';
+  const portal = buildPortal({ password: 'a-long-test-password-12345', token: 'private-token', owner: 'owner', origin, allowTaskSubmission: false });
+  portal.listen(0, '127.0.0.1'); await once(portal, 'listening');
+  const base = `http://127.0.0.1:${portal.address().port}`;
+  const request = (path, init = {}) => new Promise((resolve, reject) => {
+    const req = httpRequest(base + path, { method: init.method ?? 'GET', headers: { host: 'portal.example', ...init.headers } }, res => {
+      res.resume(); res.on('end', () => resolve({ status: res.statusCode, cookie: res.headers['set-cookie']?.[0]?.split(';')[0] }));
+    });
+    req.on('error', reject); req.end(init.body);
+  });
+  try {
+    const login = await request('/login', { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: '{"password":"a-long-test-password-12345"}' });
+    assert.equal(login.status, 200);
+    assert.equal((await request('/api/tasks', { method: 'POST', headers: { origin, cookie: login.cookie, 'content-type': 'application/json' }, body: '{}' })).status, 403);
+  } finally { portal.closeAllConnections(); await new Promise(resolve => portal.close(resolve)); }
+});
