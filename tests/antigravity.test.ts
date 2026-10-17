@@ -39,9 +39,16 @@ describe('Antigravity local execution boundary', () => {
       expect(request.env.DEV_AUTH_TOKEN).toBeUndefined();
       expect(request.env.TEST_DATABASE_URL).toBeUndefined();
       if (file === options.executable) {
+        const settings = JSON.parse(await readFile(path.join(options.profile, '.gemini', 'antigravity-cli', 'settings.json'), 'utf8')) as { permissions: { allow: string[]; deny: string[] } };
+        expect(settings.permissions.allow).toEqual(['write_file(.)']);
+        expect(settings.permissions.deny).toContain('command(*)');
+        // A second invocation may not change the shared CLI profile's permissions.
+        await expect(new AntigravityAgent(options, execute).run({ taskId: randomUUID(), prompt: 'Concurrent task', attempt: 1, signal: signal() }).next()).rejects.toThrow();
         await expect(access(path.join(request.cwd, '.env'))).rejects.toThrow();
         expect(args).not.toContain('--dangerously-skip-permissions');
         expect(args).toContain('--disable-slash-commands');
+        expect(args[args.indexOf('--add-dir') + 1]).toBe(request.cwd);
+        expect(args[args.indexOf('--mode') + 1]).toBe('accept-edits');
         expect(await git(request.cwd, ['remote'])).toBe('');
         await writeFile(path.join(request.cwd, 'hello.txt'), 'after\n');
         await writeFile(path.join(request.cwd, 'new.txt'), 'new\n');
@@ -63,6 +70,7 @@ describe('Antigravity local execution boundary', () => {
     expect(await readFile(path.join(options.repository, 'hello.txt'), 'utf8')).toBe('before\n');
     const work = path.join(options.workspaceRoot, `${taskId}-1`);
     expect(await git(work, ['rev-parse', 'HEAD'])).toBe(await git(options.repository, ['rev-parse', 'HEAD']));
+    await expect(access(path.join(options.profile, '.jess-cli.lock'))).rejects.toThrow();
     // An uncertain attempt cannot silently rerun over an existing modified clone.
     await expect(async () => { for await (const update of new AntigravityAgent(options, execute).run({ taskId, prompt: 'Retry', attempt: 1, signal: signal() })) void update; }).rejects.toThrow();
   });
@@ -83,6 +91,12 @@ describe('Antigravity local execution boundary', () => {
     const running = runProcess(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { ...options, timeoutMs: 5000, signal: controller.signal });
     controller.abort();
     await expect(running).rejects.toThrow('cancelled');
+  });
+
+  it('does not hang when a native helper inherits the CLI output pipes', async () => {
+    const result = await runProcess(process.execPath, ['-e', 'const {spawn}=require("node:child_process");spawn(process.execPath,["-e","setTimeout(()=>{},3000)"],{stdio:["ignore",process.stdout,process.stderr]});console.log("finished");process.exit(0);'], { cwd: root, env, signal: signal(), timeoutMs: 2000 });
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain('finished');
   });
 
   it('rejects unknown providers and missing E: drive executable configuration', () => {

@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { AgentAdapter, AgentInput, AgentUpdate } from './adapter.js';
 import type { AgentResult } from '../domain.js';
@@ -33,10 +33,15 @@ export class AntigravityAgent implements AgentAdapter {
     };
     for (const dir of [o.workspaceRoot, o.profile, env.APPDATA!, env.LOCALAPPDATA!, env.TEMP!, env.npm_config_cache!]) await mkdir(dir, { recursive: true });
     await writeFile(env.GIT_CONFIG_GLOBAL!, '', { flag: 'a' });
+    // The dedicated CLI profile has mutable permission settings. Serialize its use
+    // and grant file edits only to this exact attempt, never all workspaces.
+    const lockPath = path.join(o.profile, '.jess-cli.lock');
+    const lock = await open(lockPath, 'wx');
+    await lock.close();
     const controller = new AbortController();
     const signal = AbortSignal.any([input.signal, controller.signal]);
     const deadline = setTimeout(() => controller.abort(), o.timeoutMs);
-    const run = (file: string, args: string[], cwd = directory) => this.execute(file, args, { cwd, env, signal, timeoutMs: o.timeoutMs });
+    const run = (file: string, args: string[], cwd = directory, stdoutFile?: string) => this.execute(file, args, { cwd, env, signal, timeoutMs: o.timeoutMs, ...(stdoutFile ? { stdoutFile } : {}) });
     const git = async (args: string[], cwd = directory): Promise<string> => {
       const result = await run(o.git, ['-c', 'core.hooksPath=NUL', ...args], cwd);
       if (result.code !== 0) throw new Error('Workspace Git operation failed');
@@ -49,14 +54,30 @@ export class AntigravityAgent implements AgentAdapter {
       await git(['remote', 'remove', 'origin']);
       const baseCommit = await git(['rev-parse', 'HEAD']);
       await git(['checkout', '-b', branch, baseCommit]);
-      const result = await run(o.node, [o.npmCli, 'ci', '--ignore-scripts', '--no-audit', '--no-fund']);
+      const result = await run(o.node, [o.npmCli, 'ci', '--prefer-offline', '--ignore-scripts', '--no-audit', '--no-fund']);
       if (result.code !== 0) throw new Error('Workspace dependency installation failed');
       yield { type: 'progress', message: 'Running Antigravity CLI; shell actions require permission and are not auto-approved', percent: 20 };
-      const prompt = `Implement this task in the current workspace only. Do not commit, push, change Git configuration, install software, use subagents, or access files outside this workspace. Do not modify .git, dependencies, or agent settings. The host runner will run checks and capture the diff after you finish. Return an honest summary of changes and any limitations.\n\nTask:\n${input.prompt}`;
-      const cli = await run(o.executable, ['--print', prompt, '--output-format', 'json', '--print-timeout', `${Math.floor(o.timeoutMs / 1000)}s`, '--disable-slash-commands', '--log-file', path.join(o.profile, `task-${input.taskId}-${input.attempt}.log`)]);
+      const settingsFolder = path.join(o.profile, '.gemini', 'antigravity-cli');
+      await mkdir(settingsFolder, { recursive: true });
+      await writeFile(path.join(settingsFolder, 'settings.json'), JSON.stringify({ toolPermission: 'request-review', permissions: {
+        // Relative paths are resolved by the CLI against the explicitly supplied
+        // workspace root. Drive-qualified permission targets differ on Windows.
+        allow: ['write_file(.)'],
+        deny: ['command(*)', 'unsandboxed(*)', 'mcp(*)', 'read_url(*)', 'execute_url(*)', 'read_file(.git/)', 'read_file(node_modules/)', 'write_file(.agents/)', 'write_file(.gemini/)', 'write_file(AGENTS.md)'],
+      } }, null, 2));
+      const prompt = `Implement this task in the current workspace only. Use native file tools such as write_to_file and replace_file_content. Shell commands are not permitted. If an action is denied, stop immediately and report the limitation; do not keep retrying denied actions. Do not commit, push, change Git configuration, install software, use subagents, or access files outside this workspace. Do not modify .git, dependencies, or agent settings. The host runner will run checks and capture the diff after you finish. Return an honest summary of changes and any limitations.\n\nTask:\n${input.prompt}`;
+      const cli = await run(o.executable, ['--print', prompt, '--add-dir', directory, '--mode', 'accept-edits', '--output-format', 'stream-json', '--print-timeout', `${Math.floor(o.timeoutMs / 1000)}s`, '--disable-slash-commands', '--log-file', path.join(o.profile, `task-${input.taskId}-${input.attempt}.log`)], directory, path.join(o.profile, `events-${input.taskId}-${input.attempt}.jsonl`));
       let envelope: { status?: string; response?: string; denied_actions?: unknown[] };
-      try { envelope = JSON.parse(cli.stdout) as typeof envelope; } catch { throw new Error('Antigravity returned invalid JSON'); }
-      if (cli.code !== 0 || envelope.status !== 'SUCCESS' || envelope.denied_actions?.length) throw new Error('Antigravity could not complete the requested actions');
+      try {
+        const frames = cli.stdout.trim().split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line) as { event?: string; result?: typeof envelope } & typeof envelope);
+        const final = frames.findLast(frame => frame.event === 'result')?.result ?? (frames.length === 1 ? frames[0] : undefined);
+        if (!final) throw new Error('Missing final result');
+        envelope = final;
+      } catch { throw new Error('Antigravity returned invalid JSON'); }
+      if (cli.code !== 0 || envelope.status !== 'SUCCESS' || envelope.denied_actions?.length) {
+        await writeFile(path.join(o.profile, `failure-${input.taskId}-${input.attempt}.json`), JSON.stringify({ exitCode: cli.code, status: envelope.status, deniedActions: envelope.denied_actions ?? [] }));
+        throw new Error('Antigravity could not complete the requested actions');
+      }
       if (await git(['rev-parse', 'HEAD']) !== baseCommit || await git(['branch', '--show-current']) !== branch) throw new Error('Unexpected Git history changes');
       yield { type: 'progress', message: 'Running type checks, lint, tests, and build in the task clone', percent: 75 };
       const checks: AgentResult['checks'] = [];
@@ -86,6 +107,6 @@ export class AntigravityAgent implements AgentAdapter {
       await readFile(path.join(directory, 'package.json'));
       signal.throwIfAborted();
       yield { type: 'result', result: report };
-    } finally { clearTimeout(deadline); }
+    } finally { clearTimeout(deadline); await rm(lockPath, { force: true }); }
   }
 }
