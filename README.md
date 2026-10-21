@@ -1,5 +1,7 @@
 # Jess Ide Dev — Backend Foundation
 
+For the overall product vision, current goals, completed capabilities and prioritized remaining work, read the [Jess Ide Dev project brief](docs/project-overview.md), updated 21 October 2026. The setup and implementation notes below describe the backend foundation and link to later milestones.
+
 Milestone 1 implements a development-only Fastify API, PostgreSQL persistence and a separate durable worker. It supports owned projects, queued coding tasks, cancellation, ordered events and reconnectable delivery.
 
 The `fake-v1` agent is a deterministic simulation. Its sample files and check results are labelled simulated: **it does not change files, execute commands, run project tests or call an AI provider**. It remains the default adapter.
