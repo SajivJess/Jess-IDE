@@ -61,6 +61,24 @@ export class Store {
     return project(r.rows[0]);
   }
 
+  async listProjects(owner: string, limit: number, before?: string): Promise<{ projects: Project[]; nextCursor: string | null }> {
+    if (before) await this.getProject(owner, before);
+    const r = await this.pool.query<ProjectRow>(`SELECT * FROM projects WHERE owner_id=$1
+      AND ($3::uuid IS NULL OR (created_at,id)<(SELECT created_at,id FROM projects WHERE id=$3 AND owner_id=$1))
+      ORDER BY created_at DESC,id DESC LIMIT $2`, [owner, limit + 1, before ?? null]);
+    const rows = r.rows.slice(0, limit);
+    return { projects: rows.map(project), nextCursor: r.rows.length > limit ? rows.at(-1)!.id : null };
+  }
+
+  async listTasks(owner: string, limit: number, before?: string): Promise<{ tasks: Task[]; nextCursor: string | null }> {
+    if (before) await this.getTask(owner, before);
+    const r = await this.pool.query<TaskRow>(`SELECT t.* FROM tasks t JOIN projects p ON p.id=t.project_id
+      WHERE p.owner_id=$1 AND ($3::uuid IS NULL OR (t.created_at,t.id)<(SELECT created_at,id FROM tasks WHERE id=$3))
+      ORDER BY t.created_at DESC,t.id DESC LIMIT $2`, [owner, limit + 1, before ?? null]);
+    const rows = r.rows.slice(0, limit);
+    return { tasks: rows.map(task), nextCursor: r.rows.length > limit ? rows.at(-1)!.id : null };
+  }
+
   async submit(owner: string, projectId: string, prompt: string, key: string): Promise<{ task: Task; replayed: boolean }> {
     return this.transaction(async c => {
       const p = await c.query('SELECT id FROM projects WHERE id=$1 AND owner_id=$2', [projectId, owner]);

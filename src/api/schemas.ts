@@ -23,6 +23,12 @@ export const taskSchema = object({
   result: { anyOf: [resultSchema, { type: 'null' }] },
   error: { anyOf: [text, { type: 'null' }] }, createdAt: date, updatedAt: date,
 });
+export const listQuery = {
+  type: 'object', additionalProperties: false,
+  properties: { before: uuid, limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 } },
+};
+export const projectsPageSchema = object({ projects: { type: 'array', items: projectSchema }, nextCursor: { anyOf: [uuid, { type: 'null' }] } });
+export const tasksPageSchema = object({ tasks: { type: 'array', items: taskSchema }, nextCursor: { anyOf: [uuid, { type: 'null' }] } });
 export const eventSchema = object({
   version: { const: 1 }, taskId: uuid, sequence: { type: 'integer', minimum: 1 },
   type: { enum: ['TASK_QUEUED', 'TASK_STARTED', 'TASK_RETRYING', 'AGENT_PROGRESS',

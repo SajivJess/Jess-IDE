@@ -1,0 +1,7 @@
+{
+  "id": "/", "name": "Jess Ide Dev", "short_name": "Jess",
+  "description": "Your development workspace, connected to your laptop.",
+  "start_url": "/#home", "scope": "/", "display": "standalone",
+  "background_color": "#101218", "theme_color": "#151821",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

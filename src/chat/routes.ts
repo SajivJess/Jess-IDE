@@ -1,0 +1,27 @@
+import type { FastifyInstance } from 'fastify';
+import type pg from 'pg';
+import { ChatStore } from './store.js';
+import { portableContext, transcript } from './markdown.js';
+import { errors, idParams, uuid } from '../api/schemas.js';
+import { HttpError } from '../domain.js';
+const text = { type: 'string' };
+const object = (properties: Record<string, unknown>, required = Object.keys(properties)) => ({ type: 'object', additionalProperties: false, properties, required });
+const conversation = object({ id: uuid, projectId: uuid, repositoryId: uuid, title: text, provider: text, profileBinding: { anyOf: [text, { type: 'null' }] }, nativeSessionId: { anyOf: [uuid, { type: 'null' }] }, eventSequence: { type: 'integer' }, createdAt: text, updatedAt: text, archived: { type: 'boolean' }, revision: { type: 'integer' }, lastStatus: { anyOf: [text, { type: 'null' }] } });
+const context = object({ revision: { type: 'integer' }, summary: text, handoff: text });
+interface Id { id: string }
+export function installChatRoutes(app: FastifyInstance, pool: pg.Pool, secrets: string[]): void {
+  const store = new ChatStore(pool, secrets);
+  app.get<{ Params: Id; Querystring: { search: string; archived: boolean } }>('/projects/:id/conversations', { schema: { params: idParams, querystring: object({ search: { type: 'string', maxLength: 100, default: '' }, archived: { type: 'boolean', default: false } }, []), response: { 200: object({ conversations: { type: 'array', items: conversation } }), ...errors } } }, req => store.list(req.ownerId, req.params.id, req.query.search, req.query.archived));
+  app.post<{ Params: Id; Body: { repositoryId: string; title: string } }>('/projects/:id/conversations', { schema: { params: idParams, body: object({ repositoryId: uuid, title: { type: 'string', minLength: 1, maxLength: 100 } }), response: { 201: conversation, ...errors } } }, async (req, reply) => reply.code(201).send(await store.create(req.ownerId, req.params.id, req.body.repositoryId, req.body.title)));
+  app.get<{ Params: Id }>('/projects/:id/context', { schema: { params: idParams, response: { 200: context, ...errors } } }, req => store.context(req.ownerId, req.params.id));
+  app.put<{ Params: Id; Body: { revision: number; summary: string; handoff: string } }>('/projects/:id/context', { bodyLimit: 200000, schema: { params: idParams, body: object({ revision: { type: 'integer', minimum: 0 }, summary: { type: 'string', maxLength: 16000 }, handoff: { type: 'string', maxLength: 16000 } }), response: { 200: context, ...errors } } }, req => store.saveContext(req.ownerId, req.params.id, req.body.revision, req.body.summary, req.body.handoff));
+  app.get<{ Params: Id }>('/projects/:id/context/export', { schema: { params: idParams, response: { 200: object({ revision: { type: 'integer' }, project: text, handoff: text }), ...errors } } }, req => portableContext(store, req.ownerId, req.params.id));
+  app.put<{ Params: Id; Body: { revision: number; title?: string; archived?: boolean } }>('/conversations/:id', { schema: { params: idParams, body: { ...object({ revision: { type: 'integer', minimum: 0, maximum: 2147483646 }, title: { type: 'string', minLength: 1, maxLength: 100 }, archived: { type: 'boolean' } }, ['revision']), oneOf: [{ required: ['title'] }, { required: ['archived'] }] }, response: { 200: conversation, ...errors } } }, req => store.update(req.ownerId, req.params.id, req.body.revision, req.body));
+  app.get<{ Params: Id }>('/conversations/:id', { schema: { params: idParams, response: { 200: conversation, ...errors } } }, req => store.get(req.ownerId, req.params.id));
+  app.get<{ Params: Id; Querystring: { before: number } }>('/conversations/:id/messages', { schema: { params: idParams, querystring: object({ before: { type: 'integer', minimum: 1, maximum: 2147483647, default: 2147483647 } }, []), response: { 200: object({ messages: { type: 'array', items: object({ id: uuid, sequence: { type: 'integer' }, prompt: text, response: { anyOf: [text, { type: 'null' }] }, status: text, error: { anyOf: [text, { type: 'null' }] }, createdAt: text, finishedAt: { anyOf: [text, { type: 'null' }] } }) }, nextBefore: { anyOf: [{ type: 'integer' }, { type: 'null' }] } }), ...errors } } }, req => store.history(req.ownerId, req.params.id, req.query.before));
+  app.get<{ Params: Id; Querystring: { after: number } }>('/conversations/:id/events', { schema: { params: idParams, querystring: object({ after: { type: 'integer', minimum: 0, maximum: 2147483647, default: 0 } }, []), response: { 200: object({ events: { type: 'array', items: object({ sequence: { type: 'integer' }, kind: text, payload: { type: 'object', additionalProperties: true }, createdAt: text }) }, nextCursor: { type: 'integer' }, hasMore: { type: 'boolean' } }), ...errors } } }, req => store.events(req.ownerId, req.params.id, req.query.after));
+  app.get<{ Params: Id }>('/conversations/:id/transcript', { schema: { params: idParams, response: { 200: object({ filename: text, markdown: text }), ...errors } } }, async req => ({ filename: `conversation-${req.params.id}.md`, markdown: await transcript(store, req.ownerId, req.params.id) }));
+  // Intentionally server-enforced even for a hand-crafted authenticated request.
+  // The local runner submits a specifically selected message file directly.
+  app.post<{ Params: Id }>('/conversations/:id/messages', { schema: { params: idParams, response: { ...errors, 403: errors[400] } } }, async req => { await store.get(req.ownerId, req.params.id); throw new HttpError(403, 'PUBLIC_CHAT_EXECUTION_DISABLED'); });
+}

@@ -8,9 +8,14 @@ import { HttpError, terminal } from '../domain.js';
 import { Store } from '../db/store.js';
 import { installDevAuth } from './auth.js';
 import * as s from './schemas.js';
+import { installWorkspaceRoutes } from '../workspaces/routes.js';
+import { installChatRoutes } from '../chat/routes.js';
+import { installHomeRoutes } from '../workspaces/home.js';
+import { environmentSecrets } from '../chat/privacy.js';
 
 interface Id { id: string }
 interface Replay { after: number; limit: number }
+interface ListQuery { before?: string; limit: number }
 
 function databaseError(error: unknown): boolean {
   if (error instanceof pg.DatabaseError) return true;
@@ -48,6 +53,9 @@ export function buildApp(config: Config, pool: pg.Pool, logging = true) {
     return reply.code(isDb ? 503 : 500).send({ error: isDb ? 'SERVICE_UNAVAILABLE' : 'INTERNAL_ERROR' });
   });
   app.setNotFoundHandler((_req, reply) => reply.code(404).send({ error: 'NOT_FOUND' }));
+  installWorkspaceRoutes(app, pool);
+  installChatRoutes(app, pool, [config.devAuthToken, config.databaseUrl, ...environmentSecrets(process.env)]);
+  installHomeRoutes(app, pool);
   app.get('/health', {
     schema: { response: { 200: { type: 'object', required: ['status'], properties: { status: { const: 'ok' } }, additionalProperties: false } } },
   }, async () => ({ status: 'ok' }));
@@ -57,6 +65,12 @@ export function buildApp(config: Config, pool: pg.Pool, logging = true) {
   app.post<{ Body: { name: string } }>('/projects', {
     schema: { body: s.createProjectBody, response: { 201: s.projectSchema, ...s.errors } },
   }, async (req, reply) => reply.code(201).send(await store.createProject(req.ownerId, req.body.name.trim())));
+  app.get<{ Querystring: ListQuery }>('/projects', {
+    schema: { querystring: s.listQuery, response: { 200: s.projectsPageSchema, ...s.errors } },
+  }, async req => store.listProjects(req.ownerId, req.query.limit, req.query.before));
+  app.get<{ Querystring: ListQuery }>('/tasks', {
+    schema: { querystring: s.listQuery, response: { 200: s.tasksPageSchema, ...s.errors } },
+  }, async req => store.listTasks(req.ownerId, req.query.limit, req.query.before));
   app.get<{ Params: Id }>('/projects/:id', {
     schema: { params: s.idParams, response: { 200: s.projectSchema, ...s.errors } },
   }, async req => store.getProject(req.ownerId, req.params.id));

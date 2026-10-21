@@ -40,7 +40,7 @@ describe.skipIf(!databaseUrl)('real PostgreSQL integration', () => {
     await migrate(pool);
   });
   beforeEach(async () => {
-    await pool.query('TRUNCATE task_events,tasks,projects');
+    await pool.query('TRUNCATE conversation_events,conversation_turns,conversations,project_contexts,workspace_edits,workspace_files,review_workspaces,repository_files,registered_repositories,task_events,tasks,projects');
     app = buildApp(loadConfig({ NODE_ENV: 'test', AUTH_MODE: 'development', DEV_AUTH_TOKEN: token, DATABASE_URL: databaseUrl! }), pool, false);
     await app.ready();
   });
@@ -67,7 +67,7 @@ describe.skipIf(!databaseUrl)('real PostgreSQL integration', () => {
   it('applies migrations idempotently and reports database readiness', async () => {
     await migrate(pool);
     const migrations = await pool.query('SELECT * FROM schema_migrations');
-    expect(migrations.rowCount).toBe(1);
+    expect(migrations.rowCount).toBe(5);
     const response = await app.inject({ method: 'GET', url: '/ready', headers: auth() });
     expect(response.json()).toEqual({ status: 'ready' });
   });
@@ -96,6 +96,35 @@ describe.skipIf(!databaseUrl)('real PostgreSQL integration', () => {
     const conflict = await app.inject({ ...request, payload: { ...request.payload, prompt: 'Different prompt' } });
     expect(conflict.statusCode).toBe(409);
     expect(conflict.json()).toEqual({ error: 'IDEMPOTENCY_CONFLICT' });
+  });
+
+  it('lists only owned projects and tasks with bounded stable cursor pages', async () => {
+    const a = await createProject();
+    const b = await createProject();
+    const foreign = await store.createProject(bob, 'Private project');
+    const ta = await submit(a.id);
+    const tb = await submit(b.id);
+    const foreignTask = (await store.submit(bob, foreign.id, 'Private task', 'foreign')).task;
+    // Equal timestamps exercise the UUID tie-breaker without losing rows at page boundaries.
+    await pool.query("UPDATE projects SET created_at='2026-01-01T00:00:00.123456Z'");
+    await pool.query("UPDATE tasks SET created_at='2026-01-01T00:00:00.123456Z'");
+    for (const [route, ids, foreignId] of [
+      ['projects', [a.id, b.id], foreign.id], ['tasks', [ta.id, tb.id], foreignTask.id],
+    ] as const) {
+      const first = await app.inject({ url: `/${route}?limit=1`, headers: auth() });
+      expect(first.statusCode).toBe(200);
+      const page = first.json<Record<string, { id: string }[]> & { nextCursor: string }>();
+      expect(page[route]).toHaveLength(1);
+      const second = (await app.inject({ url: `/${route}?limit=1&before=${page.nextCursor}`, headers: auth() })).json<Record<string, { id: string }[]> & { nextCursor: string | null }>();
+      expect(second.nextCursor).toBeNull();
+      expect([page[route]![0]!.id, second[route]![0]!.id].sort()).toEqual([...ids].sort());
+      expect(first.body).not.toContain('owner_id');
+      expect((await app.inject({ url: `/${route}?before=${foreignId}`, headers: auth() })).statusCode).toBe(404);
+      expect((await app.inject({ url: `/${route}?limit=51`, headers: auth() })).statusCode).toBe(400);
+      expect((await app.inject({ url: `/${route}?before=invalid`, headers: auth() })).statusCode).toBe(400);
+      expect((await app.inject({ url: `/${route}?owner_id=${bob}`, headers: auth() })).statusCode).toBe(400);
+      expect((await app.inject({ url: `/${route}` })).statusCode).toBe(401);
+    }
   });
 
   it('keeps idempotency keys scoped to the project', async () => {

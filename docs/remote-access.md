@@ -2,7 +2,9 @@
 
 The `remote/` portal is an optional, single-owner development interface for this laptop. It uses an HTTPS Cloudflare Quick Tunnel to relay traffic to a loopback-only portal on port 3001. The API remains on loopback port 3000; PostgreSQL remains on loopback port 5432. Application processing and database storage stay on E:. Cloudflare carries the web traffic; this is not a deployed cloud VM.
 
-The page supports creating projects, submitting simulated tasks, viewing their results, and cancelling tasks. The agent is still `fake-v1`: it does not edit files or execute a real coding agent. Browser-local history remembers project/task IDs for that particular URL. A new tunnel hostname has separate browser history; the underlying tasks remain in PostgreSQL.
+The mobile interface opens into a project-launching Home without a bottom navigation bar, with profile personalization, recent work, owned search and project metadata. Opening a project restores Chat. The existing project/task history, simulator, cancellation and review editor are preserved. The default public task agent is `fake-v1`: it does not edit files or execute a real coding agent. Real-agent task submissions and public chat dispatch remain blocked. History comes from PostgreSQL and is restored after signing in, including at a new tunnel hostname with the same configured owner. Files supports review snapshots and conflict-safe edits, independent of the live checkout. See [the Home contract](home-launcher.md), [mobile-web contract](mobile-web.md) and [workspace boundaries](workspace-architecture.md).
+
+The Project chat subpage now displays recorded native CLI conversations and offers project-context/transcript downloads. Public chat send is denied independently of simulated task submission. See [the local relay instructions](chat-relay.md).
 
 ## This laptop's layout
 
