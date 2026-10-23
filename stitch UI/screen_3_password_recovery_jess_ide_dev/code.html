@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Jess IDE Dev - Password Recovery</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-tertiary": "#482900",
+            "inverse-on-surface": "#312f37",
+            "on-surface-variant": "#cbc3d7",
+            "surface-bright": "#3a3840",
+            "on-primary": "#3c0091",
+            "tertiary-container": "#ca801e",
+            "on-secondary-container": "#baabf3",
+            "status-error": "#F87171",
+            "text-primary": "#F5F3FA",
+            "status-success": "#34D399",
+            "text-secondary": "#A6A1B3",
+            "outline": "#958ea0",
+            "secondary-fixed": "#e7deff",
+            "on-surface": "#e5e1eb",
+            "secondary-container": "#4a3d7c",
+            "outline-variant": "#494454",
+            "on-background": "#e5e1eb",
+            "primary-container": "#a078ff",
+            "surface-dim": "#131319",
+            "on-tertiary-container": "#3f2300",
+            "surface-variant": "#35343c",
+            "surface-container-lowest": "#0e0d14",
+            "surface-main": "#1C1A24",
+            "error": "#ffb4ab",
+            "on-primary-container": "#340080",
+            "surface-container": "#201f26",
+            "status-warning": "#FBBF24",
+            "inverse-surface": "#e5e1eb",
+            "tertiary-fixed-dim": "#ffb869",
+            "tertiary-fixed": "#ffdcbb",
+            "status-info": "#60A5FA",
+            "surface-container-highest": "#35343c",
+            "border-subtle": "#353140",
+            "error-container": "#93000a",
+            "on-secondary-fixed-variant": "#4a3d7c",
+            "on-primary-fixed": "#23005c",
+            "on-primary-fixed-variant": "#5516be",
+            "primary-fixed": "#e9ddff",
+            "surface-container-low": "#1c1b22",
+            "on-error-container": "#ffdad6",
+            "on-error": "#690005",
+            "inverse-primary": "#6d3bd7",
+            "on-secondary": "#332664",
+            "background": "#131319",
+            "surface": "#131319",
+            "on-tertiary-fixed-variant": "#673d00",
+            "surface-container-high": "#2a2931",
+            "primary-fixed-dim": "#d0bcff",
+            "secondary": "#ccbeff",
+            "surface-elevated": "#24222D",
+            "secondary-fixed-dim": "#ccbeff",
+            "tertiary": "#ffb869",
+            "primary": "#d0bcff",
+            "on-secondary-fixed": "#1e0e4e",
+            "surface-tint": "#d0bcff",
+            "on-tertiary-fixed": "#2c1700"
+          },
+          borderRadius: {
+            DEFAULT: "0.125rem",
+            lg: "0.25rem",
+            xl: "0.5rem",
+            full: "0.75rem"
+          },
+          spacing: {
+            "gutter-desktop": "1.5rem",
+            "space-2xl": "2rem",
+            "space-xl": "1.5rem",
+            "margin-desktop": "1.5rem",
+            "space-lg": "1rem",
+            "space-md": "0.75rem",
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            gutter: "1rem",
+            margin: "1rem"
+          },
+          fontFamily: {
+            "body-lg": ["Inter"],
+            "code-md": ["JetBrains Mono"],
+            "body-sm": ["Inter"],
+            "headline-xl-mobile": ["Inter"],
+            "code-sm": ["JetBrains Mono"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "label-sm": ["JetBrains Mono"],
+            "headline-md": ["Inter"],
+            "headline-sm": ["Inter"],
+            "headline-xl": ["Inter"],
+            "body-md": ["Inter"]
+          },
+          fontSize: {
+            "body-lg": ["1rem", { lineHeight: "1.5rem", fontWeight: "400" }],
+            "code-md": ["0.875rem", { lineHeight: "1.375rem", fontWeight: "400" }],
+            "body-sm": ["0.75rem", { lineHeight: "1rem", fontWeight: "400" }],
+            "headline-xl-mobile": ["1.5rem", { lineHeight: "2rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "code-sm": ["0.75rem", { lineHeight: "1.125rem", fontWeight: "400" }],
+            "label-md": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "500" }],
+            "headline-lg": ["1.5rem", { lineHeight: "2rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "label-sm": ["0.6875rem", { lineHeight: "0.875rem", letterSpacing: "0.04em", fontWeight: "500" }],
+            "headline-md": ["1.25rem", { lineHeight: "1.75rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "headline-sm": ["1rem", { lineHeight: "1.5rem", fontWeight: "600" }],
+            "headline-xl": ["2rem", { lineHeight: "2.5rem", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "body-md": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "400" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-text-primary min-h-screen flex flex-col font-body-md text-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- Interactive State Switcher (Technical Demo Ribbon) -->
+<div class="w-full bg-surface-dim border-b border-border-subtle py-1.5 px-space-md text-xs z-50">
+<div class="max-w-screen-xl mx-auto flex flex-wrap items-center justify-between gap-2">
+<div class="flex items-center gap-2">
+<span class="font-code-sm text-code-sm text-status-info flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">tune</span>
+          STATE HARNESS:
+        </span>
+<span class="text-text-secondary text-[11px] hidden sm:inline">Simulate recovery auth vectors:</span>
+</div>
+<div class="flex flex-wrap items-center gap-1.5" id="state-buttons">
+<button class="state-btn active-state px-2 py-0.5 rounded text-[11px] font-code-sm transition-colors border border-[#8B5CF6] bg-[#8B5CF6]/20 text-text-primary" id="btn-state-default" onclick="switchState('state-default')">
+          1: Request Link
+        </button>
+<button class="state-btn px-2 py-0.5 rounded text-[11px] font-code-sm transition-colors border border-border-subtle bg-surface-main text-text-secondary hover:text-text-primary" id="btn-state-sent" onclick="switchState('state-sent')">
+          2: Link Sent
+        </button>
+<button class="state-btn px-2 py-0.5 rounded text-[11px] font-code-sm transition-colors border border-border-subtle bg-surface-main text-text-secondary hover:text-text-primary" id="btn-state-reset" onclick="switchState('state-reset')">
+          3: Set Password
+        </button>
+<button class="state-btn px-2 py-0.5 rounded text-[11px] font-code-sm transition-colors border border-border-subtle bg-surface-main text-text-secondary hover:text-text-primary" id="btn-state-expired" onclick="switchState('state-expired')">
+          4: Expired Link
+        </button>
+<button class="state-btn px-2 py-0.5 rounded text-[11px] font-code-sm transition-colors border border-border-subtle bg-surface-main text-text-secondary hover:text-text-primary" id="btn-state-error" onclick="switchState('state-error')">
+          5: Inline Error
+        </button>
+</div>
+</div>
+</div>
+<!-- Shared TopAppBar -->
+<header class="flex justify-between items-center w-full px-space-lg h-14 bg-surface dark:bg-surface border-b border-border-subtle dark:border-border-subtle sticky top-0 z-40">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded bg-surface-elevated border border-border-subtle flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="font-headline-md text-headline-md font-semibold text-text-primary tracking-tight">Jess IDE</span>
+<span class="font-code-sm text-code-sm text-secondary bg-surface-elevated px-1.5 py-0.5 rounded border border-border-subtle">v0.9.4-beta</span>
+</div>
+</div>
+<!-- Right Controls -->
+<div class="flex items-center space-x-3">
+<div class="hidden sm:flex items-center space-x-2 px-2 py-1 rounded bg-surface-main border border-border-subtle">
+<span class="inline-block w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
+<span class="font-code-sm text-code-sm text-text-secondary">AUTH_PERIMETER_ONLINE</span>
+</div>
+<button class="w-8 h-8 rounded flex items-center justify-center text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors duration-150 ease-in-out border border-transparent hover:border-border-subtle" title="Documentation &amp; Security Help">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+</button>
+</div>
+</header>
+<!-- Main Recovery Authentication Viewport -->
+<main class="flex-1 flex flex-col justify-center items-center px-4 py-8 sm:py-12">
+<div class="w-full max-w-[420px] transition-all duration-200">
+<!-- Surface Card -->
+<div class="bg-surface-main border border-border-subtle rounded-xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+<!-- Subtle Top Accent Stroke -->
+<div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#8B5CF6] to-transparent"></div>
+<!-- ============================================== -->
+<!-- STATE 1: DEFAULT (REQUEST RESET LINK)           -->
+<!-- ============================================== -->
+<section class="state-container space-y-6" id="state-default">
+<div class="flex flex-col items-center text-center space-y-3">
+<div class="w-12 h-12 rounded-xl bg-surface-elevated border border-border-subtle flex items-center justify-center text-[#C4B5FD] shadow-inner">
+<span class="material-symbols-outlined text-[26px]">key</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-semibold text-text-primary tracking-tight">Reset your password</h1>
+<p class="font-body-sm text-body-sm text-text-secondary mt-1 text-balance">
+                Enter the email address associated with your account. If an account matches, we'll send instructions to reset your password.
+              </p>
+</div>
+</div>
+<form class="space-y-4" onsubmit="event.preventDefault(); switchState('state-sent');">
+<div class="space-y-1.5 text-left">
+<label class="block font-label-md text-label-md text-text-primary" for="recovery-email">
+                Email address
+              </label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-text-secondary">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+</span>
+<input class="w-full h-12 bg-surface-main border border-border-subtle rounded text-text-primary pl-10 pr-3 font-code-md text-code-md focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all" id="recovery-email" name="email" placeholder="you@example.com" required="" type="email" value="lead.dev@workspace.internal"/>
+</div>
+</div>
+<!-- Primary Action -->
+<button class="w-full h-12 bg-[#8B5CF6] hover:bg-[#7C3AED] active:bg-[#6D28D9] text-[#F5F3FA] font-label-md text-label-md rounded flex items-center justify-center space-x-2 transition-colors duration-150 font-medium focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:ring-offset-2 focus:ring-offset-surface-main cursor-pointer" type="submit">
+<span>Send reset link</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</form>
+<!-- Navigation Back Link -->
+<div class="text-center pt-1">
+<a class="inline-flex items-center space-x-1.5 font-label-md text-label-md text-text-secondary hover:text-text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+<span>Back to sign in</span>
+</a>
+</div>
+<!-- Zero-Enumeration Security Banner -->
+<div class="p-3 bg-surface-elevated/70 border border-border-subtle rounded-lg text-left">
+<div class="flex items-start space-x-2.5">
+<span class="material-symbols-outlined text-[16px] text-secondary mt-0.5 shrink-0">shield</span>
+<p class="font-code-sm text-[11px] leading-relaxed text-text-secondary">
+<span class="text-text-primary font-medium">ZERO-ENUMERATION RECOVERY:</span> For security perimeter integrity, responses are identical regardless of whether an email exists.
+              </p>
+</div>
+</div>
+</section>
+<!-- ============================================== -->
+<!-- STATE 2: LINK SENT (REQUEST ACCEPTED)           -->
+<!-- ============================================== -->
+<section class="state-container hidden space-y-6" id="state-sent">
+<div class="flex flex-col items-center text-center space-y-3">
+<div class="w-12 h-12 rounded-xl bg-status-success/10 border border-status-success/30 flex items-center justify-center text-status-success">
+<span class="material-symbols-outlined text-[26px]">mark_email_read</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-semibold text-text-primary tracking-tight">Check your inbox</h1>
+<p class="font-body-sm text-body-sm text-text-secondary mt-1">
+                If an account matches that email, reset instructions will be sent. The link expires in <span class="text-text-primary font-medium">15 minutes</span>.
+              </p>
+</div>
+</div>
+<!-- Masked Token Preview Pill -->
+<div class="bg-surface-elevated border border-border-subtle rounded p-3 text-center space-y-1">
+<div class="font-code-sm text-code-sm text-text-secondary">DISPATCHED IDENTIFIER</div>
+<div class="font-code-md text-code-md text-status-success flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+<span>l***.dev@workspace.internal</span>
+</div>
+</div>
+<!-- Actions -->
+<div class="space-y-3 pt-2">
+<button class="w-full h-12 bg-transparent border border-border-subtle hover:bg-surface-elevated text-text-primary font-label-md text-label-md rounded flex items-center justify-center space-x-2 transition-colors cursor-pointer" onclick="alert('Resend link dispatched. Security cooldown 60s active.');" type="button">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+<span>Resend email</span>
+</button>
+<button class="w-full h-12 bg-surface-elevated hover:bg-surface-variant text-text-secondary hover:text-text-primary font-label-md text-label-md rounded flex items-center justify-center space-x-1.5 transition-colors cursor-pointer" onclick="switchState('state-default')" type="button">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+<span>Back to sign in</span>
+</button>
+</div>
+<div class="p-2.5 bg-status-info/10 border border-status-info/20 rounded text-center">
+<span class="font-code-sm text-[11px] text-status-info flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]">info</span>
+              Check your spam folder or workspace relay rules.
+            </span>
+</div>
+</section>
+<!-- ============================================== -->
+<!-- STATE 3: SET NEW PASSWORD                       -->
+<!-- ============================================== -->
+<section class="state-container hidden space-y-5" id="state-reset">
+<div class="flex flex-col items-center text-center space-y-2.5">
+<div class="w-12 h-12 rounded-xl bg-surface-elevated border border-[#8B5CF6]/40 flex items-center justify-center text-[#8B5CF6]">
+<span class="material-symbols-outlined text-[26px]">lock_open</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-semibold text-text-primary tracking-tight">Choose a new password</h1>
+<p class="font-body-sm text-body-sm text-text-secondary mt-1">
+                Enter a strong password for your Jess IDE workspace account.
+              </p>
+</div>
+</div>
+<form class="space-y-4" onsubmit="event.preventDefault(); alert('Password successfully updated. Redirecting to workspace session...'); switchState('state-default');">
+<!-- New Password -->
+<div class="space-y-1.5 text-left">
+<label class="block font-label-md text-label-md text-text-primary" for="new-pw">
+                New password
+              </label>
+<div class="relative">
+<input class="w-full h-11 bg-surface-main border border-border-subtle rounded text-text-primary px-3 pr-10 font-code-md text-code-md focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all" id="new-pw" placeholder="••••••••••••" required="" type="password" value="JessDeveloper2025#"/>
+<button class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-secondary hover:text-text-primary" onclick="togglePasswordVisibility('new-pw', this)" type="button">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+</div>
+</div>
+<!-- Confirm Password -->
+<div class="space-y-1.5 text-left">
+<label class="block font-label-md text-label-md text-text-primary" for="confirm-pw">
+                Confirm new password
+              </label>
+<div class="relative">
+<input class="w-full h-11 bg-surface-main border border-border-subtle rounded text-text-primary px-3 pr-10 font-code-md text-code-md focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all" id="confirm-pw" placeholder="••••••••••••" required="" type="password" value="JessDeveloper2025#"/>
+<button class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-secondary hover:text-text-primary" onclick="togglePasswordVisibility('confirm-pw', this)" type="button">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+</div>
+</div>
+<!-- Password Requirements Checklist -->
+<div class="p-3 bg-surface-elevated border border-border-subtle rounded-lg text-left space-y-1.5">
+<div class="font-code-sm text-[11px] text-text-secondary tracking-wider">COMPLIANCE CRITERIA</div>
+<div class="space-y-1 text-xs">
+<div class="flex items-center space-x-2 text-status-success font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>Minimum 12 characters</span>
+</div>
+<div class="flex items-center space-x-2 text-status-success font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>Contains uppercase letter</span>
+</div>
+<div class="flex items-center space-x-2 text-status-success font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>Contains symbol or numeric character</span>
+</div>
+</div>
+</div>
+<!-- Submit Button -->
+<button class="w-full h-12 bg-[#8B5CF6] hover:bg-[#7C3AED] active:bg-[#6D28D9] text-[#F5F3FA] font-label-md text-label-md rounded flex items-center justify-center space-x-2 transition-colors duration-150 font-medium focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:ring-offset-2 focus:ring-offset-surface-main cursor-pointer" type="submit">
+<span class="material-symbols-outlined text-[18px]">check</span>
+<span>Update password</span>
+</button>
+</form>
+</section>
+<!-- ============================================== -->
+<!-- STATE 4: INVALID / EXPIRED LINK                 -->
+<!-- ============================================== -->
+<section class="state-container hidden space-y-6" id="state-expired">
+<div class="flex flex-col items-center text-center space-y-3">
+<div class="w-12 h-12 rounded-xl bg-status-warning/10 border border-status-warning/30 flex items-center justify-center text-status-warning">
+<span class="material-symbols-outlined text-[26px]">warning</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-semibold text-text-primary tracking-tight">Invalid or expired link</h1>
+<p class="font-body-sm text-body-sm text-text-secondary mt-1">
+                This password reset link has expired or has already been used. Security tokens are valid for one-time use within 15 minutes.
+              </p>
+</div>
+</div>
+<div class="p-3 bg-surface-elevated border border-border-subtle rounded text-left font-code-sm text-xs space-y-1 text-text-secondary">
+<div class="flex justify-between">
+<span>ERR_CODE:</span>
+<span class="text-status-warning">TOKEN_EXPIRED_OR_STALE</span>
+</div>
+<div class="flex justify-between">
+<span>ACTION:</span>
+<span class="text-text-primary">ISSUE_NEW_DISPATCH</span>
+</div>
+</div>
+<!-- Primary & Secondary Actions -->
+<div class="space-y-3 pt-2">
+<button class="w-full h-12 bg-[#8B5CF6] hover:bg-[#7C3AED] text-[#F5F3FA] font-label-md text-label-md rounded flex items-center justify-center space-x-2 transition-colors cursor-pointer" onclick="switchState('state-default')" type="button">
+<span class="material-symbols-outlined text-[18px]">replay</span>
+<span>Request new link</span>
+</button>
+<a class="w-full h-12 bg-transparent border border-border-subtle hover:bg-surface-elevated text-text-secondary hover:text-text-primary font-label-md text-label-md rounded flex items-center justify-center space-x-1.5 transition-colors" href="#" onclick="switchState('state-default')">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+<span>Back to sign in</span>
+</a>
+</div>
+</section>
+<!-- ============================================== -->
+<!-- STATE 5: INLINE ERROR VARIANT                   -->
+<!-- ============================================== -->
+<section class="state-container hidden space-y-5" id="state-error">
+<div class="flex flex-col items-center text-center space-y-2.5">
+<div class="w-12 h-12 rounded-xl bg-status-error/10 border border-status-error/30 flex items-center justify-center text-status-error">
+<span class="material-symbols-outlined text-[26px]">error_outline</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-semibold text-text-primary tracking-tight">Reset your password</h1>
+<p class="font-body-sm text-body-sm text-text-secondary mt-1">
+                Enter your registered developer account email.
+              </p>
+</div>
+</div>
+<!-- Error Alert Banner -->
+<div class="p-3 bg-status-error/10 border border-status-error/20 rounded-lg flex items-start space-x-2.5 text-left">
+<span class="material-symbols-outlined text-status-error text-[18px] shrink-0 mt-0.5">report_problem</span>
+<div>
+<div class="font-code-sm text-code-sm text-status-error font-medium">DISPATCH_FAILED</div>
+<div class="font-body-sm text-[12px] text-text-secondary mt-0.5">
+                Target RFC-5322 format failure or blocked relay domain.
+              </div>
+</div>
+</div>
+<form class="space-y-4" onsubmit="event.preventDefault(); switchState('state-sent');">
+<div class="space-y-1 text-left">
+<div class="flex justify-between items-center">
+<label class="block font-label-md text-label-md text-status-error" for="error-email">
+                  Email address
+                </label>
+<span class="font-code-sm text-[11px] text-status-error">ERR: MALFORMED_INPUT</span>
+</div>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-status-error">
+<span class="material-symbols-outlined text-[18px]">priority_high</span>
+</span>
+<input class="w-full h-12 bg-surface-main border border-status-error rounded text-text-primary pl-10 pr-3 font-code-md text-code-md focus:outline-none focus:ring-1 focus:ring-status-error transition-all" id="error-email" type="text" value="invalid-format-relay@"/>
+</div>
+<p class="font-body-sm text-[12px] text-status-error flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]">cancel</span>
+                Please enter a valid developer email address
+              </p>
+</div>
+<!-- Primary Action -->
+<button class="w-full h-12 bg-[#8B5CF6] hover:bg-[#7C3AED] text-[#F5F3FA] font-label-md text-label-md rounded flex items-center justify-center space-x-2 transition-colors cursor-pointer" type="submit">
+<span>Retry reset request</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</form>
+<!-- Back Link -->
+<div class="text-center pt-1">
+<a class="inline-flex items-center space-x-1.5 font-label-md text-label-md text-text-secondary hover:text-text-primary transition-colors" href="#" onclick="switchState('state-default')">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+<span>Back to sign in</span>
+</a>
+</div>
+</section>
+</div>
+<!-- Single-line trust credential below card -->
+<div class="mt-4 text-center font-code-sm text-[11px] text-text-secondary/70 flex items-center justify-center space-x-2">
+<span class="material-symbols-outlined text-[14px]">verified_user</span>
+<span>256-bit TLS Orchestrated Vault Tokenization</span>
+</div>
+</div>
+</main>
+<!-- Technical Footer Metadata -->
+<footer class="w-full border-t border-border-subtle bg-surface px-space-lg py-3 text-xs">
+<div class="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+<!-- Cluster and Node Telemetry -->
+<div class="flex items-center space-x-4 font-code-sm text-code-sm text-text-secondary">
+<div class="flex items-center space-x-1.5">
+<span class="inline-block w-2 h-2 rounded-full bg-status-success"></span>
+<span>Orchestrator: <span class="text-text-primary">Operational</span></span>
+</div>
+<span class="text-border-subtle">|</span>
+<div>Cluster: <span class="text-text-primary">us-east-2</span></div>
+<span class="text-border-subtle hidden md:inline">|</span>
+<div class="hidden md:inline">Latency: <span class="text-status-success">18ms</span></div>
+</div>
+<!-- Legal / Security Metadata -->
+<div class="flex items-center space-x-3 text-text-secondary font-code-sm text-[11px]">
+<span>Jess Runtime Environment</span>
+<span>•</span>
+<a class="hover:text-text-primary transition-colors" href="#">Security Protocol</a>
+<span>•</span>
+<a class="hover:text-text-primary transition-colors" href="#">Incident Status</a>
+</div>
+</div>
+</footer>
+<!-- State Toggle Vanilla JavaScript -->
+<script>
+    function switchState(stateId) {
+      // Hide all states
+      const states = document.querySelectorAll('.state-container');
+      states.forEach(el => el.classList.add('hidden'));
+
+      // Show selected state
+      const target = document.getElementById(stateId);
+      if (target) {
+        target.classList.remove('hidden');
+      }
+
+      // Update button styling in harness ribbon
+      const buttons = document.querySelectorAll('.state-btn');
+      buttons.forEach(btn => {
+        btn.classList.remove('border-[#8B5CF6]', 'bg-[#8B5CF6]/20', 'text-text-primary');
+        btn.classList.add('border-border-subtle', 'bg-surface-main', 'text-text-secondary');
+      });
+
+      const activeBtn = document.getElementById('btn-' + stateId);
+      if (activeBtn) {
+        activeBtn.classList.remove('border-border-subtle', 'bg-surface-main', 'text-text-secondary');
+        activeBtn.classList.add('border-[#8B5CF6]', 'bg-[#8B5CF6]/20', 'text-text-primary');
+      }
+    }
+
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon = btn.querySelector('.material-symbols-outlined');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.textContent = 'visibility_off';
+      } else {
+        input.type = 'password';
+        icon.textContent = 'visibility';
+      }
+    }
+  </script>
+</body></html>

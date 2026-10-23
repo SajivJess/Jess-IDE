@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Jess IDE Dev - Technology Stack Selection</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-fixed-variant": "#4a3d7c",
+            "on-tertiary-fixed": "#2c1700",
+            "error-container": "#93000a",
+            "on-tertiary": "#482900",
+            "status-warning": "#FBBF24",
+            "background": "#15141B",
+            "surface-container-low": "#1c1b22",
+            "inverse-on-surface": "#312f37",
+            "on-primary-fixed": "#23005c",
+            "secondary-container": "#4a3d7c",
+            "on-primary-fixed-variant": "#5516be",
+            "surface-main": "#1C1A24",
+            "tertiary-fixed-dim": "#ffb869",
+            "primary-fixed": "#e9ddff",
+            "primary": "#8B5CF6",
+            "text-primary": "#F5F3FA",
+            "tertiary-fixed": "#ffdcbb",
+            "primary-container": "#a078ff",
+            "on-secondary-fixed": "#1e0e4e",
+            "surface-tint": "#d0bcff",
+            "surface-container-highest": "#35343c",
+            "tertiary-container": "#ca801e",
+            "tertiary": "#ffb869",
+            "on-secondary-container": "#baabf3",
+            "inverse-surface": "#e5e1eb",
+            "status-success": "#34D399",
+            "surface-container": "#201f26",
+            "surface": "#131319",
+            "text-secondary": "#A6A1B3",
+            "on-primary-container": "#340080",
+            "surface-container-high": "#2a2931",
+            "on-background": "#e5e1eb",
+            "secondary-fixed-dim": "#ccbeff",
+            "secondary": "#ccbeff",
+            "surface-dim": "#131319",
+            "on-tertiary-fixed-variant": "#673d00",
+            "status-error": "#F87171",
+            "on-surface": "#e5e1eb",
+            "on-tertiary-container": "#3f2300",
+            "status-info": "#60A5FA",
+            "on-secondary": "#332664",
+            "surface-elevated": "#24222D",
+            "on-primary": "#3c0091",
+            "on-error-container": "#ffdad6",
+            "surface-bright": "#3a3840",
+            "outline": "#958ea0",
+            "surface-variant": "#35343c",
+            "inverse-primary": "#6d3bd7",
+            "on-surface-variant": "#cbc3d7",
+            "primary-fixed-dim": "#d0bcff",
+            "on-error": "#690005",
+            "border-subtle": "#353140",
+            "outline-variant": "#494454",
+            "surface-container-lowest": "#0e0d14",
+            "secondary-fixed": "#e7deff",
+            "error": "#ffb4ab"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "margin": "1rem",
+            "gutter": "1rem",
+            "space-lg": "1rem",
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            "space-2xl": "2rem",
+            "gutter-desktop": "1.5rem",
+            "space-xl": "1.5rem",
+            "margin-desktop": "1.5rem",
+            "space-md": "0.75rem"
+          },
+          "fontFamily": {
+            "body-lg": ["Inter"],
+            "label-sm": ["JetBrains Mono"],
+            "code-md": ["JetBrains Mono"],
+            "label-md": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-xl": ["Inter"],
+            "headline-xl-mobile": ["Inter"],
+            "headline-lg": ["Inter"],
+            "headline-md": ["Inter"],
+            "code-sm": ["JetBrains Mono"],
+            "headline-sm": ["Inter"],
+            "body-sm": ["Inter"]
+          },
+          "fontSize": {
+            "body-lg": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }],
+            "label-sm": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "code-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }],
+            "label-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "500" }],
+            "body-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "400" }],
+            "headline-xl": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-xl-mobile": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-lg": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "code-sm": ["0.75rem", { "lineHeight": "1.125rem", "fontWeight": "400" }],
+            "headline-sm": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "600" }],
+            "body-sm": ["0.75rem", { "lineHeight": "1rem", "fontWeight": "400" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-text-primary antialiased min-h-screen flex flex-col font-body-md text-body-md selection:bg-primary selection:text-white">
+<!-- TOP SHELL: Shared Component TopAppBar -->
+<header class="flex justify-between items-center w-full px-space-lg h-14 bg-surface dark:bg-surface border-b border-border-subtle dark:border-border-subtle sticky top-0 z-50">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-lg bg-surface-elevated border border-border-subtle flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="font-headline-md text-headline-md font-semibold text-text-primary tracking-tight">Jess IDE</span>
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-surface-elevated border border-border-subtle font-code-sm text-code-sm text-text-secondary">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse"></span>
+          host:nagercoil
+        </span>
+</div>
+</div>
+<div class="flex items-center space-x-3">
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-surface-elevated text-text-secondary border border-border-subtle hidden sm:inline-block">v3.1.2-edge</span>
+<button aria-label="Help" class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors duration-150 ease-in-out">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+</button>
+</div>
+</header>
+<!-- INTERACTIVE STATE SWITCHER BAR (Demo Harness) -->
+<aside class="w-full bg-surface-main border-b border-border-subtle px-space-lg py-2 overflow-x-auto select-none">
+<div class="max-w-4xl mx-auto flex items-center justify-between gap-3 text-nowrap">
+<div class="flex items-center gap-1.5 text-text-secondary">
+<span class="material-symbols-outlined text-[16px] text-primary">tune</span>
+<span class="font-label-sm text-label-sm tracking-wide">STATE PRESET:</span>
+</div>
+<div class="flex items-center gap-1 font-label-sm text-label-sm" id="presetBar">
+<button class="px-2.5 py-1 rounded-lg transition-colors border border-primary bg-primary/10 text-primary font-medium" id="tab-suggested" onclick="setPreset('suggested')">Default (Suggested)</button>
+<button class="px-2.5 py-1 rounded-lg transition-colors border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary" id="tab-customized" onclick="setPreset('customized')">Customized / Selected</button>
+<button class="px-2.5 py-1 rounded-lg transition-colors border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary" id="tab-confirmed" onclick="setPreset('confirmed')">Confirmed State</button>
+<button class="px-2.5 py-1 rounded-lg transition-colors border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary" id="tab-incompatible" onclick="setPreset('incompatible')">Incompatible Warning</button>
+<button class="px-2.5 py-1 rounded-lg transition-colors border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary" id="tab-pending" onclick="setPreset('pending')">Pending / Empty</button>
+</div>
+</div>
+</aside>
+<!-- MAIN SCROLLABLE CONTENT CANVAS -->
+<main class="flex-1 w-full max-w-4xl mx-auto px-space-lg py-6 space-y-6 pb-36">
+<!-- WIZARD STEP NAVIGATION & TITLE BLOCK -->
+<section class="space-y-3">
+<div class="flex items-center justify-between flex-wrap gap-2">
+<a class="inline-flex items-center gap-1.5 text-text-secondary hover:text-text-primary font-label-md text-label-md transition-colors group" href="#screen-10">
+<span class="material-symbols-outlined text-[18px] transition-transform group-hover:-translate-x-0.5">arrow_back</span>
+<span>&lt; Idea Analysis</span>
+</a>
+<div class="flex items-center gap-2">
+<span class="font-code-sm text-code-sm text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg">Step 4 of 5 · Ideation Path</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-surface-elevated text-text-secondary border border-border-subtle">DEMO DATA · SIMULATED SPECIFICATION</span>
+</div>
+</div>
+<div class="space-y-1 pt-1">
+<h1 class="font-headline-xl text-headline-xl text-text-primary tracking-tight">Choose your technology stack</h1>
+<p class="font-body-md text-body-md text-text-secondary">Review the suggested technologies and adjust them to fit your project.</p>
+</div>
+<!-- Progressive Workflow Pill Tracker -->
+<div class="grid grid-cols-5 gap-1.5 pt-2">
+<div class="h-1 rounded-full bg-status-success" title="Step 1: Workspace Initialization (Done)"></div>
+<div class="h-1 rounded-full bg-status-success" title="Step 2: Core Concept &amp; Scope (Done)"></div>
+<div class="h-1 rounded-full bg-status-success" title="Step 3: Idea Analysis (Done)"></div>
+<div class="h-1 rounded-full bg-primary" title="Step 4: Technology Stack (Active)"></div>
+<div class="h-1 rounded-full bg-border-subtle" title="Step 5: Implementation Plan (Next)"></div>
+</div>
+</section>
+<!-- INCOMPATIBILITY / INTEGRITY WARNING CALLOUT BANNER -->
+<section class="hidden rounded-xl border border-status-error/40 bg-status-error/10 p-4 transition-all" id="incompatibleAlert">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-status-error text-[20px] shrink-0 mt-0.5">error_outline</span>
+<div class="space-y-1">
+<h2 class="font-headline-sm text-headline-sm text-status-error">Incompatible Stack Detected</h2>
+<p class="font-body-sm text-body-sm text-text-primary/90">
+            Selecting <span class="font-code-sm text-code-sm px-1 py-0.5 rounded bg-surface-elevated text-status-error">PostgreSQL</span> requires an external background daemon process, conflicting with the zero-dependency bare-metal edge constraint defined in <span class="text-text-primary font-medium">Idea Analysis (Step 3)</span>.
+          </p>
+<div class="pt-1 flex items-center gap-3">
+<button class="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-1" onclick="revertPostgres()">
+<span class="material-symbols-outlined text-[14px]">undo</span> Revert to BoltDB + SQLite
+            </button>
+<span class="text-border-subtle">|</span>
+<span class="font-label-sm text-label-sm text-text-secondary">Expected memory footprint exceeds node budget by +140MB</span>
+</div>
+</div>
+</div>
+</section>
+<!-- ARCHITECTURE SYNTHESIS ACCORDION (Why this stack?) -->
+<section class="rounded-xl border border-border-subtle bg-surface-main overflow-hidden">
+<details class="group" open="">
+<summary class="flex items-center justify-between p-4 cursor-pointer select-none bg-surface-main hover:bg-surface-elevated/40 transition-colors">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-[20px]">account_tree</span>
+<span class="font-headline-sm text-headline-sm text-text-primary">Why this stack? (AI Architecture Synthesis)</span>
+</div>
+<span class="material-symbols-outlined text-text-secondary group-open:rotate-180 transition-transform duration-200">expand_more</span>
+</summary>
+<div class="px-4 pb-4 pt-1 border-t border-border-subtle text-text-secondary space-y-3 font-body-sm text-body-sm bg-surface-main/60">
+<p>
+            Based on your problem statement analyzed in <span class="text-text-primary font-medium">Step 3</span>, this orchestration platform targets constrained edge nodes running unsupervised on low-power bare metal.
+          </p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+<div class="p-3 rounded-lg bg-surface-elevated border border-border-subtle">
+<div class="font-code-sm text-code-sm text-status-success font-medium flex items-center gap-1.5 mb-1">
+<span class="material-symbols-outlined text-[14px]">bolt</span> Zero-Dependency Run
+              </div>
+<p class="text-text-secondary font-body-sm text-body-sm">Go 1.22 compiles directly into a standalone CGO-free binary without runtime engines.</p>
+</div>
+<div class="p-3 rounded-lg bg-surface-elevated border border-border-subtle">
+<div class="font-code-sm text-code-sm text-status-info font-medium flex items-center gap-1.5 mb-1">
+<span class="material-symbols-outlined text-[14px]">speed</span> Sub-2ms Latency
+              </div>
+<p class="text-text-secondary font-body-sm text-body-sm">Antigravity daemon utilizes bidirectional local WebSockets on port :8088 directly over mTLS.</p>
+</div>
+<div class="p-3 rounded-lg bg-surface-elevated border border-border-subtle">
+<div class="font-code-sm text-code-sm text-status-warning font-medium flex items-center gap-1.5 mb-1">
+<span class="material-symbols-outlined text-[14px]">sd_storage</span> Local Resilience
+              </div>
+<p class="text-text-secondary font-body-sm text-body-sm">Embedded BoltDB key-value stores safeguard persistent daemon queues during network blackouts.</p>
+</div>
+</div>
+</div>
+</details>
+</section>
+<!-- CORE STACK CATEGORIES LIST -->
+<div class="space-y-4" id="categoriesContainer">
+<!-- 1. Frontend / Client -->
+<article class="p-4 sm:p-5 rounded-xl border border-border-subtle bg-surface-main transition-colors" id="card-frontend">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">devices</span>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">1. Frontend / Client</h2>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-status-warning/10 text-status-warning border border-status-warning/20" id="badge-frontend">
+<span class="material-symbols-outlined text-[12px]">auto_awesome</span> Suggested
+            </span>
+<div class="relative">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary font-code-sm text-code-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer" id="select-frontend" onchange="updateCategory('frontend', this.value)">
+<option selected="" value="react">React 18 + Tailwind CSS (Mobile Web PWA)</option>
+<option value="svelte">SvelteKit 2.0 (SSR + Lightweight Client)</option>
+<option value="vanilla">Vanilla Web Components (Zero Build)</option>
+<option value="flutter">Flutter Web (CanvasKit)</option>
+<option value="pending">Not decided yet</option>
+</select>
+</div>
+</div>
+</div>
+<div class="space-y-2 border-t border-border-subtle pt-3">
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-text-secondary shrink-0 sm:w-24">Rationale:</span>
+<p class="text-text-primary font-body-sm text-body-sm" id="rationale-frontend">Matches low-latency responsive dashboard requirement with mobile touch optimization.</p>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-status-warning shrink-0 sm:w-24">Trade-offs:</span>
+<p class="text-text-secondary font-body-sm text-body-sm" id="tradeoffs-frontend">Requires node runtime build step; larger client bundle than vanilla JS.</p>
+</div>
+<div class="flex items-center gap-2 pt-1 font-code-sm text-code-sm text-text-secondary">
+<span class="text-status-info">Target runtime:</span>
+<code class="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-subtle text-text-primary">Node 20.x LTS / Vite 5.x</code>
+</div>
+</div>
+</article>
+<!-- 2. Backend / API -->
+<article class="p-4 sm:p-5 rounded-xl border border-border-subtle bg-surface-main transition-colors" id="card-backend">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">dns</span>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">2. Backend / API</h2>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-elevated text-text-secondary border border-border-subtle hidden md:inline">Aligned with daemon spec</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-status-warning/10 text-status-warning border border-status-warning/20" id="badge-backend">
+<span class="material-symbols-outlined text-[12px]">auto_awesome</span> Suggested
+            </span>
+<div class="relative">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary font-code-sm text-code-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer" id="select-backend" onchange="updateCategory('backend', this.value)">
+<option selected="" value="go">Go 1.22+ (Native Goroutines &amp; BoltDB)</option>
+<option value="rust">Rust 1.78 (Tokio async daemon)</option>
+<option value="python">FastAPI / Python 3.12 (Uvicorn)</option>
+<option value="pending">Not decided yet</option>
+</select>
+</div>
+</div>
+</div>
+<div class="space-y-2 border-t border-border-subtle pt-3">
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-text-secondary shrink-0 sm:w-24">Rationale:</span>
+<p class="text-text-primary font-body-sm text-body-sm" id="rationale-backend">Zero-dependency static binary execution on low-resource edge bare-metal nodes.</p>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-status-warning shrink-0 sm:w-24">Trade-offs:</span>
+<p class="text-text-secondary font-body-sm text-body-sm" id="tradeoffs-backend">Strict type constraints; manual CGO-free build flags.</p>
+</div>
+<div class="flex items-center gap-2 pt-1 font-code-sm text-code-sm text-text-secondary">
+<span class="text-status-info">Build target:</span>
+<code class="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-subtle text-text-primary">CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w"</code>
+</div>
+</div>
+</article>
+<!-- 3. Database & Storage -->
+<article class="p-4 sm:p-5 rounded-xl border border-border-subtle bg-surface-main transition-colors" id="card-db">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">storage</span>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">3. Database &amp; Storage</h2>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-status-warning/10 text-status-warning border border-status-warning/20" id="badge-db">
+<span class="material-symbols-outlined text-[12px]">auto_awesome</span> Suggested
+            </span>
+<div class="relative">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary font-code-sm text-code-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer" id="select-db" onchange="updateCategory('db', this.value)">
+<option selected="" value="boltdb">BoltDB (Embedded KV) + Local SQLite</option>
+<option value="sqlite">SQLite 3 (WAL mode only)</option>
+<option value="postgres">PostgreSQL 16 (Containerized Server)</option>
+<option value="redis">Redis 7.2 (Standalone in-memory)</option>
+<option value="pending">Not decided yet</option>
+</select>
+</div>
+</div>
+</div>
+<div class="space-y-2 border-t border-border-subtle pt-3">
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-text-secondary shrink-0 sm:w-24">Rationale:</span>
+<p class="text-text-primary font-body-sm text-body-sm" id="rationale-db">Embedded zero-server storage ensures 100% offline edge node resilience.</p>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-status-warning shrink-0 sm:w-24">Trade-offs:</span>
+<p class="text-text-secondary font-body-sm text-body-sm" id="tradeoffs-db">Single-writer constraint; not suited for multi-master cluster replication.</p>
+</div>
+<div class="flex items-center gap-2 pt-1 font-code-sm text-code-sm text-text-secondary">
+<span class="text-status-info">Storage footprint:</span>
+<code class="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-subtle text-text-primary">~12MB baseline resident disk</code>
+</div>
+</div>
+</article>
+<!-- 4. AI & Agent Integration -->
+<article class="p-4 sm:p-5 rounded-xl border border-border-subtle bg-surface-main transition-colors" id="card-ai">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">smart_toy</span>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">4. AI &amp; Agent Integration</h2>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-status-warning/10 text-status-warning border border-status-warning/20" id="badge-ai">
+<span class="material-symbols-outlined text-[12px]">auto_awesome</span> Suggested
+            </span>
+<div class="relative">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary font-code-sm text-code-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer" id="select-ai" onchange="updateCategory('ai', this.value)">
+<option selected="" value="antigravity">Antigravity Agent Runtime v3.1 (Local CLI daemon)</option>
+<option value="ollama">Ollama Edge Local Runner (GGUF quant 4-bit)</option>
+<option value="cloud">External OpenAI / Anthropic API Gateway</option>
+<option value="pending">Not decided yet</option>
+</select>
+</div>
+</div>
+</div>
+<div class="space-y-2 border-t border-border-subtle pt-3">
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-text-secondary shrink-0 sm:w-24">Rationale:</span>
+<p class="text-text-primary font-body-sm text-body-sm" id="rationale-ai">Native bidirectional JSON-RPC over local WebSocket with sub-2ms dispatch latency.</p>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-status-warning shrink-0 sm:w-24">Trade-offs:</span>
+<p class="text-text-secondary font-body-sm text-body-sm" id="tradeoffs-ai">Requires running host agent daemon; zero external cloud fallback.</p>
+</div>
+<div class="flex items-center gap-2 pt-1 font-code-sm text-code-sm text-text-secondary">
+<span class="text-status-info">Protocol:</span>
+<code class="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-subtle text-text-primary">JSON-RPC 2.0 / IPC socket /var/run/jess-agent.sock</code>
+</div>
+</div>
+</article>
+<!-- 5. Deployment & Runtime -->
+<article class="p-4 sm:p-5 rounded-xl border border-border-subtle bg-surface-main transition-colors" id="card-deploy">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">deployed_code</span>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">5. Deployment &amp; Runtime</h2>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-status-warning/10 text-status-warning border border-status-warning/20" id="badge-deploy">
+<span class="material-symbols-outlined text-[12px]">auto_awesome</span> Suggested
+            </span>
+<div class="relative">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary font-code-sm text-code-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer" id="select-deploy" onchange="updateCategory('deploy', this.value)">
+<option selected="" value="systemd">Systemd Unit + Bare-Metal Binary</option>
+<option value="docker">Docker Container (Alpine scratch)</option>
+<option value="podman">Podman Rootless Container</option>
+<option value="nomad">HashiCorp Nomad Micro-agent</option>
+<option value="pending">Not decided yet</option>
+</select>
+</div>
+</div>
+</div>
+<div class="space-y-2 border-t border-border-subtle pt-3">
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-text-secondary shrink-0 sm:w-24">Rationale:</span>
+<p class="text-text-primary font-body-sm text-body-sm" id="rationale-deploy">Zero container overhead, direct hardware access, instant reboot recovery.</p>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-status-warning shrink-0 sm:w-24">Trade-offs:</span>
+<p class="text-text-secondary font-body-sm text-body-sm" id="tradeoffs-deploy">Host OS dependency (Linux amd64/arm64); manual rollbacks without container image cache.</p>
+</div>
+<div class="flex items-center gap-2 pt-1 font-code-sm text-code-sm text-text-secondary">
+<span class="text-status-info">Service Unit:</span>
+<code class="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-subtle text-text-primary">/etc/systemd/system/jess-ide.service</code>
+</div>
+</div>
+</article>
+<!-- 6. Infrastructure & Networking -->
+<article class="p-4 sm:p-5 rounded-xl border border-border-subtle bg-surface-main transition-colors" id="card-net">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">lan</span>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">6. Infrastructure &amp; Networking</h2>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-status-warning/10 text-status-warning border border-status-warning/20" id="badge-net">
+<span class="material-symbols-outlined text-[12px]">auto_awesome</span> Suggested
+            </span>
+<div class="relative">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary font-code-sm text-code-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer" id="select-net" onchange="updateCategory('net', this.value)">
+<option selected="" value="ws">WebSocket (TLS 1.3 mTLS) on port :8088</option>
+<option value="grpc">gRPC + HTTP/2 with protobufs</option>
+<option value="rest">Standard HTTPS REST API (:443)</option>
+<option value="pending">Not decided yet</option>
+</select>
+</div>
+</div>
+</div>
+<div class="space-y-2 border-t border-border-subtle pt-3">
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-text-secondary shrink-0 sm:w-24">Rationale:</span>
+<p class="text-text-primary font-body-sm text-body-sm" id="rationale-net">Enforces local-only trust boundary with strict certificate pinning.</p>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-status-warning shrink-0 sm:w-24">Trade-offs:</span>
+<p class="text-text-secondary font-body-sm text-body-sm" id="tradeoffs-net">Requires local cert distribution; strict firewall rules.</p>
+</div>
+<div class="flex items-center gap-2 pt-1 font-code-sm text-code-sm text-text-secondary">
+<span class="text-status-info">Listener:</span>
+<code class="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-subtle text-text-primary">127.0.0.1:8088 (mTLS pinned)</code>
+</div>
+</div>
+</article>
+</div>
+<!-- REALISTIC DEVELOPER SAFEGUARD ADVISORY -->
+<div class="p-3.5 rounded-xl border border-border-subtle bg-surface-main/80 flex items-start gap-3">
+<span class="material-symbols-outlined text-text-secondary text-[20px] shrink-0 mt-0.5">info</span>
+<p class="font-body-sm text-body-sm text-text-secondary">
+<strong class="text-text-primary font-medium">Workspace Execution Note:</strong> Selecting tools here does not imply they are installed or running yet. Dependencies are provisioned automatically inside the isolated container or host sandbox upon project creation in Step 5.
+      </p>
+</div>
+</main>
+<!-- STICKY ACTION FOOTER (Anchored above mobile safe area) -->
+<footer class="fixed bottom-0 left-0 right-0 z-40 bg-surface-main/95 backdrop-blur-md border-t border-border-subtle px-space-lg py-3">
+<div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+<!-- Secondary Actions and Footnote -->
+<div class="flex items-center justify-between w-full sm:w-auto gap-4 order-2 sm:order-1">
+<div class="flex items-center gap-3">
+<button class="text-text-secondary hover:text-text-primary font-label-md text-label-md flex items-center gap-1 transition-colors" onclick="confirmReset()">
+<span class="material-symbols-outlined text-[16px]">restart_alt</span> Reset suggestions
+          </button>
+<span class="text-border-subtle">·</span>
+<a class="text-text-secondary hover:text-text-primary font-label-md text-label-md transition-colors" href="#screen-10">
+            Back to Analysis
+          </a>
+</div>
+<span class="font-code-sm text-code-sm text-text-secondary block sm:hidden">4/5 · Plan next</span>
+</div>
+<!-- Footnote and Primary Action -->
+<div class="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-4 order-1 sm:order-2">
+<span class="font-code-sm text-code-sm text-text-secondary hidden sm:inline-block">Step 4 of 5 · Next: Implementation Plan</span>
+<button class="w-full sm:w-auto h-12 px-6 rounded-lg bg-primary hover:bg-[#7C3AED] active:bg-[#6D28D9] text-text-primary font-medium flex items-center justify-center gap-2 transition-colors shadow-none" id="btnContinue" onclick="handleContinue()">
+<span>Confirm stack and continue</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</footer>
+<!-- DISCARD CONFIRMATION MODAL -->
+<div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4" id="resetModal">
+<div class="bg-surface-elevated border border-border-subtle rounded-xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+<div class="flex items-center gap-2.5 text-status-warning">
+<span class="material-symbols-outlined text-[22px]">warning</span>
+<h3 class="font-headline-sm text-headline-sm text-text-primary">Reset Stack Suggestions?</h3>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary">
+        This will discard any customized selections and return all 6 categories back to the original Step 3 AI suggested defaults.
+      </p>
+<div class="flex items-center justify-end gap-2 pt-2">
+<button class="px-3.5 py-2 rounded-lg border border-border-subtle text-text-primary hover:bg-surface-main font-label-md text-label-md" onclick="closeModal()">
+          Cancel
+        </button>
+<button class="px-3.5 py-2 rounded-lg bg-status-error text-white font-label-md text-label-md hover:bg-red-600" onclick="executeReset()">
+          Reset to Suggestions
+        </button>
+</div>
+</div>
+</div>
+<!-- JAVASCRIPT STATE LOGIC -->
+<script>
+    const categories = ['frontend', 'backend', 'db', 'ai', 'deploy', 'net'];
+
+    const defaults = {
+      frontend: 'react',
+      backend: 'go',
+      db: 'boltdb',
+      ai: 'antigravity',
+      deploy: 'systemd',
+      net: 'ws'
+    };
+
+    function updateBadge(cat, state) {
+      const badge = document.getElementById(`badge-${cat}`);
+      if (!badge) return;
+
+      if (state === 'suggested') {
+        badge.className = "inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-status-warning/10 text-status-warning border border-status-warning/20";
+        badge.innerHTML = '<span class="material-symbols-outlined text-[12px]">auto_awesome</span> Suggested';
+      } else if (state === 'selected') {
+        badge.className = "inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-primary/10 text-primary border border-primary/30";
+        badge.innerHTML = '<span class="material-symbols-outlined text-[12px]">edit</span> Selected';
+      } else if (state === 'confirmed') {
+        badge.className = "inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-status-success/10 text-status-success border border-status-success/20";
+        badge.innerHTML = '<span class="material-symbols-outlined text-[12px]">check_circle</span> Confirmed';
+      } else if (state === 'pending') {
+        badge.className = "inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-surface-elevated text-text-secondary border border-border-subtle";
+        badge.innerHTML = '<span class="material-symbols-outlined text-[12px]">pending</span> Not decided yet';
+      } else if (state === 'error') {
+        badge.className = "inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-status-error/10 text-status-error border border-status-error/20";
+        badge.innerHTML = '<span class="material-symbols-outlined text-[12px]">warning</span> Incompatible';
+      }
+    }
+
+    function updateCategory(cat, value) {
+      const warningBanner = document.getElementById('incompatibleAlert');
+      if (cat === 'db' && value === 'postgres') {
+        warningBanner.classList.remove('hidden');
+        updateBadge(cat, 'error');
+        return;
+      } else if (cat === 'db') {
+        warningBanner.classList.add('hidden');
+      }
+
+      if (value === 'pending') {
+        updateBadge(cat, 'pending');
+      } else if (value === defaults[cat]) {
+        updateBadge(cat, 'suggested');
+      } else {
+        updateBadge(cat, 'selected');
+      }
+    }
+
+    function revertPostgres() {
+      const dbSelect = document.getElementById('select-db');
+      dbSelect.value = 'boltdb';
+      updateCategory('db', 'boltdb');
+    }
+
+    function highlightPresetTab(id) {
+      const tabs = ['tab-suggested', 'tab-customized', 'tab-confirmed', 'tab-incompatible', 'tab-pending'];
+      tabs.forEach(t => {
+        const el = document.getElementById(t);
+        if (t === `tab-${id}`) {
+          el.className = "px-2.5 py-1 rounded-lg transition-colors border border-primary bg-primary/10 text-primary font-medium";
+        } else {
+          el.className = "px-2.5 py-1 rounded-lg transition-colors border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary";
+        }
+      });
+    }
+
+    function setPreset(state) {
+      highlightPresetTab(state);
+      const warningBanner = document.getElementById('incompatibleAlert');
+      warningBanner.classList.add('hidden');
+
+      if (state === 'suggested') {
+        categories.forEach(cat => {
+          const select = document.getElementById(`select-${cat}`);
+          select.value = defaults[cat];
+          updateBadge(cat, 'suggested');
+        });
+      } else if (state === 'customized') {
+        document.getElementById('select-frontend').value = 'svelte';
+        updateBadge('frontend', 'selected');
+
+        document.getElementById('select-backend').value = 'rust';
+        updateBadge('backend', 'selected');
+
+        document.getElementById('select-db').value = 'sqlite';
+        updateBadge('db', 'selected');
+
+        document.getElementById('select-ai').value = 'antigravity';
+        updateBadge('ai', 'suggested');
+
+        document.getElementById('select-deploy').value = 'docker';
+        updateBadge('deploy', 'selected');
+
+        document.getElementById('select-net').value = 'ws';
+        updateBadge('net', 'suggested');
+      } else if (state === 'confirmed') {
+        categories.forEach(cat => {
+          updateBadge(cat, 'confirmed');
+        });
+      } else if (state === 'incompatible') {
+        document.getElementById('select-db').value = 'postgres';
+        warningBanner.classList.remove('hidden');
+        updateBadge('db', 'error');
+      } else if (state === 'pending') {
+        categories.forEach(cat => {
+          const select = document.getElementById(`select-${cat}`);
+          select.value = 'pending';
+          updateBadge(cat, 'pending');
+        });
+      }
+    }
+
+    function confirmReset() {
+      document.getElementById('resetModal').classList.remove('hidden');
+      document.getElementById('resetModal').classList.add('flex');
+    }
+
+    function closeModal() {
+      document.getElementById('resetModal').classList.add('hidden');
+      document.getElementById('resetModal').classList.remove('flex');
+    }
+
+    function executeReset() {
+      closeModal();
+      setPreset('suggested');
+    }
+
+    function handleContinue() {
+      const btn = document.getElementById('btnContinue');
+      btn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span> Storing stack spec...';
+      setTimeout(() => {
+        alert("Stack confirmed. Transitioning to Step 5: Implementation Plan.");
+        btn.innerHTML = '<span>Confirm stack and continue</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
+      }, 700);
+    }
+  </script>
+</body></html>

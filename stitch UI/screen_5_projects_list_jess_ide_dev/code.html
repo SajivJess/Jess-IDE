@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Jess IDE - Projects</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "outline-variant": "#494454",
+            "surface-dim": "#131319",
+            "primary-container": "#a078ff",
+            "inverse-primary": "#6d3bd7",
+            "text-primary": "#F5F3FA",
+            "text-secondary": "#A6A1B3",
+            "on-error-container": "#ffdad6",
+            "on-primary-fixed": "#23005c",
+            "on-primary": "#3c0091",
+            "on-secondary-container": "#baabf3",
+            "status-warning": "#FBBF24",
+            "surface-container-highest": "#35343c",
+            "on-surface": "#e5e1eb",
+            "tertiary-container": "#ca801e",
+            "border-subtle": "#353140",
+            "background": "#15141B",
+            "on-primary-fixed-variant": "#5516be",
+            "on-tertiary-container": "#3f2300",
+            "tertiary-fixed": "#ffdcbb",
+            "secondary": "#ccbeff",
+            "tertiary": "#ffb869",
+            "status-success": "#34D399",
+            "on-background": "#e5e1eb",
+            "error-container": "#93000a",
+            "surface": "#131319",
+            "on-tertiary-fixed-variant": "#673d00",
+            "on-secondary-fixed-variant": "#4a3d7c",
+            "surface-main": "#1C1A24",
+            "on-secondary-fixed": "#1e0e4e",
+            "on-tertiary": "#482900",
+            "outline": "#958ea0",
+            "surface-variant": "#35343c",
+            "surface-container-lowest": "#0e0d14",
+            "on-surface-variant": "#cbc3d7",
+            "status-info": "#60A5FA",
+            "secondary-container": "#4a3d7c",
+            "surface-bright": "#3a3840",
+            "surface-container-low": "#1c1b22",
+            "surface-container": "#201f26",
+            "on-primary-container": "#340080",
+            "surface-container-high": "#2a2931",
+            "primary-fixed-dim": "#d0bcff",
+            "secondary-fixed-dim": "#ccbeff",
+            "primary": "#8B5CF6",
+            "on-tertiary-fixed": "#2c1700",
+            "inverse-on-surface": "#312f37",
+            "surface-elevated": "#24222D",
+            "tertiary-fixed-dim": "#ffb869",
+            "on-secondary": "#332664",
+            "surface-tint": "#d0bcff",
+            "primary-fixed": "#e9ddff",
+            "inverse-surface": "#e5e1eb",
+            "on-error": "#690005",
+            "secondary-fixed": "#e7deff",
+            "error": "#ffb4ab",
+            "status-error": "#F87171"
+          },
+          borderRadius: {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          spacing: {
+            "space-xs": "0.25rem",
+            "gutter-desktop": "1.5rem",
+            "margin-desktop": "1.5rem",
+            "space-md": "0.75rem",
+            "space-xl": "1.5rem",
+            "gutter": "1rem",
+            "space-lg": "1rem",
+            "space-sm": "0.5rem",
+            "space-2xl": "2rem",
+            "margin": "1rem"
+          },
+          fontFamily: {
+            "headline-xl": ["Inter"],
+            "headline-md": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-sm": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-xl-mobile": ["Inter"],
+            "label-md": ["Inter"],
+            "body-sm": ["Inter"],
+            "code-md": ["JetBrains Mono"],
+            "code-sm": ["JetBrains Mono"],
+            "label-sm": ["JetBrains Mono"],
+            "headline-lg": ["Inter"]
+          },
+          fontSize: {
+            "headline-xl": ["2rem", { lineHeight: "2.5rem", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "headline-md": ["1.25rem", { lineHeight: "1.75rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "body-md": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "400" }],
+            "headline-sm": ["1rem", { lineHeight: "1.5rem", fontWeight: "600" }],
+            "body-lg": ["1rem", { lineHeight: "1.5rem", fontWeight: "400" }],
+            "headline-xl-mobile": ["1.5rem", { lineHeight: "2rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "label-md": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "500" }],
+            "body-sm": ["0.75rem", { lineHeight: "1rem", fontWeight: "400" }],
+            "code-md": ["0.875rem", { lineHeight: "1.375rem", fontWeight: "400" }],
+            "code-sm": ["0.75rem", { lineHeight: "1.125rem", fontWeight: "400" }],
+            "label-sm": ["0.6875rem", { lineHeight: "0.875rem", letterSpacing: "0.04em", fontWeight: "500" }],
+            "headline-lg": ["1.5rem", { lineHeight: "2rem", letterSpacing: "-0.01em", fontWeight: "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 1.15rem;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    /* Hide scrollbar for clean chip rail */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-text-primary min-h-screen flex flex-col antialiased selection:bg-primary selection:text-text-primary pb-10">
+<!-- ========================================== -->
+<!-- 1. Top State Preview Bar (Dev Harness)      -->
+<!-- ========================================== -->
+<header class="w-full bg-surface-dim border-b border-border-subtle sticky top-0 z-50">
+<div class="max-w-2xl mx-auto px-space-sm py-1.5 flex items-center justify-between gap-1 overflow-x-auto no-scrollbar">
+<div class="flex items-center gap-1.5 shrink-0 pr-2 border-r border-border-subtle">
+<span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-code-sm text-code-sm text-text-secondary">UI STATE:</span>
+</div>
+<div class="flex items-center gap-1 shrink-0">
+<button class="state-tab px-2.5 py-1 rounded-lg font-code-sm text-code-sm font-medium bg-primary text-text-primary border border-primary transition-colors" id="tab-populated" onclick="setScreenState('populated')">
+          Populated (6)
+        </button>
+<button class="state-tab px-2.5 py-1 rounded-lg font-code-sm text-code-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors" id="tab-empty" onclick="setScreenState('empty')">
+          Empty
+        </button>
+<button class="state-tab px-2.5 py-1 rounded-lg font-code-sm text-code-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors" id="tab-no-results" onclick="setScreenState('no-results')">
+          No Results
+        </button>
+<button class="state-tab px-2.5 py-1 rounded-lg font-code-sm text-code-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors" id="tab-loading" onclick="setScreenState('loading')">
+          Loading
+        </button>
+<button class="state-tab px-2.5 py-1 rounded-lg font-code-sm text-code-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors" id="tab-error" onclick="setScreenState('error')">
+          Error (503)
+        </button>
+</div>
+</div>
+</header>
+<!-- ========================================== -->
+<!-- 2. Shared TopAppBar (Per JSON Anchor Spec) -->
+<!-- ========================================== -->
+<div class="flex justify-between items-center w-full px-space-lg h-14 bg-surface dark:bg-surface border-b border-border-subtle dark:border-border-subtle">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-surface-elevated border border-border-subtle flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md font-semibold text-text-primary dark:text-text-primary tracking-tight">Jess IDE</span>
+<span class="font-label-sm text-label-sm text-text-secondary">/</span>
+<span class="font-label-md text-label-md text-text-primary font-medium">Projects</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button aria-label="Documentation" class="w-9 h-9 rounded-lg flex items-center justify-center text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors duration-150 ease-in-out">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<button aria-label="Notifications" class="w-9 h-9 rounded-lg flex items-center justify-center text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors duration-150 ease-in-out relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full"></span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-text-primary font-code-sm text-code-sm font-semibold ml-1">
+        SD
+      </div>
+</div>
+</div>
+<!-- ========================================== -->
+<!-- Main Container (Mobile Max 720px focused)  -->
+<!-- ========================================== -->
+<main class="w-full max-w-2xl mx-auto px-space-lg pt-4 flex-1 flex flex-col">
+<!-- 3. Page Title & Action CTA -->
+<div class="flex items-center justify-between gap-3 mb-4">
+<div>
+<div class="flex items-center gap-2">
+<h1 class="font-headline-lg text-headline-lg font-semibold text-text-primary">Projects</h1>
+<span class="font-code-sm text-code-sm text-text-secondary bg-surface-elevated border border-border-subtle px-1.5 py-0.5 rounded-lg" id="badge-count">(6)</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary mt-0.5">Your codebases and ideas in one place</p>
+</div>
+<button class="h-11 px-3.5 bg-primary hover:bg-[#7C3AED] active:bg-[#6D28D9] text-text-primary rounded-lg font-label-md text-label-md font-medium inline-flex items-center gap-1.5 transition-colors shrink-0 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background" onclick="handleNewProject()">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span>New project</span>
+</button>
+</div>
+<!-- 4. Search, Filter Controls & Modifiers -->
+<div class="space-y-3 mb-4">
+<!-- Search input bar -->
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-text-secondary pointer-events-none" data-icon="search">search</span>
+<input class="w-full h-11 pl-10 pr-20 bg-surface-main border border-border-subtle rounded-lg text-text-primary placeholder:text-text-secondary font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary transition-colors" id="project-search" oninput="handleSearchInput(event)" placeholder="Search projects by name, path, or description..." type="text"/>
+<div class="absolute right-2.5 flex items-center gap-1">
+<button class="hidden w-6 h-6 rounded flex items-center justify-center text-text-secondary hover:text-text-primary" id="clear-search-btn" onclick="clearSearch()">
+<span class="material-symbols-outlined text-[16px]" data-icon="close">close</span>
+</button>
+<kbd class="hidden sm:inline-flex items-center px-1.5 py-0.5 border border-border-subtle rounded bg-surface-elevated font-code-sm text-code-sm text-text-secondary">⌘K</kbd>
+</div>
+</div>
+<!-- Quick Filter Pills Rail (Horizontal Scrollable) -->
+<div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+<!-- Drawer toggle button -->
+<button class="h-8 px-2.5 rounded-lg bg-surface-main border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-elevated flex items-center gap-1 shrink-0 font-label-sm text-label-sm transition-colors" onclick="toggleFilterDrawer(true)">
+<span class="material-symbols-outlined text-[16px]" data-icon="tune">tune</span>
+<span>Filters</span>
+</button>
+<div class="h-4 w-[1px] bg-border-subtle shrink-0 mx-0.5"></div>
+<!-- Filter Chips -->
+<button class="filter-chip h-8 px-2.5 rounded-lg border font-label-sm text-label-sm shrink-0 transition-colors bg-surface-elevated border-primary text-text-primary font-medium" data-chip="src-all" onclick="setFilterSource('all')">
+          All sources
+        </button>
+<button class="filter-chip h-8 px-2.5 rounded-lg border font-label-sm text-label-sm shrink-0 transition-colors bg-surface-main border-border-subtle text-text-secondary hover:text-text-primary" data-chip="src-github" onclick="setFilterSource('github')">
+          GitHub (3)
+        </button>
+<button class="filter-chip h-8 px-2.5 rounded-lg border font-label-sm text-label-sm shrink-0 transition-colors bg-surface-main border-border-subtle text-text-secondary hover:text-text-primary" data-chip="src-host" onclick="setFilterSource('host')">
+          Host Folder (1)
+        </button>
+<button class="filter-chip h-8 px-2.5 rounded-lg border font-label-sm text-label-sm shrink-0 transition-colors bg-surface-main border-border-subtle text-text-secondary hover:text-text-primary" data-chip="src-zip" onclick="setFilterSource('zip')">
+          ZIP Archive (1)
+        </button>
+<button class="filter-chip h-8 px-2.5 rounded-lg border font-label-sm text-label-sm shrink-0 transition-colors bg-surface-main border-border-subtle text-text-secondary hover:text-text-primary" data-chip="src-ideation" onclick="setFilterSource('ideation')">
+          Ideation (1)
+        </button>
+<button class="filter-chip h-8 px-2.5 rounded-lg border font-label-sm text-label-sm shrink-0 transition-colors bg-surface-main border-border-subtle text-text-secondary hover:text-text-primary" data-chip="src-templates" onclick="setFilterSource('templates')">
+          Templates
+        </button>
+</div>
+<!-- Secondary status & Sort bar -->
+<div class="flex items-center justify-between text-body-sm text-text-secondary pt-1">
+<div class="flex items-center gap-1.5">
+<span class="font-label-sm text-label-sm text-text-secondary">Status:</span>
+<button class="font-code-sm text-code-sm text-text-primary hover:underline flex items-center gap-1" id="status-toggle-btn" onclick="toggleStatusFilter('active')">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+<span>Active (4)</span>
+</button>
+</div>
+<!-- Sort dropdown trigger -->
+<div class="relative">
+<button class="h-7 px-2 rounded-lg bg-surface-main border border-border-subtle text-text-secondary hover:text-text-primary flex items-center gap-1 font-code-sm text-code-sm transition-colors" onclick="toggleSortMenu()">
+<span class="material-symbols-outlined text-[15px]" data-icon="swap_vert">swap_vert</span>
+<span id="current-sort-label">Recently active</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="expand_more">expand_more</span>
+</button>
+<!-- Sort Popover Menu -->
+<div class="hidden absolute right-0 top-8 w-44 bg-surface-elevated border border-border-subtle rounded-lg shadow-2xl py-1 z-30" id="sort-menu">
+<button class="w-full text-left px-3 py-1.5 font-body-sm text-body-sm hover:bg-surface-main text-text-primary flex items-center justify-between" onclick="selectSort('Recently active')">
+<span>Recently active</span>
+<span class="material-symbols-outlined text-primary text-[16px]" data-icon="check">check</span>
+</button>
+<button class="w-full text-left px-3 py-1.5 font-body-sm text-body-sm hover:bg-surface-main text-text-secondary hover:text-text-primary" onclick="selectSort('Name A-Z')">
+<span>Name A-Z</span>
+</button>
+<button class="w-full text-left px-3 py-1.5 font-body-sm text-body-sm hover:bg-surface-main text-text-secondary hover:text-text-primary" onclick="selectSort('Date created')">
+<span>Date created</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- ========================================== -->
+<!-- 5. MAIN CONTENT STATES CONTAINER          -->
+<!-- ========================================== -->
+<div class="space-y-3" id="state-container">
+<!-- ==================== STATE A: POPULATED (6 PROJECTS) ==================== -->
+<div class="space-y-3" id="view-populated">
+<!-- Project 1: cloudaiagent -->
+<article class="project-card group bg-surface-main hover:bg-surface-elevated/70 border border-border-subtle hover:border-primary/50 rounded-xl p-3.5 transition-all" data-name="cloudaiagent" data-source="github" data-status="active">
+<div class="flex items-start justify-between gap-2 mb-2">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 flex-wrap mb-1">
+<a class="font-headline-sm text-headline-sm font-semibold text-text-primary hover:text-primary transition-colors truncate" href="#open-project-1">
+                  cloudaiagent
+                </a>
+<!-- GitHub & branch tag -->
+<div class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-surface-elevated border border-border-subtle text-text-secondary">
+<span class="material-symbols-outlined text-[14px]" data-icon="code">code</span>
+<span class="font-code-sm text-code-sm text-primary">main</span>
+<span class="text-text-secondary font-code-sm text-code-sm">· b7d41f0</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary line-clamp-1">
+                AI coding orchestration backend &amp; mobile agent portal
+              </p>
+</div>
+<!-- Kebab Action Menu -->
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-elevated shrink-0 transition-colors" onclick="toggleCardMenu('menu-1')">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<!-- Technical Workspace & Agent Metadata Stream -->
+<div class="pt-2 border-t border-border-subtle/80 flex flex-wrap items-center justify-between gap-y-2 gap-x-3 text-body-sm">
+<div class="flex items-center gap-3 flex-wrap">
+<!-- Workspace node -->
+<div class="flex items-center gap-1.5 font-code-sm text-code-sm text-text-secondary">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+<span>Laptop (Nagercoil)</span>
+</div>
+<!-- AI Agent info badge -->
+<div class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded bg-primary/10 border border-primary/20 text-primary">
+<span class="material-symbols-outlined text-[13px]" data-icon="smart_toy">smart_toy</span>
+<span>Claude 3.7 Sonnet</span>
+<span class="font-code-sm text-code-sm text-primary/80">· 2 running</span>
+</div>
+</div>
+<!-- Last updated timestamp & active indicator -->
+<div class="flex items-center gap-2 font-code-sm text-code-sm text-text-secondary ml-auto">
+<span>Updated 14m ago</span>
+<span class="inline-flex items-center font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-status-success/10 text-status-success border border-status-success/20">Active</span>
+</div>
+</div>
+</article>
+<!-- Project 2: jess-ide-backend -->
+<article class="project-card group bg-surface-main hover:bg-surface-elevated/70 border border-border-subtle hover:border-primary/50 rounded-xl p-3.5 transition-all" data-name="jess-ide-backend" data-source="github" data-status="active">
+<div class="flex items-start justify-between gap-2 mb-2">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 flex-wrap mb-1">
+<a class="font-headline-sm text-headline-sm font-semibold text-text-primary hover:text-primary transition-colors truncate" href="#open-project-2">
+                  jess-ide-backend
+                </a>
+<div class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-surface-elevated border border-border-subtle text-text-secondary">
+<span class="material-symbols-outlined text-[14px]" data-icon="fork_right">fork_right</span>
+<span class="font-code-sm text-code-sm text-primary">feature/auth-jwt</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary line-clamp-1">
+                FastAPI authentication service and session token verification
+              </p>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-elevated shrink-0 transition-colors" onclick="toggleCardMenu('menu-2')">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<div class="pt-2 border-t border-border-subtle/80 flex flex-wrap items-center justify-between gap-y-2 gap-x-3 text-body-sm">
+<div class="flex items-center gap-1.5 font-code-sm text-code-sm text-text-secondary">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+<span>Dev-Server-East</span>
+<span class="text-text-secondary/60">· Online</span>
+</div>
+<div class="flex items-center gap-2 font-code-sm text-code-sm text-text-secondary ml-auto">
+<span>Updated 2h ago</span>
+<span class="inline-flex items-center font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-status-success/10 text-status-success border border-status-success/20">Active</span>
+</div>
+</div>
+</article>
+<!-- Project 3: stitch-orchestrator -->
+<article class="project-card group bg-surface-main hover:bg-surface-elevated/70 border border-border-subtle hover:border-primary/50 rounded-xl p-3.5 transition-all" data-name="stitch-orchestrator" data-source="github" data-status="active">
+<div class="flex items-start justify-between gap-2 mb-2">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 flex-wrap mb-1">
+<a class="font-headline-sm text-headline-sm font-semibold text-text-primary hover:text-primary transition-colors truncate" href="#open-project-3">
+                  stitch-orchestrator
+                </a>
+<div class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-surface-elevated border border-border-subtle text-text-secondary">
+<span class="material-symbols-outlined text-[14px]" data-icon="label">label</span>
+<span class="font-code-sm text-code-sm text-text-primary">release/v1.2</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary line-clamp-1">
+                Schema migration pipeline and automated PR reviewer
+              </p>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-elevated shrink-0 transition-colors" onclick="toggleCardMenu('menu-3')">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<div class="pt-2 border-t border-border-subtle/80 flex flex-wrap items-center justify-between gap-y-2 gap-x-3 text-body-sm">
+<div class="flex items-center gap-2">
+<span class="font-code-sm text-code-sm text-text-secondary">Laptop (Nagercoil)</span>
+<!-- Warning approval chip -->
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-status-warning/10 text-status-warning border border-status-warning/20">
+<span class="material-symbols-outlined text-[13px]" data-icon="priority_high">priority_high</span>
+                Approval required
+              </span>
+</div>
+<div class="flex items-center gap-2 font-code-sm text-code-sm text-text-secondary ml-auto">
+<span>Updated yesterday</span>
+<span class="inline-flex items-center font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-status-success/10 text-status-success border border-status-success/20">Active</span>
+</div>
+</div>
+</article>
+<!-- Project 4: payments-engine-local -->
+<article class="project-card group bg-surface-main hover:bg-surface-elevated/70 border border-border-subtle hover:border-primary/50 rounded-xl p-3.5 transition-all" data-name="payments-engine-local" data-source="host" data-status="idle">
+<div class="flex items-start justify-between gap-2 mb-2">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 flex-wrap mb-1">
+<a class="font-headline-sm text-headline-sm font-semibold text-text-primary hover:text-primary transition-colors truncate" href="#open-project-4">
+                  payments-engine-local
+                </a>
+<div class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-surface-elevated border border-border-subtle text-text-secondary">
+<span class="material-symbols-outlined text-[14px]" data-icon="folder_open">folder_open</span>
+<span class="font-code-sm text-code-sm text-text-secondary">~/dev/payments-engine</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary line-clamp-1">
+                Stripe webhook processor and localized transaction mock
+              </p>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-elevated shrink-0 transition-colors" onclick="toggleCardMenu('menu-4')">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<div class="pt-2 border-t border-border-subtle/80 flex flex-wrap items-center justify-between gap-y-2 gap-x-3 text-body-sm">
+<div class="flex items-center gap-1.5 font-code-sm text-code-sm text-text-secondary">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+<span>Laptop (Nagercoil)</span>
+</div>
+<div class="flex items-center gap-2 font-code-sm text-code-sm text-text-secondary ml-auto">
+<span>Updated 3d ago</span>
+<span class="inline-flex items-center font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-elevated text-text-secondary border border-border-subtle">Idle</span>
+</div>
+</div>
+</article>
+<!-- Project 5: legacy-billing-v1 -->
+<article class="project-card group bg-surface-main hover:bg-surface-elevated/70 border border-border-subtle hover:border-primary/50 rounded-xl p-3.5 transition-all" data-name="legacy-billing-v1" data-source="zip" data-status="idle">
+<div class="flex items-start justify-between gap-2 mb-2">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 flex-wrap mb-1">
+<a class="font-headline-sm text-headline-sm font-semibold text-text-primary hover:text-primary transition-colors truncate" href="#open-project-5">
+                  legacy-billing-v1
+                </a>
+<div class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-surface-elevated border border-border-subtle text-text-secondary">
+<span class="material-symbols-outlined text-[14px]" data-icon="archive">archive</span>
+<span class="font-code-sm text-code-sm text-text-secondary">billing-export-2024.zip</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary line-clamp-1">
+                Archived PHP invoice generator undergoing TypeScript refactor
+              </p>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-elevated shrink-0 transition-colors" onclick="toggleCardMenu('menu-5')">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<div class="pt-2 border-t border-border-subtle/80 flex flex-wrap items-center justify-between gap-y-2 gap-x-3 text-body-sm">
+<div class="flex items-center gap-1.5 font-code-sm text-code-sm text-text-secondary">
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
+<span>Workspace: Unassigned</span>
+</div>
+<div class="flex items-center gap-2 font-code-sm text-code-sm text-text-secondary ml-auto">
+<span>Updated 5d ago</span>
+<span class="inline-flex items-center font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-elevated text-text-secondary border border-border-subtle">Idle</span>
+</div>
+</div>
+</article>
+<!-- Project 6: voice-coding-assistant -->
+<article class="project-card group bg-surface-main hover:bg-surface-elevated/70 border border-border-subtle hover:border-primary/50 rounded-xl p-3.5 transition-all" data-name="voice-coding-assistant" data-source="ideation" data-status="active">
+<div class="flex items-start justify-between gap-2 mb-2">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 flex-wrap mb-1">
+<a class="font-headline-sm text-headline-sm font-semibold text-text-primary hover:text-primary transition-colors truncate" href="#open-project-6">
+                  voice-coding-assistant
+                </a>
+<div class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-surface-elevated border border-border-subtle text-text-secondary">
+<span class="material-symbols-outlined text-[14px] text-tertiary" data-icon="auto_awesome">auto_awesome</span>
+<span class="font-code-sm text-code-sm text-tertiary">Ideation</span>
+<span class="text-text-secondary font-code-sm text-code-sm">· Step 2</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary line-clamp-1">
+                Voice-driven coding assistant prompt ideation &amp; requirements
+              </p>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-elevated shrink-0 transition-colors" onclick="toggleCardMenu('menu-6')">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<div class="pt-2 border-t border-border-subtle/80 flex flex-wrap items-center justify-between gap-y-2 gap-x-3 text-body-sm">
+<div class="flex items-center gap-1.5 font-code-sm text-code-sm text-text-secondary">
+<span class="w-1.5 h-1.5 rounded-full bg-status-info"></span>
+<span>Antigravity CLI</span>
+<span class="text-status-info font-label-sm text-label-sm">· Planning</span>
+</div>
+<div class="flex items-center gap-2 font-code-sm text-code-sm text-text-secondary ml-auto">
+<span>Created 1w ago</span>
+<span class="inline-flex items-center font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-status-success/10 text-status-success border border-status-success/20">Active</span>
+</div>
+</div>
+</article>
+</div>
+<!-- ==================== STATE B: EMPTY STATE ==================== -->
+<div class="hidden py-12 px-4 text-center bg-surface-main border border-border-subtle rounded-xl flex flex-col items-center justify-center" id="view-empty">
+<div class="w-14 h-14 rounded-xl bg-surface-elevated border border-border-subtle flex items-center justify-center text-text-secondary mb-4">
+<span class="material-symbols-outlined text-[30px]" data-icon="create_new_folder">create_new_folder</span>
+</div>
+<h2 class="font-headline-md text-headline-md font-semibold text-text-primary mb-1">No projects yet</h2>
+<p class="font-body-sm text-body-sm text-text-secondary max-w-sm mb-6">
+          Import a repository, mount a local host folder, or start from an idea with the AI orchestrator.
+        </p>
+<button class="h-11 px-4 bg-primary hover:bg-[#7C3AED] active:bg-[#6D28D9] text-text-primary rounded-lg font-label-md text-label-md font-medium inline-flex items-center gap-2 transition-colors" onclick="handleNewProject()">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span>Create your first project</span>
+</button>
+</div>
+<!-- ==================== STATE C: NO RESULTS STATE ==================== -->
+<div class="hidden py-12 px-4 text-center bg-surface-main border border-border-subtle rounded-xl flex flex-col items-center justify-center" id="view-no-results">
+<div class="w-14 h-14 rounded-xl bg-surface-elevated border border-border-subtle flex items-center justify-center text-text-secondary mb-4">
+<span class="material-symbols-outlined text-[30px]" data-icon="search_off">search_off</span>
+</div>
+<h2 class="font-headline-md text-headline-md font-semibold text-text-primary mb-1">No projects match your filter</h2>
+<p class="font-body-sm text-body-sm text-text-secondary max-w-xs mb-5">
+          Try adjusting your search keywords or clear current source and status filters.
+        </p>
+<button class="h-10 px-4 bg-surface-elevated hover:bg-surface-variant border border-border-subtle text-text-primary rounded-lg font-label-md text-label-md font-medium inline-flex items-center gap-1.5 transition-colors" onclick="resetFilters()">
+<span class="material-symbols-outlined text-[16px]" data-icon="refresh">refresh</span>
+<span>Clear all filters</span>
+</button>
+</div>
+<!-- ==================== STATE D: LOADING / SKELETON ==================== -->
+<div class="hidden space-y-3" id="view-loading">
+<!-- Skeleton Card 1 -->
+<div class="bg-surface-main border border-border-subtle rounded-xl p-4 animate-pulse">
+<div class="flex justify-between items-start gap-4 mb-3">
+<div class="space-y-2 flex-1">
+<div class="flex items-center gap-2">
+<div class="h-4 bg-surface-elevated rounded w-36"></div>
+<div class="h-4 bg-surface-elevated rounded w-24"></div>
+</div>
+<div class="h-3 bg-surface-elevated rounded w-3/4"></div>
+</div>
+<div class="w-6 h-6 bg-surface-elevated rounded"></div>
+</div>
+<div class="pt-3 border-t border-border-subtle flex justify-between items-center">
+<div class="h-3 bg-surface-elevated rounded w-32"></div>
+<div class="h-3 bg-surface-elevated rounded w-20"></div>
+</div>
+</div>
+<!-- Skeleton Card 2 -->
+<div class="bg-surface-main border border-border-subtle rounded-xl p-4 animate-pulse">
+<div class="flex justify-between items-start gap-4 mb-3">
+<div class="space-y-2 flex-1">
+<div class="flex items-center gap-2">
+<div class="h-4 bg-surface-elevated rounded w-44"></div>
+<div class="h-4 bg-surface-elevated rounded w-20"></div>
+</div>
+<div class="h-3 bg-surface-elevated rounded w-2/3"></div>
+</div>
+<div class="w-6 h-6 bg-surface-elevated rounded"></div>
+</div>
+<div class="pt-3 border-t border-border-subtle flex justify-between items-center">
+<div class="h-3 bg-surface-elevated rounded w-28"></div>
+<div class="h-3 bg-surface-elevated rounded w-16"></div>
+</div>
+</div>
+<!-- Skeleton Card 3 -->
+<div class="bg-surface-main border border-border-subtle rounded-xl p-4 animate-pulse">
+<div class="flex justify-between items-start gap-4 mb-3">
+<div class="space-y-2 flex-1">
+<div class="flex items-center gap-2">
+<div class="h-4 bg-surface-elevated rounded w-32"></div>
+<div class="h-4 bg-surface-elevated rounded w-16"></div>
+</div>
+<div class="h-3 bg-surface-elevated rounded w-4/5"></div>
+</div>
+<div class="w-6 h-6 bg-surface-elevated rounded"></div>
+</div>
+<div class="pt-3 border-t border-border-subtle flex justify-between items-center">
+<div class="h-3 bg-surface-elevated rounded w-36"></div>
+<div class="h-3 bg-surface-elevated rounded w-24"></div>
+</div>
+</div>
+</div>
+<!-- ==================== STATE E: ERROR STATE (503) ==================== -->
+<div class="hidden py-12 px-4 text-center bg-surface-main border border-status-error/30 rounded-xl flex flex-col items-center justify-center" id="view-error">
+<div class="w-14 h-14 rounded-xl bg-status-error/10 border border-status-error/30 flex items-center justify-center text-status-error mb-4">
+<span class="material-symbols-outlined text-[32px]" data-icon="cloud_off">cloud_off</span>
+</div>
+<h2 class="font-headline-md text-headline-md font-semibold text-text-primary mb-1">Failed to load project inventory</h2>
+<p class="font-body-sm text-body-sm text-text-secondary max-w-sm mb-2">
+          Unable to connect to Laptop (Nagercoil) orchestrator daemon node.
+        </p>
+<span class="font-code-sm text-code-sm text-status-error bg-status-error/10 border border-status-error/20 px-2 py-0.5 rounded mb-6">
+          Error 503: Service Unavailable
+        </span>
+<div class="flex items-center gap-3">
+<button class="h-11 px-4 bg-primary hover:bg-[#7C3AED] active:bg-[#6D28D9] text-text-primary rounded-lg font-label-md text-label-md font-medium inline-flex items-center gap-2 transition-colors" onclick="setScreenState('populated')">
+<span class="material-symbols-outlined text-[18px]" data-icon="refresh">refresh</span>
+<span>Try again</span>
+</button>
+<button class="h-11 px-4 bg-transparent border border-border-subtle hover:bg-surface-elevated text-text-primary rounded-lg font-label-md text-label-md font-medium transition-colors" onclick="setScreenState('empty')">
+            Work offline
+          </button>
+</div>
+</div>
+</div>
+<!-- Quick Footer Sync Info -->
+<div class="mt-8 pt-4 border-t border-border-subtle flex flex-wrap items-center justify-between gap-2 font-code-sm text-code-sm text-text-secondary">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-status-success"></span>
+<span>Node: Laptop (Nagercoil) · v1.4.2</span>
+</div>
+<div class="flex items-center gap-3">
+<span>Git branch: live</span>
+<button class="hover:text-text-primary flex items-center gap-1" onclick="refreshData()">
+<span class="material-symbols-outlined text-[14px]" data-icon="sync">sync</span>
+<span>Sync</span>
+</button>
+</div>
+</div>
+</main>
+<!-- ========================================== -->
+<!-- Contextual Bottom Drawer / Advanced Filter -->
+<!-- ========================================== -->
+<div class="hidden fixed inset-0 bg-black/60 z-40 transition-opacity" id="filter-drawer-backdrop" onclick="toggleFilterDrawer(false)"></div>
+<div class="fixed bottom-0 inset-x-0 bg-surface-elevated border-t border-border-subtle rounded-t-xl z-50 p-5 transform translate-y-full transition-transform duration-200 max-w-lg mx-auto" id="filter-drawer">
+<div class="flex items-center justify-between pb-3 border-b border-border-subtle mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="tune">tune</span>
+<h3 class="font-headline-sm text-headline-sm font-semibold text-text-primary">Advanced Filters</h3>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-main" onclick="toggleFilterDrawer(false)">
+<span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+</button>
+</div>
+<div class="space-y-4">
+<div>
+<label class="block font-label-sm text-label-sm text-text-secondary mb-2">SOURCE TYPE</label>
+<div class="grid grid-cols-2 gap-2">
+<button class="h-9 px-3 rounded-lg bg-surface-main border border-primary text-text-primary font-body-sm text-body-sm text-left flex items-center justify-between">
+<span>All Sources</span>
+<span class="material-symbols-outlined text-primary text-[16px]" data-icon="check">check</span>
+</button>
+<button class="h-9 px-3 rounded-lg bg-surface-main border border-border-subtle text-text-secondary font-body-sm text-body-sm text-left">
+<span>GitHub Only</span>
+</button>
+<button class="h-9 px-3 rounded-lg bg-surface-main border border-border-subtle text-text-secondary font-body-sm text-body-sm text-left">
+<span>Mounted Folders</span>
+</button>
+<button class="h-9 px-3 rounded-lg bg-surface-main border border-border-subtle text-text-secondary font-body-sm text-body-sm text-left">
+<span>Ideation Sessions</span>
+</button>
+</div>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-text-secondary mb-2">ASSIGNED WORKSPACE NODE</label>
+<select class="w-full h-10 px-3 bg-surface-main border border-border-subtle rounded-lg text-text-primary font-body-sm text-body-sm focus:border-primary">
+<option>All Workspaces</option>
+<option>Laptop (Nagercoil) - Online</option>
+<option>Dev-Server-East - Online</option>
+<option>Antigravity CLI - Connected</option>
+</select>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-text-secondary mb-2">AGENT ORCHESTRATOR</label>
+<div class="flex gap-2">
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-main border border-border-subtle font-code-sm text-code-sm text-text-primary">
+<span class="material-symbols-outlined text-[14px]" data-icon="smart_toy">smart_toy</span>
+            Claude 3.7
+          </span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-main border border-border-subtle font-code-sm text-code-sm text-text-secondary">
+            GPT-4o
+          </span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-main border border-border-subtle font-code-sm text-code-sm text-text-secondary">
+            DeepSeek-R1
+          </span>
+</div>
+</div>
+</div>
+<div class="mt-6 pt-4 border-t border-border-subtle flex gap-2">
+<button class="flex-1 h-11 bg-surface-main border border-border-subtle hover:bg-surface-container rounded-lg font-label-md text-label-md text-text-secondary font-medium" onclick="toggleFilterDrawer(false)">
+        Reset
+      </button>
+<button class="flex-1 h-11 bg-primary hover:bg-[#7C3AED] rounded-lg font-label-md text-label-md text-text-primary font-medium" onclick="toggleFilterDrawer(false)">
+        Apply Filters
+      </button>
+</div>
+</div>
+<!-- Interactive Scripts for State Harness & Filtering -->
+<script>
+    // 1. State preview harness switcher
+    function setScreenState(state) {
+      const views = ['populated', 'empty', 'no-results', 'loading', 'error'];
+      views.forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        const tab = document.getElementById(`tab-${v}`);
+        if (el) el.classList.add('hidden');
+        if (tab) {
+          tab.classList.remove('bg-primary', 'text-text-primary', 'border-primary');
+          tab.classList.add('text-text-secondary');
+        }
+      });
+
+      const activeView = document.getElementById(`view-${state}`);
+      const activeTab = document.getElementById(`tab-${state}`);
+      if (activeView) activeView.classList.remove('hidden');
+      if (activeTab) {
+        activeTab.classList.remove('text-text-secondary');
+        activeTab.classList.add('bg-primary', 'text-text-primary', 'border-primary');
+      }
+
+      // Update badge count
+      const badge = document.getElementById('badge-count');
+      if (badge) {
+        if (state === 'populated') badge.textContent = '(6)';
+        else if (state === 'empty' || state === 'no-results') badge.textContent = '(0)';
+        else badge.textContent = '(...)';
+      }
+    }
+
+    // 2. Search handling & dynamic filtering
+    function handleSearchInput(e) {
+      const query = e.target.value.toLowerCase().trim();
+      const clearBtn = document.getElementById('clear-search-btn');
+      
+      if (query.length > 0) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+
+      // Filter visible cards
+      const cards = document.querySelectorAll('.project-card');
+      let visibleCount = 0;
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        if (text.includes(query)) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      // Show no-results view if no matches found
+      const populatedView = document.getElementById('view-populated');
+      const noResultsView = document.getElementById('view-no-results');
+      const badge = document.getElementById('badge-count');
+
+      if (visibleCount === 0 && query.length > 0) {
+        populatedView.classList.add('hidden');
+        noResultsView.classList.remove('hidden');
+        badge.textContent = '(0)';
+      } else {
+        populatedView.classList.remove('hidden');
+        noResultsView.classList.add('hidden');
+        badge.textContent = `(${visibleCount})`;
+      }
+    }
+
+    function clearSearch() {
+      const input = document.getElementById('project-search');
+      input.value = '';
+      input.dispatchEvent(new Event('input'));
+      input.focus();
+    }
+
+    // 3. Source Filter Pills
+    function setFilterSource(source) {
+      // Update chip styles
+      document.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.classList.remove('bg-surface-elevated', 'border-primary', 'text-text-primary', 'font-medium');
+        chip.classList.add('bg-surface-main', 'border-border-subtle', 'text-text-secondary');
+      });
+
+      const activeChip = document.querySelector(`[data-chip="src-${source}"]`);
+      if (activeChip) {
+        activeChip.classList.remove('bg-surface-main', 'border-border-subtle', 'text-text-secondary');
+        activeChip.classList.add('bg-surface-elevated', 'border-primary', 'text-text-primary', 'font-medium');
+      }
+
+      // Filter cards
+      const cards = document.querySelectorAll('.project-card');
+      let count = 0;
+      cards.forEach(card => {
+        const cardSource = card.getAttribute('data-source');
+        if (source === 'all' || cardSource === source) {
+          card.classList.remove('hidden');
+          count++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      document.getElementById('badge-count').textContent = `(${count})`;
+
+      const populatedView = document.getElementById('view-populated');
+      const noResultsView = document.getElementById('view-no-results');
+      if (count === 0) {
+        populatedView.classList.add('hidden');
+        noResultsView.classList.remove('hidden');
+      } else {
+        populatedView.classList.remove('hidden');
+        noResultsView.classList.add('hidden');
+      }
+    }
+
+    function resetFilters() {
+      clearSearch();
+      setFilterSource('all');
+      setScreenState('populated');
+    }
+
+    // 4. Sort Popover
+    function toggleSortMenu() {
+      const menu = document.getElementById('sort-menu');
+      menu.classList.toggle('hidden');
+    }
+
+    function selectSort(label) {
+      document.getElementById('current-sort-label').textContent = label;
+      document.getElementById('sort-menu').classList.add('hidden');
+    }
+
+    // 5. Drawer Toggle
+    function toggleFilterDrawer(open) {
+      const drawer = document.getElementById('filter-drawer');
+      const backdrop = document.getElementById('filter-drawer-backdrop');
+      if (open) {
+        backdrop.classList.remove('hidden');
+        drawer.classList.remove('translate-y-full');
+      } else {
+        backdrop.classList.add('hidden');
+        drawer.classList.add('translate-y-full');
+      }
+    }
+
+    // 6. Action Handlers
+    function handleNewProject() {
+      alert("Opening '+ New project' creation wizard: Import GitHub repo or mount local directory.");
+    }
+
+    function toggleCardMenu(menuId) {
+      alert("Quick actions: Open terminal, switch agent, duplicate configuration, or delete project.");
+    }
+
+    function refreshData() {
+      setScreenState('loading');
+      setTimeout(() => {
+        setScreenState('populated');
+      }, 700);
+    }
+
+    // Close sort menu on click outside
+    document.addEventListener('click', (e) => {
+      const sortMenu = document.getElementById('sort-menu');
+      if (!e.target.closest('#sort-menu') && !e.target.closest('button[onclick="toggleSortMenu()"]')) {
+        if (sortMenu) sortMenu.classList.add('hidden');
+      }
+    });
+  </script>
+</body></html>

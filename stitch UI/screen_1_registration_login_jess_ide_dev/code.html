@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Screen 1: Registration / Login - Jess IDE Dev</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "text-primary": "#F5F3FA",
+            "surface-dim": "#15141B",
+            "error": "#ffb4ab",
+            "surface-bright": "#3a3840",
+            "on-background": "#e5e1eb",
+            "surface-container-high": "#24222D",
+            "on-secondary-container": "#C4B5FD",
+            "secondary-fixed-dim": "#ccbeff",
+            "inverse-surface": "#e5e1eb",
+            "on-primary": "#ffffff",
+            "on-primary-fixed": "#23005c",
+            "on-surface": "#e5e1eb",
+            "error-container": "#93000a",
+            "inverse-primary": "#6d3bd7",
+            "status-info": "#60A5FA",
+            "secondary-fixed": "#e7deff",
+            "border-subtle": "#353140",
+            "outline-variant": "#494454",
+            "surface-variant": "#35343c",
+            "on-tertiary-fixed-variant": "#673d00",
+            "on-secondary-fixed-variant": "#4a3d7c",
+            "surface-tint": "#8B5CF6",
+            "status-error": "#F87171",
+            "primary": "#8B5CF6",
+            "primary-hover": "#7C3AED",
+            "primary-light": "#C4B5FD",
+            "on-secondary-fixed": "#1e0e4e",
+            "tertiary-fixed-dim": "#ffb869",
+            "on-primary-container": "#340080",
+            "on-secondary": "#332664",
+            "inverse-on-surface": "#312f37",
+            "surface-container-lowest": "#0e0d14",
+            "tertiary-container": "#ca801e",
+            "surface-container-highest": "#35343c",
+            "on-tertiary-container": "#3f2300",
+            "text-secondary": "#A6A1B3",
+            "secondary": "#C4B5FD",
+            "surface-container": "#201f26",
+            "on-primary-fixed-variant": "#5516be",
+            "on-error": "#690005",
+            "background": "#15141B",
+            "on-surface-variant": "#cbc3d7",
+            "status-warning": "#FBBF24",
+            "tertiary": "#ffb869",
+            "primary-fixed": "#e9ddff",
+            "tertiary-fixed": "#ffdcbb",
+            "surface-main": "#1C1A24",
+            "outline": "#958ea0",
+            "surface": "#15141B",
+            "primary-fixed-dim": "#d0bcff",
+            "status-success": "#34D399",
+            "on-tertiary-fixed": "#2c1700",
+            "primary-container": "#8B5CF6",
+            "surface-elevated": "#24222D",
+            "secondary-container": "#4a3d7c",
+            "on-tertiary": "#482900",
+            "surface-container-low": "#1c1b22",
+            "on-error-container": "#ffdad6"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "gutter-desktop": "1.5rem",
+            "space-2xl": "2rem",
+            "space-xs": "0.25rem",
+            "space-lg": "1rem",
+            "space-md": "0.75rem",
+            "margin-desktop": "1.5rem",
+            "margin": "1rem",
+            "space-xl": "1.5rem",
+            "gutter": "1rem"
+          },
+          "fontFamily": {
+            "code-md": ["JetBrains Mono", "monospace"],
+            "headline-lg": ["Inter", "sans-serif"],
+            "body-sm": ["Inter", "sans-serif"],
+            "body-md": ["Inter", "sans-serif"],
+            "headline-xl-mobile": ["Inter", "sans-serif"],
+            "body-lg": ["Inter", "sans-serif"],
+            "code-sm": ["JetBrains Mono", "monospace"],
+            "label-md": ["Inter", "sans-serif"],
+            "label-sm": ["JetBrains Mono", "monospace"],
+            "headline-sm": ["Inter", "sans-serif"],
+            "headline-xl": ["Inter", "sans-serif"],
+            "headline-md": ["Inter", "sans-serif"]
+          },
+          "fontSize": {
+            "code-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }],
+            "headline-lg": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["0.75rem", { "lineHeight": "1rem", "fontWeight": "400" }],
+            "body-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "400" }],
+            "headline-xl-mobile": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-lg": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }],
+            "code-sm": ["0.75rem", { "lineHeight": "1.125rem", "fontWeight": "400" }],
+            "label-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "500" }],
+            "label-sm": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "headline-sm": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "600" }],
+            "headline-xl": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Subtle focus halo */
+    .input-field:focus {
+      outline: none;
+      border-color: #8B5CF6;
+      box-shadow: 0 0 0 1px #8B5CF6;
+    }
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-text-primary min-h-screen flex flex-col antialiased selection:bg-primary/20 selection:text-text-primary">
+<!-- Top App Bar (Shared Component Anchor) -->
+<header class="flex justify-between items-center w-full px-4 h-14 bg-surface border-b border-border-subtle docked full-width top-0 z-50">
+<div class="flex items-center space-x-2">
+<div class="w-8 h-8 rounded-lg bg-surface-main border border-border-subtle flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-lg" data-icon="terminal">terminal</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="font-headline-md text-headline-md-mobile font-semibold text-text-primary tracking-tight">Jess IDE</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-elevated text-text-secondary border border-border-subtle font-mono">v0.9.4-beta</span>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<a aria-label="Documentation" class="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors duration-150 ease-in-out" href="#help">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</a>
+</div>
+</header>
+<!-- Interactive Debug & Demo State Controller Rail (Top Helper) -->
+<aside aria-label="Developer Preview Controls" class="w-full bg-surface-main/80 border-b border-border-subtle px-4 py-2">
+<div class="max-w-[430px] mx-auto flex flex-wrap items-center justify-between gap-2 text-text-secondary font-code-sm text-code-sm">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-status-success inline-block"></span>
+<span class="text-text-primary font-medium">Interactive Demo Bar:</span>
+</div>
+<div class="flex items-center space-x-2">
+<button class="px-2.5 py-1 rounded bg-surface-elevated hover:bg-surface-bright text-text-primary border border-border-subtle transition-colors flex items-center gap-1.5" id="toggle-error-state" type="button">
+<span class="material-symbols-outlined text-sm text-status-error" data-icon="error_outline">error_outline</span>
+<span>Toggle Error State</span>
+</button>
+<button class="px-2.5 py-1 rounded bg-surface-elevated hover:bg-surface-bright text-text-primary border border-border-subtle transition-colors flex items-center gap-1.5" id="toggle-loading-state" type="button">
+<span class="material-symbols-outlined text-sm text-status-info" data-icon="sync">sync</span>
+<span>Simulate Signing In</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Main Canvas Container (Mobile Layout 360-430px) -->
+<main class="flex-1 w-full flex flex-col justify-center items-center px-4 py-6">
+<div class="w-full max-w-[430px] flex flex-col space-y-6">
+<!-- Header Typography Block -->
+<div class="space-y-2 text-left">
+<div class="inline-flex items-center gap-2 px-2 py-0.5 rounded bg-surface-main border border-border-subtle font-code-sm text-code-sm text-text-secondary">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span>orchestration node</span>
+</div>
+<h1 class="font-headline-lg text-2xl font-bold text-text-primary tracking-tight">Your workspace. Your agent. Your code.</h1>
+<p class="font-body-md text-body-md text-text-secondary">Sign in to manage your projects, continue coding sessions, and review changes from anywhere.</p>
+</div>
+<!-- Segmented Tab Switch (Sign In vs Create Account) -->
+<div class="p-1 rounded-xl bg-surface-main border border-border-subtle flex items-center" role="tablist">
+<button aria-selected="true" class="flex-1 h-9 rounded-lg font-label-md text-label-md text-center transition-all bg-surface-elevated text-text-primary font-medium shadow-sm" id="tab-signin" role="tab">
+          Sign In
+        </button>
+<button aria-selected="false" class="flex-1 h-9 rounded-lg font-label-md text-label-md text-center transition-all text-text-secondary hover:text-text-primary" id="tab-signup" role="tab">
+          Create Account
+        </button>
+</div>
+<!-- Surface Card Wrapper -->
+<div class="rounded-xl bg-surface-main border border-border-subtle p-5 md:p-6 shadow-sm">
+<!-- Inline Error Banner (Hidden by default, triggered by toggle or invalid submit) -->
+<div class="hidden mb-5 p-3 rounded-lg bg-status-error/10 border border-status-error/20 flex items-start space-x-2.5" id="auth-error-banner">
+<span class="material-symbols-outlined text-status-error text-lg mt-0.5 shrink-0" data-icon="warning">warning</span>
+<div class="flex-1 text-left">
+<p class="font-body-sm text-body-sm text-status-error font-medium">Invalid email or workspace credentials</p>
+<p class="font-code-sm text-code-sm text-status-error/80 mt-0.5">AUTH_ERR_401: Invalid credentials for user profile</p>
+</div>
+<button class="text-status-error/80 hover:text-status-error p-0.5" id="close-error-banner" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="close">close</span>
+</button>
+</div>
+<!-- ======================= -->
+<!-- VIEW 1: SIGN IN FORM    -->
+<!-- ======================= -->
+<form class="space-y-4" id="form-signin" novalidate="" onsubmit="return false;">
+<!-- Email Field -->
+<div class="space-y-1.5 text-left">
+<label class="block font-label-md text-label-md text-text-primary" for="signin-email">
+              Email address
+            </label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-text-secondary text-lg pointer-events-none" data-icon="mail">mail</span>
+<input class="input-field w-full h-11 pl-11 pr-3.5 rounded-lg bg-surface border border-border-subtle font-body-md text-body-md text-text-primary placeholder:text-text-secondary transition-all" id="signin-email" placeholder="you@example.com" required="" type="email" value="lead.dev@workspace.internal"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-1.5 text-left">
+<div class="flex justify-between items-center">
+<label class="block font-label-md text-label-md text-text-primary" for="signin-password">
+                Password
+              </label>
+<a class="font-body-sm text-body-sm text-primary hover:underline hover:text-primary-light transition-colors" href="#forgot">
+                Forgot password?
+              </a>
+</div>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-text-secondary text-lg pointer-events-none" data-icon="lock">lock</span>
+<input class="input-field w-full h-11 pl-11 pr-11 rounded-lg bg-surface border border-border-subtle font-body-md text-body-md text-text-primary placeholder:text-text-secondary transition-all" id="signin-password" placeholder="••••••••••••" required="" type="password" value="supersecretdevkey"/>
+<button aria-label="Toggle password visibility" class="toggle-password absolute right-3 text-text-secondary hover:text-text-primary p-1 focus:outline-none" data-target="signin-password" type="button">
+<span class="material-symbols-outlined text-lg eye-icon" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Remember Me & Security Context -->
+<div class="flex items-center justify-between pt-1">
+<label class="flex items-center space-x-2 cursor-pointer">
+<input checked="" class="w-4 h-4 rounded bg-surface border border-border-subtle text-primary focus:ring-1 focus:ring-primary focus:ring-offset-0 focus:ring-offset-transparent cursor-pointer" type="checkbox"/>
+<span class="font-body-sm text-body-sm text-text-secondary select-none">Remember this terminal session</span>
+</label>
+</div>
+<!-- Primary Submit Action Button -->
+<div class="pt-2">
+<button class="w-full h-12 rounded-lg bg-primary hover:bg-[#7C3AED] active:bg-[#6D28D9] text-[#F5F3FA] font-label-md text-label-md font-medium transition-colors flex items-center justify-center space-x-2 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background" id="btn-signin-submit" type="submit">
+<span id="btn-signin-text">Sign In</span>
+<span class="hidden" id="btn-signin-spinner">
+<svg class="animate-spin h-5 w-5 text-text-primary" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+<path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+</svg>
+</span>
+</button>
+</div>
+<!-- Secondary Switch Prompt -->
+<div class="text-center pt-2">
+<p class="font-body-sm text-body-sm text-text-secondary">
+              New to Jess Ide Dev? 
+              <button class="text-primary hover:underline font-medium ml-1" id="link-switch-signup" type="button">
+                Create account
+              </button>
+</p>
+</div>
+</form>
+<!-- ======================= -->
+<!-- VIEW 2: CREATE ACCOUNT  -->
+<!-- ======================= -->
+<form class="space-y-4 hidden" id="form-signup" novalidate="" onsubmit="return false;">
+<!-- Full Name Field -->
+<div class="space-y-1.5 text-left">
+<label class="block font-label-md text-label-md text-text-primary" for="signup-name">
+              Full name
+            </label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-text-secondary text-lg pointer-events-none" data-icon="badge">badge</span>
+<input class="input-field w-full h-11 pl-11 pr-3.5 rounded-lg bg-surface border border-border-subtle font-body-md text-body-md text-text-primary placeholder:text-text-secondary transition-all" id="signup-name" placeholder="Ada Lovelace" required="" type="text"/>
+</div>
+</div>
+<!-- Email Field -->
+<div class="space-y-1.5 text-left">
+<label class="block font-label-md text-label-md text-text-primary" for="signup-email">
+              Email address
+            </label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-text-secondary text-lg pointer-events-none" data-icon="mail">mail</span>
+<input class="input-field w-full h-11 pl-11 pr-3.5 rounded-lg bg-surface border border-border-subtle font-body-md text-body-md text-text-primary placeholder:text-text-secondary transition-all" id="signup-email" placeholder="you@example.com" required="" type="email"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-1.5 text-left">
+<label class="block font-label-md text-label-md text-text-primary" for="signup-password">
+              Password
+            </label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-text-secondary text-lg pointer-events-none" data-icon="lock">lock</span>
+<input class="input-field w-full h-11 pl-11 pr-11 rounded-lg bg-surface border border-border-subtle font-body-md text-body-md text-text-primary placeholder:text-text-secondary transition-all" id="signup-password" placeholder="Minimum 10 characters" required="" type="password"/>
+<button aria-label="Toggle password visibility" class="toggle-password absolute right-3 text-text-secondary hover:text-text-primary p-1 focus:outline-none" data-target="signup-password" type="button">
+<span class="material-symbols-outlined text-lg eye-icon" data-icon="visibility">visibility</span>
+</button>
+</div>
+<p class="font-code-sm text-code-sm text-text-secondary">Requires letters, numbers, and symbols.</p>
+</div>
+<!-- Confirm Password Field -->
+<div class="space-y-1.5 text-left">
+<label class="block font-label-md text-label-md text-text-primary" for="signup-password-confirm">
+              Confirm password
+            </label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-text-secondary text-lg pointer-events-none" data-icon="lock_clock">lock_clock</span>
+<input class="input-field w-full h-11 pl-11 pr-11 rounded-lg bg-surface border border-border-subtle font-body-md text-body-md text-text-primary placeholder:text-text-secondary transition-all" id="signup-password-confirm" placeholder="Re-enter password" required="" type="password"/>
+<button aria-label="Toggle confirm password visibility" class="toggle-password absolute right-3 text-text-secondary hover:text-text-primary p-1 focus:outline-none" data-target="signup-password-confirm" type="button">
+<span class="material-symbols-outlined text-lg eye-icon" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Terms agreement -->
+<div class="flex items-start space-x-2 pt-1 text-left">
+<input class="w-4 h-4 mt-0.5 rounded bg-surface border border-border-subtle text-primary focus:ring-1 focus:ring-primary focus:ring-offset-0 focus:ring-offset-transparent cursor-pointer" id="signup-terms" required="" type="checkbox"/>
+<label class="font-body-sm text-body-sm text-text-secondary" for="signup-terms">
+              I accept the <a class="text-text-primary underline" href="#terms">Developer Agreement</a> and understand that AI orchestration sessions execute in isolated sandboxes.
+            </label>
+</div>
+<!-- Primary Submit Action Button -->
+<div class="pt-2">
+<button class="w-full h-12 rounded-lg bg-primary hover:bg-[#7C3AED] active:bg-[#6D28D9] text-[#F5F3FA] font-label-md text-label-md font-medium transition-colors flex items-center justify-center space-x-2 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background" id="btn-signup-submit" type="submit">
+<span id="btn-signup-text">Create Account</span>
+<span class="hidden" id="btn-signup-spinner">
+<svg class="animate-spin h-5 w-5 text-text-primary" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+<path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+</svg>
+</span>
+</button>
+</div>
+<!-- Secondary Switch Prompt -->
+<div class="text-center pt-2">
+<p class="font-body-sm text-body-sm text-text-secondary">
+              Already registered? 
+              <button class="text-primary hover:underline font-medium ml-1" id="link-switch-signin" type="button">
+                Sign in to workspace
+              </button>
+</p>
+</div>
+</form>
+</div>
+<!-- Security / Utilitarian Trust Callout -->
+<div class="p-3.5 rounded-lg bg-surface-main border border-border-subtle flex items-start space-x-3">
+<span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" data-icon="shield">shield</span>
+<div class="text-left space-y-0.5">
+<div class="font-label-sm text-label-sm text-text-primary font-medium tracking-wide">STRICT ZERO-TELEMETRY CREDENTIALS</div>
+<p class="font-body-sm text-body-sm text-text-secondary">
+            Keys and SSH authorization are encrypted via localized TPM / enclave tokens. Social logins are permanently disabled for security perimeter integrity.
+          </p>
+</div>
+</div>
+<!-- System Status Footer Badge -->
+<div class="flex items-center justify-center space-x-4 font-code-sm text-code-sm text-text-secondary pt-2">
+<div class="flex items-center space-x-1.5">
+<span class="w-2 h-2 rounded-full bg-status-success inline-block"></span>
+<span>Orchestrator: Operational</span>
+</div>
+<span class="text-border-subtle">•</span>
+<div class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="dns">dns</span>
+<span>Cluster: us-east-2</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Interactive Logic -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Element refs
+      const tabSignIn = document.getElementById('tab-signin');
+      const tabSignUp = document.getElementById('tab-signup');
+      const formSignIn = document.getElementById('form-signin');
+      const formSignUp = document.getElementById('form-signup');
+      const linkSwitchSignUp = document.getElementById('link-switch-signup');
+      const linkSwitchSignIn = document.getElementById('link-switch-signin');
+
+      const btnSignIn = document.getElementById('btn-signin-submit');
+      const textSignIn = document.getElementById('btn-signin-text');
+      const spinSignIn = document.getElementById('btn-signin-spinner');
+
+      const btnSignUp = document.getElementById('btn-signup-submit');
+      const textSignUp = document.getElementById('btn-signup-text');
+      const spinSignUp = document.getElementById('btn-signup-spinner');
+
+      const errorBanner = document.getElementById('auth-error-banner');
+      const btnCloseError = document.getElementById('close-error-banner');
+      const btnToggleError = document.getElementById('toggle-error-state');
+      const btnToggleLoading = document.getElementById('toggle-loading-state');
+
+      // Tab switcher function
+      function switchView(view) {
+        if (view === 'signin') {
+          tabSignIn.classList.add('bg-surface-elevated', 'text-text-primary', 'font-medium', 'shadow-sm');
+          tabSignIn.classList.remove('text-text-secondary');
+          tabSignIn.setAttribute('aria-selected', 'true');
+
+          tabSignUp.classList.remove('bg-surface-elevated', 'text-text-primary', 'font-medium', 'shadow-sm');
+          tabSignUp.classList.add('text-text-secondary');
+          tabSignUp.setAttribute('aria-selected', 'false');
+
+          formSignIn.classList.remove('hidden');
+          formSignUp.classList.add('hidden');
+        } else {
+          tabSignUp.classList.add('bg-surface-elevated', 'text-text-primary', 'font-medium', 'shadow-sm');
+          tabSignUp.classList.remove('text-text-secondary');
+          tabSignUp.setAttribute('aria-selected', 'true');
+
+          tabSignIn.classList.remove('bg-surface-elevated', 'text-text-primary', 'font-medium', 'shadow-sm');
+          tabSignIn.classList.add('text-text-secondary');
+          tabSignIn.setAttribute('aria-selected', 'false');
+
+          formSignUp.classList.remove('hidden');
+          formSignIn.classList.add('hidden');
+        }
+      }
+
+      tabSignIn.addEventListener('click', () => switchView('signin'));
+      tabSignUp.addEventListener('click', () => switchView('signup'));
+      linkSwitchSignUp.addEventListener('click', () => switchView('signup'));
+      linkSwitchSignIn.addEventListener('click', () => switchView('signin'));
+
+      // Toggle Password Visibility
+      document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', () => {
+          const targetId = button.getAttribute('data-target');
+          const input = document.getElementById(targetId);
+          const icon = button.querySelector('.eye-icon');
+
+          if (input.type === 'password') {
+            input.type = 'text';
+            icon.innerText = 'visibility_off';
+          } else {
+            input.type = 'password';
+            icon.innerText = 'visibility';
+          }
+        });
+      });
+
+      // Toggle Error State Demo
+      function toggleError() {
+        const isHidden = errorBanner.classList.contains('hidden');
+        const emailInput = document.getElementById('signin-email');
+        if (isHidden) {
+          errorBanner.classList.remove('hidden');
+          emailInput.classList.add('!border-status-error');
+        } else {
+          errorBanner.classList.add('hidden');
+          emailInput.classList.remove('!border-status-error');
+        }
+      }
+
+      btnToggleError.addEventListener('click', toggleError);
+      btnCloseError.addEventListener('click', () => {
+        errorBanner.classList.add('hidden');
+        document.getElementById('signin-email').classList.remove('!border-status-error');
+      });
+
+      // Toggle Loading State Demo
+      let isLoading = false;
+      function toggleLoading() {
+        isLoading = !isLoading;
+        if (isLoading) {
+          textSignIn.innerText = 'Signing in...';
+          spinSignIn.classList.remove('hidden');
+          btnSignIn.disabled = true;
+          btnSignIn.classList.add('opacity-80', 'cursor-not-allowed');
+
+          textSignUp.innerText = 'Provisioning agent...';
+          spinSignUp.classList.remove('hidden');
+          btnSignUp.disabled = true;
+          btnSignUp.classList.add('opacity-80', 'cursor-not-allowed');
+
+          setTimeout(() => {
+            if (isLoading) toggleLoading();
+          }, 3500);
+        } else {
+          textSignIn.innerText = 'Sign In';
+          spinSignIn.classList.add('hidden');
+          btnSignIn.disabled = false;
+          btnSignIn.classList.remove('opacity-80', 'cursor-not-allowed');
+
+          textSignUp.innerText = 'Create Account';
+          spinSignUp.classList.add('hidden');
+          btnSignUp.disabled = false;
+          btnSignUp.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
+      }
+
+      btnToggleLoading.addEventListener('click', toggleLoading);
+      formSignIn.addEventListener('submit', (e) => {
+        e.preventDefault();
+        toggleLoading();
+      });
+      formSignUp.addEventListener('submit', (e) => {
+        e.preventDefault();
+        toggleLoading();
+      });
+    });
+  </script>
+</body></html>

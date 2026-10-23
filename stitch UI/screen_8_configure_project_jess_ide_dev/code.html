@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Jess IDE - Configure Project</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Inter & JetBrains Mono Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "background": "#15141B",
+            "secondary": "#ccbeff",
+            "on-error": "#690005",
+            "status-warning": "#FBBF24",
+            "on-secondary": "#332664",
+            "on-tertiary-fixed": "#2c1700",
+            "inverse-on-surface": "#312f37",
+            "text-secondary": "#A6A1B3",
+            "status-success": "#34D399",
+            "outline": "#958ea0",
+            "error": "#ffb4ab",
+            "surface-container": "#201f26",
+            "tertiary-fixed-dim": "#ffb869",
+            "status-info": "#60A5FA",
+            "error-container": "#93000a",
+            "surface-container-high": "#2a2931",
+            "on-tertiary": "#482900",
+            "primary-fixed": "#e9ddff",
+            "on-primary-container": "#340080",
+            "tertiary": "#ffb869",
+            "surface-container-highest": "#35343c",
+            "status-error": "#F87171",
+            "on-primary-fixed": "#23005c",
+            "secondary-container": "#4a3d7c",
+            "on-background": "#e5e1eb",
+            "on-primary": "#3c0091",
+            "surface-container-lowest": "#0e0d14",
+            "on-secondary-container": "#baabf3",
+            "on-secondary-fixed-variant": "#4a3d7c",
+            "surface-elevated": "#24222D",
+            "inverse-surface": "#e5e1eb",
+            "inverse-primary": "#6d3bd7",
+            "on-primary-fixed-variant": "#5516be",
+            "border-subtle": "#353140",
+            "primary": "#8B5CF6",
+            "surface-main": "#1C1A24",
+            "surface-dim": "#15141B",
+            "surface": "#15141B",
+            "text-primary": "#F5F3FA"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            "space-md": "0.75rem",
+            "space-lg": "1rem",
+            "space-xl": "1.5rem",
+            "space-2xl": "2rem"
+          },
+          "fontFamily": {
+            "headline-sm": ["Inter"],
+            "body-sm": ["Inter"],
+            "label-sm": ["JetBrains Mono"],
+            "headline-md": ["Inter"],
+            "code-md": ["JetBrains Mono"],
+            "code-sm": ["JetBrains Mono"],
+            "headline-xl-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "label-md": ["Inter"]
+          },
+          "fontSize": {
+            "headline-sm": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "600" }],
+            "body-sm": ["0.75rem", { "lineHeight": "1rem", "fontWeight": "400" }],
+            "label-sm": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "code-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }],
+            "code-sm": ["0.75rem", { "lineHeight": "1.125rem", "fontWeight": "400" }],
+            "headline-xl-mobile": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "400" }],
+            "label-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "500" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #15141B;
+      color: #F5F3FA;
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 1.125rem;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      box-shadow: 0 0 0 1px #8B5CF6;
+    }
+    /* Custom Scrollbar for demo toolbar */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-text-primary min-h-screen flex flex-col items-center justify-start antialiased">
+<!-- Mobile Viewport Shell (390px Max Width Boundary) -->
+<div class="w-full max-w-[390px] min-h-screen bg-background border-x border-border-subtle flex flex-col relative pb-32">
+<!-- Shared Component: TopAppBar -->
+<header class="flex justify-between items-center w-full px-space-lg h-14 bg-surface dark:bg-surface border-b border-border-subtle dark:border-border-subtle sticky top-0 z-30">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="terminal">terminal</span>
+<span class="font-headline-md text-headline-md-mobile font-semibold text-text-primary dark:text-text-primary tracking-tight">Jess IDE</span>
+</div>
+<div class="flex items-center gap-2">
+<!-- Host Environment Status Pill -->
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-surface-main border border-border-subtle">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-status-success animate-pulse"></span>
+<span class="font-code-sm text-code-sm text-text-secondary">host:nagercoil</span>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors duration-150" type="button">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+</div>
+</header>
+<!-- Subheader Navigation & Progress -->
+<div class="px-space-lg pt-3 pb-3 border-b border-border-subtle bg-surface-main">
+<div class="flex items-center justify-between mb-2">
+<button class="inline-flex items-center gap-1 text-text-secondary hover:text-text-primary transition-colors text-body-sm font-body-sm" onclick="history.back()" type="button">
+<span class="material-symbols-outlined text-[16px]" data-icon="arrow_back">arrow_back</span>
+<span>Choose Source</span>
+</button>
+<span class="inline-flex items-center px-2 py-0.5 rounded-lg bg-surface-elevated border border-border-subtle font-label-sm text-label-sm text-secondary">
+          Step 2 of 4
+        </span>
+</div>
+<div class="flex items-center justify-between">
+<h1 class="font-headline-sm text-headline-sm text-text-primary font-semibold">New Project</h1>
+<span class="font-code-sm text-code-sm text-text-secondary">jess-core v2.4</span>
+</div>
+</div>
+<!-- Active Source Indicator Strip -->
+<div class="mx-space-lg mt-3 px-3 py-2 rounded-lg bg-surface-main border border-border-subtle flex items-center justify-between" id="sourceContextStrip">
+<div class="flex items-center gap-2 min-w-0">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="source_environment" id="sourceIcon">source_environment</span>
+<div class="truncate">
+<span class="font-code-sm text-code-sm text-text-secondary block text-[10px] leading-tight">ACTIVE SOURCE</span>
+<span class="font-code-sm text-code-sm text-text-primary font-medium truncate block" id="sourceTitle">GitHub: SajivJess</span>
+</div>
+</div>
+<button class="text-[11px] font-label-md text-secondary hover:underline underline-offset-2 shrink-0 ml-2" type="button">
+        Change
+      </button>
+</div>
+<!-- Interactive Demo State Switcher (Utility Harness) -->
+<div class="px-space-lg pt-3 pb-1">
+<div class="bg-surface-elevated/70 p-2 rounded-lg border border-border-subtle">
+<div class="flex items-center justify-between mb-1.5">
+<span class="font-label-sm text-label-sm text-text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary" data-icon="tune">tune</span>
+            State Harness
+          </span>
+<span class="font-code-sm text-[10px] text-text-secondary">Demo Preview</span>
+</div>
+<div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+<button class="px-2 py-1 rounded bg-primary text-text-primary text-[10px] font-code-sm font-medium border border-primary shrink-0 transition-colors" id="btn-default" onclick="setDemoState('default')" type="button">
+            Default
+          </button>
+<button class="px-2 py-1 rounded bg-surface-main text-text-secondary text-[10px] font-code-sm border border-border-subtle shrink-0 hover:text-text-primary transition-colors" id="btn-error" onclick="setDemoState('error')" type="button">
+            Duplicate Err
+          </button>
+<button class="px-2 py-1 rounded bg-surface-main text-text-secondary text-[10px] font-code-sm border border-border-subtle shrink-0 hover:text-text-primary transition-colors" id="btn-scanning" onclick="setDemoState('scanning')" type="button">
+            Scanning Branch
+          </button>
+<button class="px-2 py-1 rounded bg-surface-main text-text-secondary text-[10px] font-code-sm border border-border-subtle shrink-0 hover:text-text-primary transition-colors" id="btn-local" onclick="setDemoState('local')" type="button">
+            Local Disk
+          </button>
+</div>
+</div>
+</div>
+<!-- Main Configuration Form Area -->
+<main class="px-space-lg pt-2 pb-6 flex flex-col gap-5">
+<!-- Headline & Subtitle -->
+<section class="mt-1">
+<h2 class="font-headline-sm text-headline-sm text-text-primary font-semibold tracking-tight">Configure project</h2>
+<p class="font-body-sm text-body-sm text-text-secondary mt-0.5">Set project identity, repository source, and default working branch.</p>
+</section>
+<!-- Section 1: Universal Project Identity -->
+<section class="bg-surface-main border border-border-subtle rounded-xl p-3.5 flex flex-col gap-3.5">
+<div class="flex items-center justify-between border-b border-border-subtle pb-2">
+<span class="font-label-sm text-label-sm text-text-secondary uppercase">Project Identity</span>
+<span class="font-code-sm text-code-sm text-text-secondary text-[10px]">Step 2.1</span>
+</div>
+<!-- Project Name Field -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-body-sm text-text-primary font-medium flex items-center justify-between" for="projectName">
+<span>Project name <span class="text-status-error">*</span></span>
+<span class="font-code-sm text-status-success text-[11px] inline-flex items-center gap-1" id="nameBadgeStatus">
+<span class="material-symbols-outlined text-[13px]" data-icon="check_circle">check_circle</span> Available
+            </span>
+</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-text-secondary text-[18px] pointer-events-none" data-icon="folder">folder</span>
+<input class="w-full h-11 bg-surface-elevated border border-border-subtle rounded-lg pl-9 pr-9 text-text-primary font-code-md text-code-md transition-colors" id="projectName" oninput="handleNameInput(this.value)" type="text" value="cloudaiagent-mobile"/>
+<span class="material-symbols-outlined absolute right-3 text-status-success text-[18px]" data-icon="check_circle" id="nameValidationIcon">check_circle</span>
+</div>
+<!-- Dynamic Validation Helper Text -->
+<p class="font-body-sm text-body-sm text-text-secondary" id="nameHelperText">
+            A unique local identifier for this project.
+          </p>
+</div>
+<!-- Description Field -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-body-sm text-text-primary font-medium" for="projectDesc">
+              Description <span class="text-text-secondary font-normal">(optional)</span>
+</label>
+<span class="font-code-sm text-code-sm text-text-secondary text-[11px]" id="charCounter">72 / 200</span>
+</div>
+<textarea class="w-full min-h-[78px] bg-surface-elevated border border-border-subtle rounded-lg p-2.5 text-text-primary font-body-sm text-body-sm placeholder:text-text-secondary resize-none transition-colors" id="projectDesc" maxlength="200" oninput="updateCharCount(this)" placeholder="AI coding agent orchestration backend and mobile interface." rows="3">AI coding agent orchestration backend and mobile interface.</textarea>
+</div>
+</section>
+<!-- Section 2: Repository & Branch Configuration -->
+<section class="bg-surface-main border border-border-subtle rounded-xl p-3.5 flex flex-col gap-3.5" id="repoBranchSection">
+<div class="flex items-center justify-between border-b border-border-subtle pb-2">
+<span class="font-label-sm text-label-sm text-text-secondary uppercase">Repository &amp; Branch</span>
+<span class="font-code-sm text-code-sm text-text-secondary text-[10px]">Step 2.2</span>
+</div>
+<!-- Repository Selector Card -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-body-sm text-text-primary font-medium">Repository source</label>
+<button class="text-text-secondary hover:text-text-primary inline-flex items-center gap-1 text-[11px] font-code-sm" type="button">
+<span class="material-symbols-outlined text-[14px]" data-icon="sync">sync</span> Refresh
+            </button>
+</div>
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-elevated border border-border-subtle">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded bg-surface-main border border-border-subtle flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px] text-text-primary" data-icon="deployed_code">deployed_code</span>
+</div>
+<div class="truncate">
+<div class="flex items-center gap-1.5">
+<span class="font-code-md text-code-md text-text-primary font-medium truncate">SajivJess/cloudaiagent</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-main border border-border-subtle font-code-sm text-[10px] text-text-secondary">public</span>
+</div>
+<span class="font-code-sm text-[11px] text-text-secondary truncate block">Updated 14 mins ago · Go/TS</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-text-secondary shrink-0" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Connected State & Security Pill -->
+<div class="p-2.5 rounded-lg bg-surface-elevated/40 border border-border-subtle/80 flex flex-col gap-1.5">
+<div class="flex items-center gap-1.5">
+<span class="inline-block w-2 h-2 rounded-full bg-status-success"></span>
+<span class="font-body-sm text-body-sm text-text-primary font-medium text-[12px]">
+              GitHub App connected with read/write access (SajivJess)
+            </span>
+</div>
+<div class="flex items-start gap-1.5 pl-3.5">
+<span class="material-symbols-outlined text-text-secondary text-[14px] shrink-0 mt-0.5" data-icon="lock">lock</span>
+<p class="font-body-sm text-[11px] text-text-secondary leading-tight">
+              No personal access tokens or keys are exposed to the client.
+            </p>
+</div>
+</div>
+<!-- Branch Mode Segmented Selector -->
+<div class="flex flex-col gap-2 pt-1">
+<label class="font-label-md text-body-sm text-text-primary font-medium">Default branch configuration</label>
+<div class="grid grid-cols-2 p-1 bg-surface-elevated rounded-lg border border-border-subtle text-center">
+<button class="py-1.5 px-2 rounded font-body-sm text-[12px] font-medium transition-all bg-primary text-text-primary flex items-center justify-center gap-1" id="branchModeExisting" onclick="toggleBranchMode('existing')" type="button">
+<span class="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+              Existing branch
+            </button>
+<button class="py-1.5 px-2 rounded font-body-sm text-[12px] text-text-secondary hover:text-text-primary transition-all flex items-center justify-center gap-1" id="branchModeNew" onclick="toggleBranchMode('new')" type="button">
+<span>+ Task branch</span>
+</button>
+</div>
+<!-- Existing Branch Selector Dropdown Container -->
+<div class="relative" id="branchDropdownWrapper">
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-elevated border border-border-subtle" id="branchSelectorCard">
+<div class="flex items-center gap-2 min-w-0">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="fork_right">fork_right</span>
+<div class="truncate">
+<div class="flex items-center gap-2">
+<span class="font-code-md text-code-md text-text-primary font-semibold truncate" id="branchNameLabel">main</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-main border border-border-subtle font-code-sm text-[10px] text-text-secondary">default</span>
+</div>
+<span class="font-code-sm text-[11px] text-text-secondary block" id="branchCommitLabel">08fe47a · 2h ago by @sajiv</span>
+</div>
+</div>
+<div class="shrink-0 flex items-center pl-2" id="branchStatusIconSlot">
+<span class="material-symbols-outlined text-text-secondary" data-icon="unfold_more">unfold_more</span>
+</div>
+</div>
+</div>
+<!-- Checkpoint Checkbox Option -->
+<label class="flex items-start gap-2.5 pt-1.5 cursor-pointer">
+<div class="relative flex items-center mt-0.5">
+<input checked="" class="w-4 h-4 rounded bg-surface-elevated border-border-subtle text-primary focus:ring-0 focus:ring-offset-0 cursor-pointer" type="checkbox"/>
+</div>
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-text-primary font-medium leading-snug">
+                Create working checkpoint before first agent instruction
+              </span>
+<span class="font-body-sm text-[11px] text-text-secondary">
+                Generates a clean commit branch tag for instantaneous rollback.
+              </span>
+</div>
+</label>
+</div>
+</section>
+<!-- Section 2 Alternate: Local Disk View (Controlled by Harness) -->
+<section class="hidden bg-surface-main border border-border-subtle rounded-xl p-3.5 flex-col gap-3.5" id="localDiskSection">
+<div class="flex items-center justify-between border-b border-border-subtle pb-2">
+<span class="font-label-sm text-label-sm text-text-secondary uppercase">Local File System</span>
+<span class="font-code-sm text-code-sm text-text-secondary text-[10px]">Host Mount</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-body-sm text-text-primary font-medium">Path on host runner</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-text-secondary text-[18px]" data-icon="hard_drive">hard_drive</span>
+<input class="w-full h-11 bg-surface-elevated border border-border-subtle rounded-lg pl-9 pr-9 text-text-primary font-code-md text-code-md" readonly="" type="text" value="D:/projects/cloudaiagent"/>
+<span class="material-symbols-outlined absolute right-3 text-status-success text-[18px]" data-icon="check_circle">check_circle</span>
+</div>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="inline-block w-2 h-2 rounded-full bg-status-success"></span>
+<span class="font-code-sm text-[11px] text-status-success">Path verified on host machine (RW granted)</span>
+</div>
+</div>
+<div class="p-2.5 rounded-lg bg-surface-elevated border border-border-subtle flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="folder_zip">folder_zip</span>
+<div>
+<span class="font-code-sm text-code-sm text-text-primary block font-medium">Git Initialized</span>
+<span class="font-code-sm text-[11px] text-text-secondary">Current branch: feature/antigravity</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-main font-code-sm text-[10px] text-status-info border border-border-subtle">
+            Clean Tree
+          </span>
+</div>
+</section>
+<!-- Trust Boundary & Next Step Informational Card -->
+<section class="rounded-xl border border-status-info/30 bg-status-info/10 p-3.5 flex items-start gap-3">
+<span class="material-symbols-outlined text-status-info text-[20px] shrink-0 mt-0.5" data-icon="shield">shield</span>
+<div class="flex flex-col gap-1">
+<h4 class="font-label-md text-body-sm text-status-info font-semibold">Trust Boundary Protected</h4>
+<p class="font-body-sm text-[12px] text-text-primary/90 leading-relaxed">
+            Next Step: You'll assign a host workspace and connect the Antigravity coding agent before any code is cloned or modified.
+          </p>
+</div>
+</section>
+<!-- Host Agent Readiness Micro-status -->
+<div class="flex items-center justify-between px-1 py-1 text-text-secondary text-[11px] font-code-sm">
+<span class="inline-flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+          Antigravity Agent v3.1 Ready
+        </span>
+<span class="inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]" data-icon="memory">memory</span>
+          12GB Host Mem free
+        </span>
+</div>
+</main>
+<!-- Sticky Mobile Footer Action Bar -->
+<footer class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-surface-main/95 backdrop-blur-md border-t border-border-subtle p-3.5 z-40">
+<div class="flex items-center gap-2.5">
+<button class="h-12 px-3.5 rounded-lg border border-border-subtle bg-transparent text-text-primary font-medium hover:bg-surface-elevated transition-colors text-body-sm flex items-center justify-center shrink-0" onclick="history.back()" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="arrow_back">arrow_back</span>
+</button>
+<button class="flex-1 h-12 bg-primary hover:bg-[#7C3AED] active:bg-[#6D28D9] text-text-primary rounded-lg font-body-md font-medium flex items-center justify-center gap-2 transition-colors shadow-sm" id="continueBtn" onclick="proceedToStep3()" type="button">
+<span>Continue to Workspace</span>
+<span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<div class="text-center mt-2">
+<span class="font-code-sm text-[10px] text-text-secondary tracking-wide">
+          Step 2 of 4 · Repository not yet cloned
+        </span>
+</div>
+</footer>
+</div>
+<!-- Inline Lightweight Micro-interactions & State Logic -->
+<script>
+    function updateCharCount(el) {
+      const len = el.value.length;
+      document.getElementById('charCounter').textContent = `${len} / 200`;
+    }
+
+    function handleNameInput(val) {
+      const helper = document.getElementById('nameHelperText');
+      const badge = document.getElementById('nameBadgeStatus');
+      const input = document.getElementById('projectName');
+      const icon = document.getElementById('nameValidationIcon');
+      
+      if (val.trim() === 'cloudaiagent') {
+        // Simulating duplicate name collision
+        input.classList.add('border-status-error', 'text-status-error');
+        input.classList.remove('border-border-subtle');
+        badge.innerHTML = `<span class="material-symbols-outlined text-[13px]" data-icon="cancel">cancel</span> Collision`;
+        badge.className = 'font-code-sm text-status-error text-[11px] inline-flex items-center gap-1';
+        icon.innerText = 'error';
+        icon.className = 'material-symbols-outlined absolute right-3 text-status-error text-[18px]';
+        helper.innerHTML = `<span class="text-status-error font-medium">A project named 'cloudaiagent' already exists in workspace.</span>`;
+      } else {
+        input.classList.remove('border-status-error', 'text-status-error');
+        input.classList.add('border-border-subtle');
+        badge.innerHTML = `<span class="material-symbols-outlined text-[13px]" data-icon="check_circle">check_circle</span> Available`;
+        badge.className = 'font-code-sm text-status-success text-[11px] inline-flex items-center gap-1';
+        icon.innerText = 'check_circle';
+        icon.className = 'material-symbols-outlined absolute right-3 text-status-success text-[18px]';
+        helper.textContent = 'A unique local identifier for this project.';
+      }
+    }
+
+    function toggleBranchMode(mode) {
+      const existingBtn = document.getElementById('branchModeExisting');
+      const newBtn = document.getElementById('branchModeNew');
+      const branchLabel = document.getElementById('branchNameLabel');
+      const commitLabel = document.getElementById('branchCommitLabel');
+
+      if (mode === 'new') {
+        newBtn.className = 'py-1.5 px-2 rounded font-body-sm text-[12px] font-medium transition-all bg-primary text-text-primary flex items-center justify-center gap-1';
+        existingBtn.className = 'py-1.5 px-2 rounded font-body-sm text-[12px] text-text-secondary hover:text-text-primary transition-all flex items-center justify-center gap-1';
+        branchLabel.textContent = 'task/initial-orchestrator';
+        commitLabel.textContent = 'Branch will be branched off main';
+      } else {
+        existingBtn.className = 'py-1.5 px-2 rounded font-body-sm text-[12px] font-medium transition-all bg-primary text-text-primary flex items-center justify-center gap-1';
+        newBtn.className = 'py-1.5 px-2 rounded font-body-sm text-[12px] text-text-secondary hover:text-text-primary transition-all flex items-center justify-center gap-1';
+        branchLabel.textContent = 'main';
+        commitLabel.textContent = '08fe47a · 2h ago by @sajiv';
+      }
+    }
+
+    function setDemoState(state) {
+      const nameInput = document.getElementById('projectName');
+      const branchSlot = document.getElementById('branchStatusIconSlot');
+      const repoBranchSec = document.getElementById('repoBranchSection');
+      const localSec = document.getElementById('localDiskSection');
+      const sourceTitle = document.getElementById('sourceTitle');
+      const sourceIcon = document.getElementById('sourceIcon');
+      
+      // Update harness button styles
+      ['default', 'error', 'scanning', 'local'].forEach(id => {
+        const btn = document.getElementById(`btn-${id}`);
+        if (id === state) {
+          btn.className = 'px-2 py-1 rounded bg-primary text-text-primary text-[10px] font-code-sm font-medium border border-primary shrink-0 transition-colors';
+        } else {
+          btn.className = 'px-2 py-1 rounded bg-surface-main text-text-secondary text-[10px] font-code-sm border border-border-subtle shrink-0 hover:text-text-primary transition-colors';
+        }
+      });
+
+      // Reset base visibility
+      repoBranchSec.classList.remove('hidden');
+      localSec.classList.add('hidden');
+      sourceTitle.textContent = 'GitHub: SajivJess';
+      sourceIcon.innerText = 'source_environment';
+
+      if (state === 'default') {
+        nameInput.value = 'cloudaiagent-mobile';
+        handleNameInput('cloudaiagent-mobile');
+        branchSlot.innerHTML = `<span class="material-symbols-outlined text-text-secondary" data-icon="unfold_more">unfold_more</span>`;
+      } 
+      else if (state === 'error') {
+        nameInput.value = 'cloudaiagent';
+        handleNameInput('cloudaiagent');
+        branchSlot.innerHTML = `<span class="material-symbols-outlined text-text-secondary" data-icon="unfold_more">unfold_more</span>`;
+      } 
+      else if (state === 'scanning') {
+        nameInput.value = 'cloudaiagent-mobile';
+        handleNameInput('cloudaiagent-mobile');
+        branchSlot.innerHTML = `
+          <div class="flex items-center gap-1.5 text-secondary font-code-sm text-[10px]">
+            <span class="material-symbols-outlined text-[15px] animate-spin" data-icon="progress_activity">progress_activity</span>
+            <span>Scanning...</span>
+          </div>
+        `;
+      } 
+      else if (state === 'local') {
+        nameInput.value = 'cloudaiagent-local';
+        handleNameInput('cloudaiagent-local');
+        repoBranchSec.classList.add('hidden');
+        localSec.classList.remove('hidden');
+        localSec.classList.add('flex');
+        sourceTitle.textContent = 'Host Local: D:/projects';
+        sourceIcon.innerText = 'folder_supervised';
+      }
+    }
+
+    function proceedToStep3() {
+      const btn = document.getElementById('continueBtn');
+      btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin" data-icon="progress_activity">progress_activity</span> <span>Configuring...</span>`;
+      setTimeout(() => {
+        alert("Proceeding to Step 3: Workspace & Agent Assignment");
+        btn.innerHTML = `<span>Continue to Workspace</span><span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>`;
+      }, 700);
+    }
+  </script>
+</body></html>

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Jess IDE - New Project: Ideation</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..900&display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-primary": "#3c0091",
+            "text-secondary": "#A6A1B3",
+            "border-subtle": "#353140",
+            "tertiary-fixed-dim": "#ffb869",
+            "on-surface": "#e5e1eb",
+            "primary-container": "#a078ff",
+            "surface-container": "#201f26",
+            "on-secondary": "#332664",
+            "surface": "#131319",
+            "secondary-fixed-dim": "#ccbeff",
+            "surface-tint": "#d0bcff",
+            "on-tertiary-fixed": "#2c1700",
+            "text-primary": "#F5F3FA",
+            "tertiary": "#ffb869",
+            "surface-container-high": "#2a2931",
+            "status-error": "#F87171",
+            "surface-dim": "#131319",
+            "surface-container-lowest": "#0e0d14",
+            "primary": "#8B5CF6",
+            "surface-container-low": "#1c1b22",
+            "error": "#ffb4ab",
+            "on-primary-container": "#340080",
+            "on-tertiary-container": "#3f2300",
+            "secondary-fixed": "#e7deff",
+            "outline": "#958ea0",
+            "on-surface-variant": "#cbc3d7",
+            "on-background": "#e5e1eb",
+            "inverse-primary": "#6d3bd7",
+            "secondary-container": "#4a3d7c",
+            "on-secondary-container": "#baabf3",
+            "surface-elevated": "#24222D",
+            "tertiary-fixed": "#ffdcbb",
+            "error-container": "#93000a",
+            "status-success": "#34D399",
+            "tertiary-container": "#ca801e",
+            "primary-fixed": "#e9ddff",
+            "on-error-container": "#ffdad6",
+            "status-info": "#60A5FA",
+            "on-tertiary-fixed-variant": "#673d00",
+            "surface-main": "#1C1A24",
+            "on-primary-fixed": "#23005c",
+            "on-primary-fixed-variant": "#5516be",
+            "on-secondary-fixed-variant": "#4a3d7c",
+            "primary-fixed-dim": "#d0bcff",
+            "inverse-surface": "#e5e1eb",
+            "outline-variant": "#494454",
+            "inverse-on-surface": "#312f37",
+            "surface-variant": "#35343c",
+            "surface-bright": "#3a3840",
+            "status-warning": "#FBBF24",
+            "on-tertiary": "#482900",
+            "background": "#15141B",
+            "on-secondary-fixed": "#1e0e4e",
+            "surface-container-highest": "#35343c",
+            "secondary": "#ccbeff",
+            "on-error": "#690005"
+          },
+          borderRadius: {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          spacing: {
+            "space-md": "0.75rem",
+            "gutter-desktop": "1.5rem",
+            "margin": "1rem",
+            "gutter": "1rem",
+            "space-xs": "0.25rem",
+            "space-xl": "1.5rem",
+            "space-sm": "0.5rem",
+            "space-lg": "1rem",
+            "margin-desktop": "1.5rem",
+            "space-2xl": "2rem"
+          },
+          fontFamily: {
+            "headline-xl": ["Inter"],
+            "code-sm": ["JetBrains Mono"],
+            "headline-md": ["Inter"],
+            "label-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-xl-mobile": ["Inter"],
+            "headline-lg": ["Inter"],
+            "code-md": ["JetBrains Mono"],
+            "label-sm": ["JetBrains Mono"],
+            "headline-sm": ["Inter"],
+            "body-sm": ["Inter"]
+          },
+          fontSize: {
+            "headline-xl": ["2rem", { lineHeight: "2.5rem", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "code-sm": ["0.75rem", { lineHeight: "1.125rem", fontWeight: "400" }],
+            "headline-md": ["1.25rem", { lineHeight: "1.75rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "label-md": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "500" }],
+            "body-lg": ["1rem", { lineHeight: "1.5rem", fontWeight: "400" }],
+            "body-md": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "400" }],
+            "headline-xl-mobile": ["1.5rem", { lineHeight: "2rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "headline-lg": ["1.5rem", { lineHeight: "2rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "code-md": ["0.875rem", { lineHeight: "1.375rem", fontWeight: "400" }],
+            "label-sm": ["0.6875rem", { lineHeight: "0.875rem", letterSpacing: "0.04em", fontWeight: "500" }],
+            "headline-sm": ["1rem", { lineHeight: "1.5rem", fontWeight: "600" }],
+            "body-sm": ["0.75rem", { lineHeight: "1rem", fontWeight: "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Waveform Animation */
+    @keyframes wavePulse {
+      0%, 100% { height: 6px; }
+      50% { height: 26px; }
+    }
+    .wave-bar {
+      animation: wavePulse 1.2s ease-in-out infinite;
+    }
+    .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(6) { animation-delay: 0.5s; }
+    .wave-bar:nth-child(7) { animation-delay: 0.35s; }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-text-primary min-h-screen flex flex-col font-body-md antialiased selection:bg-primary selection:text-white">
+<!-- Shared Component Anchor: TopAppBar -->
+<header class="flex justify-between items-center w-full px-space-lg h-14 bg-surface dark:bg-surface border-b border-border-subtle dark:border-border-subtle sticky top-0 z-50">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="terminal">terminal</span>
+<span class="font-headline-md text-headline-md-mobile font-semibold text-text-primary tracking-tight">Jess IDE</span>
+<span class="font-label-sm text-label-sm bg-surface-elevated text-text-secondary px-2 py-0.5 rounded border border-border-subtle ml-1">host:nagercoil</span>
+</div>
+<div class="flex items-center gap-space-md">
+<button aria-label="Help" class="text-text-secondary hover:bg-surface-elevated hover:text-text-primary p-1.5 rounded transition-colors duration-150 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="help_outline">help_outline</span>
+</button>
+</div>
+</header>
+<!-- Interactive Demo Switcher Bar -->
+<section class="bg-surface-main border-b border-border-subtle px-space-lg py-2">
+<div class="max-w-[720px] mx-auto flex items-center justify-between flex-wrap gap-2">
+<span class="font-label-sm text-label-sm text-text-secondary flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-status-info"></span>
+        Interactive Demo State:
+      </span>
+<div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+<button class="px-2.5 py-1 text-xs font-label-md rounded border bg-primary text-text-primary border-primary" id="btn-state-default" onclick="setDemoState('default')">Default (Populated)</button>
+<button class="px-2.5 py-1 text-xs font-label-md rounded border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary" id="btn-state-recording" onclick="setDemoState('recording')">Recording State</button>
+<button class="px-2.5 py-1 text-xs font-label-md rounded border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary" id="btn-state-maxfiles" onclick="setDemoState('maxfiles')">Max Files (10/10)</button>
+<button class="px-2.5 py-1 text-xs font-label-md rounded border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary" id="btn-state-empty" onclick="setDemoState('empty')">Empty State</button>
+</div>
+</div>
+</section>
+<!-- Main Wizard Content Canvas -->
+<main class="flex-1 w-full max-w-[720px] mx-auto px-space-lg py-space-xl pb-32">
+<!-- Wizard Header Breadcrumbs & Progress Anchor -->
+<div class="mb-space-xl">
+<div class="flex items-center justify-between mb-3">
+<a class="inline-flex items-center gap-1 text-text-secondary hover:text-text-primary text-body-sm font-label-md transition-colors duration-150" href="#screen-7-choose-source">
+<span class="material-symbols-outlined text-[18px]" data-icon="chevron_left">chevron_left</span>
+<span>Choose Source</span>
+</a>
+<!-- Metadata Pills -->
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm bg-primary/10 border border-primary/30 text-primary px-2.5 py-0.5 rounded font-medium">
+            Step 2 of 5
+          </span>
+<span class="font-code-sm text-code-sm text-text-secondary bg-surface-elevated border border-border-subtle px-2 py-0.5 rounded">
+            jess-core v2.4
+          </span>
+</div>
+</div>
+<div class="space-y-1">
+<h1 class="font-headline-lg text-headline-lg font-semibold tracking-tight text-text-primary">
+          New Project: Ideation
+        </h1>
+<p class="font-body-md text-body-md text-text-secondary">
+          Describe the problem you want to solve. Add reference files to make the technical analysis more accurate.
+        </p>
+</div>
+</div>
+<!-- Section 1: Problem Statement & Speech-to-Text -->
+<section class="bg-surface-main border border-border-subtle rounded-xl p-space-lg mb-space-xl shadow-none">
+<div class="flex items-center justify-between mb-2">
+<label class="font-label-md text-label-md font-medium text-text-primary flex items-center gap-1" for="problem-input">
+          Project idea / problem statement
+          <span class="text-status-error">*</span>
+</label>
+<span class="font-code-sm text-code-sm text-text-secondary" id="char-counter">156 / 2,000</span>
+</div>
+<!-- Textarea Container with Mic Action -->
+<div class="relative">
+<textarea class="w-full bg-surface-elevated border border-border-subtle rounded-lg p-space-md pr-12 text-body-md font-body-md text-text-primary placeholder:text-text-secondary/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-y min-h-[150px]" id="problem-input" oninput="updateCharCount(this)" placeholder="e.g. Build an event-driven background job orchestration daemon..." rows="5">Build an event-driven background job orchestration daemon in Go for distributed worker nodes with automatic checkpointing and WebSocket event streams.</textarea>
+<button aria-label="Start voice transcription" class="absolute right-3 top-3 w-8 h-8 rounded bg-surface border border-border-subtle hover:border-primary text-text-secondary hover:text-primary flex items-center justify-center transition-colors duration-150" id="mic-action-btn" onclick="toggleDictation()" title="Dictate with voice" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="mic">mic</span>
+</button>
+</div>
+<!-- Dictation In-Progress Bar (Conditional) -->
+<div class="hidden mt-3 p-space-md bg-surface border border-primary/40 rounded-lg flex items-center justify-between" id="dictation-panel">
+<div class="flex items-center gap-3">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-error opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-status-error"></span>
+</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-text-primary font-medium">Listening... speak now</span>
+<span class="font-code-sm text-code-sm text-text-secondary">Real-time local model active</span>
+</div>
+<!-- Animated Audio Waveform -->
+<div class="flex items-center gap-1 h-7 pl-2">
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+</div>
+</div>
+<button class="font-label-md text-body-sm text-status-error hover:text-white hover:bg-status-error/20 px-2.5 py-1 rounded border border-status-error/30 transition-colors" onclick="toggleDictation()" type="button">
+          Cancel dictation
+        </button>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="info">info</span>
+        Be as specific as possible about requirements, target users, and technical constraints.
+      </p>
+</section>
+<!-- Section 2: Reference Files Upload (Max 10) -->
+<section class="bg-surface-main border border-border-subtle rounded-xl p-space-lg mb-space-xl">
+<div class="flex items-center justify-between mb-1">
+<div class="flex items-center gap-2">
+<h2 class="font-headline-sm text-headline-sm text-text-primary font-semibold">Reference files</h2>
+<span class="font-label-sm text-label-sm bg-surface-elevated text-primary border border-border-subtle px-2 py-0.5 rounded" id="file-badge">
+            2 / 10 files added
+          </span>
+</div>
+<span class="font-label-sm text-label-sm text-text-secondary">Strict 10-file max</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary mb-space-md">
+        Supports PDF, TXT, PPTX, DOCX, XLSX, PNG, JPG (up to 25MB each)
+      </p>
+<!-- Upload Drop Zone -->
+<div class="border border-dashed border-border-subtle hover:border-primary bg-surface-elevated rounded-lg p-6 text-center transition-colors duration-150 cursor-pointer mb-space-md" id="drop-zone">
+<div class="flex flex-col items-center justify-center gap-2">
+<div class="w-10 h-10 rounded-full bg-surface flex items-center justify-center border border-border-subtle text-primary">
+<span class="material-symbols-outlined text-[20px]" data-icon="upload_file">upload_file</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-text-primary font-medium">Tap or drop files to upload</p>
+<p class="font-body-sm text-body-sm text-text-secondary">Drag specs, architectural drafts, or RFC documents here</p>
+</div>
+<button class="mt-1 px-3.5 py-1.5 text-xs font-label-md rounded border border-border-subtle bg-surface text-text-primary hover:bg-surface-elevated transition-colors" type="button">
+            Browse files
+          </button>
+</div>
+</div>
+<!-- Max Limit Warning Banner (Hidden by default, shown in maxfiles state) -->
+<div class="hidden p-space-md bg-status-warning/10 border border-status-warning/30 rounded-lg mb-space-md flex items-center justify-between" id="max-limit-banner">
+<div class="flex items-center gap-2 text-status-warning text-body-sm font-label-md">
+<span class="material-symbols-outlined text-[18px]" data-icon="warning">warning</span>
+<span>Maximum limit of 10 files reached. Remove an item to add new files.</span>
+</div>
+<span class="font-code-sm text-code-sm text-status-warning/80">10/10 locked</span>
+</div>
+<!-- Uploaded Files List -->
+<div class="space-y-2" id="file-list-container">
+<!-- Item 1: PDF -->
+<div class="file-item flex items-center justify-between p-space-md bg-surface border border-border-subtle rounded-lg">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-8 h-8 rounded bg-status-error/10 border border-status-error/20 flex items-center justify-center text-status-error shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="picture_as_pdf">picture_as_pdf</span>
+</div>
+<div class="truncate">
+<p class="font-code-sm text-code-md text-text-primary truncate">Cloud_agent_architecture.pdf</p>
+<p class="font-code-sm text-code-sm text-text-secondary">1.4 MB</p>
+</div>
+</div>
+<div class="flex items-center gap-3 shrink-0">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-status-success bg-status-success/10 border border-status-success/20 px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle">check_circle</span>
+              Ready
+            </span>
+<button aria-label="Remove Cloud_agent_architecture.pdf" class="text-text-secondary hover:text-status-error transition-colors p-1" title="Remove file" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Item 2: DOCX -->
+<div class="file-item flex items-center justify-between p-space-md bg-surface border border-border-subtle rounded-lg">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-8 h-8 rounded bg-status-info/10 border border-status-info/20 flex items-center justify-center text-status-info shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="description">description</span>
+</div>
+<div class="truncate">
+<p class="font-code-sm text-code-md text-text-primary truncate">Job_orchestration_specs.docx</p>
+<p class="font-code-sm text-code-sm text-text-secondary">640 KB</p>
+</div>
+</div>
+<div class="flex items-center gap-3 shrink-0">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-status-success bg-status-success/10 border border-status-success/20 px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle">check_circle</span>
+              Ready
+            </span>
+<button aria-label="Remove Job_orchestration_specs.docx" class="text-text-secondary hover:text-status-error transition-colors p-1" title="Remove file" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Focus Chips & Trust Boundary -->
+<section class="bg-surface-main border border-border-subtle rounded-xl p-space-lg mb-space-xl">
+<div class="mb-space-md">
+<h2 class="font-headline-sm text-headline-sm text-text-primary font-semibold">Help focus the analysis (optional)</h2>
+<p class="font-body-sm text-body-sm text-text-secondary">Select high-priority architectural objectives for synthesis engines.</p>
+</div>
+<!-- Chips Grid / Cluster -->
+<div class="flex flex-wrap gap-2 mb-space-lg">
+<!-- Selected Chip 1 -->
+<button class="focus-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-label-md font-label-md transition-all border-primary bg-primary/10 text-text-primary" onclick="toggleChip(this)" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="check">check</span>
+<span>MVP first</span>
+</button>
+<!-- Unselected Chip -->
+<button class="focus-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-text-secondary hover:text-text-primary hover:border-text-secondary/50 text-label-md font-label-md transition-all" onclick="toggleChip(this)" type="button">
+<span class="material-symbols-outlined text-[16px] hidden" data-icon="check">check</span>
+<span>Offline-first</span>
+</button>
+<!-- Unselected Chip -->
+<button class="focus-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-text-secondary hover:text-text-primary hover:border-text-secondary/50 text-label-md font-label-md transition-all" onclick="toggleChip(this)" type="button">
+<span class="material-symbols-outlined text-[16px] hidden" data-icon="check">check</span>
+<span>Low-cost compute</span>
+</button>
+<!-- Selected Chip 2 -->
+<button class="focus-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-label-md font-label-md transition-all border-primary bg-primary/10 text-text-primary" onclick="toggleChip(this)" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="check">check</span>
+<span>Security-hardened</span>
+</button>
+<!-- Unselected Chip -->
+<button class="focus-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-text-secondary hover:text-text-primary hover:border-text-secondary/50 text-label-md font-label-md transition-all" onclick="toggleChip(this)" type="button">
+<span class="material-symbols-outlined text-[16px] hidden" data-icon="check">check</span>
+<span>Scalability</span>
+</button>
+<!-- Unselected Chip -->
+<button class="focus-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-text-secondary hover:text-text-primary hover:border-text-secondary/50 text-label-md font-label-md transition-all" onclick="toggleChip(this)" type="button">
+<span class="material-symbols-outlined text-[16px] hidden" data-icon="check">check</span>
+<span>Clean architecture</span>
+</button>
+</div>
+<!-- Trust Notice Card (Blue outline / info styling) -->
+<div class="bg-status-info/10 border border-status-info/30 rounded-lg p-3.5 flex items-start gap-3">
+<span class="material-symbols-outlined text-status-info text-[20px] shrink-0 mt-0.5" data-icon="shield">shield</span>
+<div class="space-y-0.5">
+<p class="font-label-md text-label-md text-text-primary font-medium">Trust Boundary</p>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+            Focus chips and uploaded documents guide the AI analysis. Generated architecture suggestions will remain proposals until explicitly confirmed by you.
+          </p>
+</div>
+</div>
+</section>
+</main>
+<!-- Sticky Footer Action Bar -->
+<footer class="sticky bottom-0 left-0 right-0 z-40 bg-surface border-t border-border-subtle py-3 px-space-lg backdrop-blur-md bg-opacity-95">
+<div class="max-w-[720px] mx-auto flex flex-col gap-2">
+<div class="flex items-center justify-between gap-3">
+<!-- Back action -->
+<a class="h-12 px-4 rounded-lg border border-border-subtle bg-transparent text-text-primary hover:bg-surface-elevated font-label-md text-label-md inline-flex items-center justify-center gap-1.5 transition-colors duration-150" href="#screen-7-choose-source">
+<span class="material-symbols-outlined text-[18px]" data-icon="arrow_back">arrow_back</span>
+<span>Back</span>
+</a>
+<!-- Primary purple action -->
+<button class="h-12 px-6 flex-1 rounded-lg bg-primary hover:bg-[#7C3AED] active:bg-[#6D28D9] text-text-primary font-label-md text-label-md font-medium inline-flex items-center justify-center gap-2 transition-colors duration-150 shadow-none" id="cta-continue" type="button">
+<span>Continue to Analysis</span>
+<span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Subtext / Footnote -->
+<p class="text-center font-code-sm text-code-sm text-text-secondary">
+        Step 2 of 5 · Nothing will be committed without confirmation
+      </p>
+</div>
+</footer>
+<!-- Inline Script for Interactive Demo State Transitions -->
+<script>
+    function updateCharCount(el) {
+      const len = el.value.length;
+      document.getElementById('char-counter').textContent = `${len.toLocaleString()} / 2,000`;
+    }
+
+    function toggleDictation() {
+      const panel = document.getElementById('dictation-panel');
+      const micBtn = document.getElementById('mic-action-btn');
+      if (panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        micBtn.classList.add('border-primary', 'text-primary', 'bg-primary/10');
+      } else {
+        panel.classList.add('hidden');
+        micBtn.classList.remove('border-primary', 'text-primary', 'bg-primary/10');
+      }
+    }
+
+    function toggleChip(btn) {
+      const isSelected = btn.classList.contains('border-primary');
+      const icon = btn.querySelector('.material-symbols-outlined');
+      if (isSelected) {
+        btn.classList.remove('border-primary', 'bg-primary/10', 'text-text-primary');
+        btn.classList.add('border-border-subtle', 'bg-surface', 'text-text-secondary');
+        icon.classList.add('hidden');
+      } else {
+        btn.classList.add('border-primary', 'bg-primary/10', 'text-text-primary');
+        btn.classList.remove('border-border-subtle', 'bg-surface', 'text-text-secondary');
+        icon.classList.remove('hidden');
+      }
+    }
+
+    function setDemoState(state) {
+      // Clear active styles on demo buttons
+      ['default', 'recording', 'maxfiles', 'empty'].forEach(s => {
+        const btn = document.getElementById('btn-state-' + s);
+        if (btn) {
+          btn.className = "px-2.5 py-1 text-xs font-label-md rounded border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary";
+        }
+      });
+      const activeBtn = document.getElementById('btn-state-' + state);
+      if (activeBtn) {
+        activeBtn.className = "px-2.5 py-1 text-xs font-label-md rounded border bg-primary text-text-primary border-primary";
+      }
+
+      const txt = document.getElementById('problem-input');
+      const dictation = document.getElementById('dictation-panel');
+      const micBtn = document.getElementById('mic-action-btn');
+      const fileBadge = document.getElementById('file-badge');
+      const dropZone = document.getElementById('drop-zone');
+      const maxBanner = document.getElementById('max-limit-banner');
+      const fileList = document.getElementById('file-list-container');
+      const cta = document.getElementById('cta-continue');
+
+      if (state === 'default') {
+        txt.value = "Build an event-driven background job orchestration daemon in Go for distributed worker nodes with automatic checkpointing and WebSocket event streams.";
+        updateCharCount(txt);
+        dictation.classList.add('hidden');
+        micBtn.classList.remove('border-primary', 'text-primary', 'bg-primary/10');
+        fileBadge.textContent = "2 / 10 files added";
+        dropZone.classList.remove('opacity-40', 'pointer-events-none');
+        maxBanner.classList.add('hidden');
+        fileList.innerHTML = `
+          <div class="file-item flex items-center justify-between p-space-md bg-surface border border-border-subtle rounded-lg">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded bg-status-error/10 border border-status-error/20 flex items-center justify-center text-status-error shrink-0">
+                <span class="material-symbols-outlined text-[18px]" data-icon="picture_as_pdf">picture_as_pdf</span>
+              </div>
+              <div class="truncate">
+                <p class="font-code-sm text-code-md text-text-primary truncate">Cloud_agent_architecture.pdf</p>
+                <p class="font-code-sm text-code-sm text-text-secondary">1.4 MB</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+              <span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-status-success bg-status-success/10 border border-status-success/20 px-2 py-0.5 rounded">
+                <span class="material-symbols-outlined text-[14px]" data-icon="check_circle">check_circle</span>
+                Ready
+              </span>
+              <button type="button" class="text-text-secondary hover:text-status-error transition-colors p-1"><span class="material-symbols-outlined text-[18px]" data-icon="delete">delete</span></button>
+            </div>
+          </div>
+          <div class="file-item flex items-center justify-between p-space-md bg-surface border border-border-subtle rounded-lg">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded bg-status-info/10 border border-status-info/20 flex items-center justify-center text-status-info shrink-0">
+                <span class="material-symbols-outlined text-[18px]" data-icon="description">description</span>
+              </div>
+              <div class="truncate">
+                <p class="font-code-sm text-code-md text-text-primary truncate">Job_orchestration_specs.docx</p>
+                <p class="font-code-sm text-code-sm text-text-secondary">640 KB</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+              <span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-status-success bg-status-success/10 border border-status-success/20 px-2 py-0.5 rounded">
+                <span class="material-symbols-outlined text-[14px]" data-icon="check_circle">check_circle</span>
+                Ready
+              </span>
+              <button type="button" class="text-text-secondary hover:text-status-error transition-colors p-1"><span class="material-symbols-outlined text-[18px]" data-icon="delete">delete</span></button>
+            </div>
+          </div>
+        `;
+        cta.disabled = false;
+        cta.classList.remove('opacity-50', 'cursor-not-allowed');
+      } else if (state === 'recording') {
+        txt.value = "Daemon requires distributed raft consensus for node leadership election...";
+        updateCharCount(txt);
+        dictation.classList.remove('hidden');
+        micBtn.classList.add('border-primary', 'text-primary', 'bg-primary/10');
+      } else if (state === 'maxfiles') {
+        fileBadge.textContent = "10 / 10 files added";
+        dropZone.classList.add('opacity-40', 'pointer-events-none');
+        maxBanner.classList.remove('hidden');
+        let filesHtml = '';
+        const names = [
+          'arch-spec-v1.pdf', 'distributed-raft.go', 'cluster-topology.png', 'worker-contract.proto',
+          'benchmarks.xlsx', 'auth-tokens.txt', 'network-policy.yaml', 'k8s-manifest.json',
+          'failover-matrix.docx', 'client-sdk-rfc.md'
+        ];
+        names.forEach((name, i) => {
+          filesHtml += `
+            <div class="file-item flex items-center justify-between p-2.5 bg-surface border border-border-subtle rounded-lg">
+              <div class="flex items-center gap-2 truncate">
+                <span class="material-symbols-outlined text-[16px] text-text-secondary" data-icon="attach_file">attach_file</span>
+                <span class="font-code-sm text-code-sm text-text-primary truncate">${name}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="font-label-sm text-label-sm text-status-success bg-status-success/10 px-1.5 py-0.2 rounded">Ready</span>
+                <button type="button" class="text-text-secondary hover:text-status-error"><span class="material-symbols-outlined text-[16px]" data-icon="close">close</span></button>
+              </div>
+            </div>
+          `;
+        });
+        fileList.innerHTML = filesHtml;
+      } else if (state === 'empty') {
+        txt.value = "";
+        updateCharCount(txt);
+        dictation.classList.add('hidden');
+        micBtn.classList.remove('border-primary', 'text-primary', 'bg-primary/10');
+        fileBadge.textContent = "0 / 10 files added";
+        dropZone.classList.remove('opacity-40', 'pointer-events-none');
+        maxBanner.classList.add('hidden');
+        fileList.innerHTML = `
+          <div class="p-6 text-center border border-dashed border-border-subtle rounded-lg text-text-secondary text-body-sm">
+            No reference documents attached yet.
+          </div>
+        `;
+      }
+    }
+  </script>
+</body></html>

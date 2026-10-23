@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Jess IDE - Project Overview (cloudaiagent)</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-bright": "#3a3840",
+            "on-background": "#e5e1eb",
+            "secondary-container": "#4a3d7c",
+            "on-secondary-container": "#baabf3",
+            "on-primary-fixed-variant": "#5516be",
+            "inverse-primary": "#6d3bd7",
+            "on-secondary-fixed-variant": "#4a3d7c",
+            "primary-fixed-dim": "#d0bcff",
+            "surface-container-highest": "#35343c",
+            "inverse-surface": "#e5e1eb",
+            "surface-container": "#201f26",
+            "secondary": "#ccbeff",
+            "surface-main": "#1C1A24",
+            "tertiary-fixed-dim": "#ffb869",
+            "border-subtle": "#353140",
+            "surface-dim": "#131319",
+            "tertiary-fixed": "#ffdcbb",
+            "on-surface": "#e5e1eb",
+            "status-success": "#34D399",
+            "on-error": "#690005",
+            "outline": "#958ea0",
+            "surface-container-lowest": "#0e0d14",
+            "text-primary": "#F5F3FA",
+            "inverse-on-surface": "#312f37",
+            "on-primary": "#3c0091",
+            "on-tertiary-fixed": "#2c1700",
+            "tertiary-container": "#ca801e",
+            "on-secondary": "#332664",
+            "on-tertiary-fixed-variant": "#673d00",
+            "primary": "#d0bcff",
+            "on-error-container": "#ffdad6",
+            "outline-variant": "#494454",
+            "surface-variant": "#35343c",
+            "text-secondary": "#A6A1B3",
+            "error": "#ffb4ab",
+            "surface": "#131319",
+            "on-tertiary": "#482900",
+            "on-primary-container": "#340080",
+            "status-info": "#60A5FA",
+            "on-secondary-fixed": "#1e0e4e",
+            "on-surface-variant": "#cbc3d7",
+            "background": "#131319",
+            "surface-elevated": "#24222D",
+            "status-error": "#F87171",
+            "status-warning": "#FBBF24",
+            "surface-container-low": "#1c1b22",
+            "surface-container-high": "#2a2931",
+            "primary-container": "#a078ff",
+            "secondary-fixed": "#e7deff",
+            "on-tertiary-container": "#3f2300",
+            "primary-fixed": "#e9ddff",
+            "secondary-fixed-dim": "#ccbeff",
+            "surface-tint": "#d0bcff",
+            "tertiary": "#ffb869",
+            "error-container": "#93000a",
+            "on-primary-fixed": "#23005c"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "margin-desktop": "1.5rem",
+            "space-2xl": "2rem",
+            "gutter": "1rem",
+            "space-md": "0.75rem",
+            "gutter-desktop": "1.5rem",
+            "margin": "1rem",
+            "space-lg": "1rem",
+            "space-xl": "1.5rem",
+            "space-sm": "0.5rem",
+            "space-xs": "0.25rem"
+          },
+          "fontFamily": {
+            "headline-xl-mobile": ["Inter"],
+            "label-sm": ["JetBrains Mono"],
+            "body-sm": ["Inter"],
+            "code-md": ["JetBrains Mono"],
+            "headline-lg": ["Inter"],
+            "code-sm": ["JetBrains Mono"],
+            "headline-sm": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-md": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-xl": ["Inter"],
+            "body-lg": ["Inter"]
+          },
+          "fontSize": {
+            "headline-xl-mobile": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-sm": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "body-sm": ["0.75rem", { "lineHeight": "1rem", "fontWeight": "400" }],
+            "code-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }],
+            "headline-lg": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "code-sm": ["0.75rem", { "lineHeight": "1.125rem", "fontWeight": "400" }],
+            "headline-sm": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "600" }],
+            "label-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "500" }],
+            "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "400" }],
+            "headline-xl": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "body-lg": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-1 {
+      font-variation-settings: 'FILL' 1;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-text-primary min-h-screen flex flex-col items-center justify-start antialiased selection:bg-secondary-container selection:text-text-primary">
+<!-- Mobile Viewport Shell (Max ~430px) -->
+<div class="w-full max-w-[430px] min-h-screen bg-background border-x border-border-subtle flex flex-col relative pb-space-2xl">
+<!-- Interactive Scenario Switcher Bar (For QA/Evaluation) -->
+<header class="bg-surface-elevated border-b border-border-subtle p-space-xs sticky top-0 z-50">
+<div class="flex items-center justify-between px-space-xs mb-1">
+<span class="font-label-sm text-label-sm text-text-secondary uppercase tracking-wider">DEV STATE SWITCHER</span>
+<span class="font-label-sm text-label-sm text-secondary font-medium" id="activeStateLabel">Pending Review</span>
+</div>
+<div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+<button class="state-btn px-2 py-1 rounded bg-secondary-container text-text-primary font-label-sm text-label-sm whitespace-nowrap border border-primary-container" id="btn-pending" onclick="setScenario('pending')">
+          Populated (Draft)
+        </button>
+<button class="state-btn px-2 py-1 rounded bg-surface-main text-text-secondary hover:text-text-primary font-label-sm text-label-sm whitespace-nowrap border border-border-subtle" id="btn-healthy" onclick="setScenario('healthy')">
+          Healthy (Clean)
+        </button>
+<button class="state-btn px-2 py-1 rounded bg-surface-main text-text-secondary hover:text-text-primary font-label-sm text-label-sm whitespace-nowrap border border-border-subtle" id="btn-offline" onclick="setScenario('offline')">
+          Workspace Offline
+        </button>
+<button class="state-btn px-2 py-1 rounded bg-surface-main text-text-secondary hover:text-text-primary font-label-sm text-label-sm whitespace-nowrap border border-border-subtle" id="btn-empty" onclick="setScenario('empty')">
+          Empty Project
+        </button>
+<button class="state-btn px-2 py-1 rounded bg-surface-main text-text-secondary hover:text-text-primary font-label-sm text-label-sm whitespace-nowrap border border-border-subtle" id="btn-skeleton" onclick="setScenario('skeleton')">
+          Skeleton
+        </button>
+</div>
+</header>
+<!-- Top Navigation Anchor (Task-Focused with Back Action) -->
+<div class="w-full h-14 bg-surface border-b border-border-subtle flex items-center justify-between px-space-md">
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors" title="Back to Projects">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="flex items-center gap-1.5 overflow-hidden">
+<span class="font-body-sm text-body-sm text-text-secondary truncate">Projects</span>
+<span class="font-body-sm text-body-sm text-text-secondary">/</span>
+<span class="font-headline-sm text-headline-sm text-text-primary font-semibold tracking-tight truncate">cloudaiagent</span>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-9 h-9 flex items-center justify-center rounded text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors" title="Sync Host Repo">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center rounded text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors" title="Documentation">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center rounded text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors" title="Project Options">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- SKELETON LOADER STATE (Hidden by default) -->
+<div class="hidden p-space-md space-y-space-md animate-pulse" id="view-skeleton">
+<div class="h-20 bg-surface-elevated rounded-xl"></div>
+<div class="h-10 bg-surface-main rounded-lg"></div>
+<div class="h-12 bg-surface-elevated rounded"></div>
+<div class="h-28 bg-surface-main rounded-xl border border-border-subtle"></div>
+<div class="h-32 bg-surface-main rounded-xl border border-border-subtle"></div>
+<div class="h-44 bg-surface-main rounded-xl border border-border-subtle"></div>
+</div>
+<!-- MAIN VIEW CONTAINER -->
+<main class="flex-1 flex flex-col" id="view-content">
+<!-- Offline Workspace Warning Banner (Conditional) -->
+<div class="hidden bg-status-error/10 border-b border-status-error/30 px-space-md py-space-sm flex items-start gap-2.5" id="banner-offline">
+<span class="material-symbols-outlined text-status-error text-[20px] mt-0.5">cloud_off</span>
+<div class="flex-1">
+<p class="font-headline-sm text-headline-sm text-status-error font-medium">Workspace Disconnected</p>
+<p class="font-body-sm text-body-sm text-text-secondary mt-0.5">Cannot communicate with host daemon at Laptop-Nagercoil (Last seen 12m ago).</p>
+<div class="mt-2 flex items-center gap-2">
+<button class="px-2.5 py-1 rounded bg-status-error/20 hover:bg-status-error/30 text-status-error font-label-sm text-label-sm border border-status-error/40 transition-colors">
+              Retry Connection
+            </button>
+<button class="px-2.5 py-1 rounded bg-transparent hover:bg-surface-elevated text-text-secondary font-label-sm text-label-sm transition-colors">
+              Troubleshoot
+            </button>
+</div>
+</div>
+</div>
+<!-- Project Header Summary -->
+<section class="p-space-md pb-space-sm bg-surface border-b border-border-subtle">
+<div class="flex items-start justify-between gap-2 mb-1.5">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-semibold text-text-primary tracking-tight">cloudaiagent</h1>
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-label-sm text-label-sm bg-status-success/10 text-status-success border border-status-success/20" id="proj-status-chip">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse"></span>
+            Active
+          </span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+          AI coding agent orchestration backend and mobile interface.
+        </p>
+<!-- Monospace Metadata Bar -->
+<div class="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-border-subtle/60 font-code-sm text-code-sm text-text-secondary">
+<div class="inline-flex items-center gap-1 bg-surface-elevated px-2 py-1 rounded border border-border-subtle">
+<span class="material-symbols-outlined text-[15px] text-primary">terminal</span>
+<span class="text-text-primary">SajivJess/cloudaiagent</span>
+</div>
+<div class="inline-flex items-center gap-1 bg-surface-elevated px-2 py-1 rounded border border-border-subtle">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">call_split</span>
+<span class="text-text-primary">main</span>
+<span class="text-text-secondary text-[11px]">(08fe47a)</span>
+</div>
+</div>
+</section>
+<!-- Sub-Navigation Horizontal Scroll Bar -->
+<nav aria-label="Project Sub Navigation" class="bg-surface border-b border-border-subtle overflow-x-auto no-scrollbar flex items-center px-space-md gap-5 shrink-0">
+<button class="relative py-3 font-label-md text-label-md text-text-primary font-medium shrink-0 border-b-2 border-primary">
+          Overview
+        </button>
+<button class="py-3 font-label-md text-label-md text-text-secondary hover:text-text-primary transition-colors shrink-0">
+          Chat
+        </button>
+<button class="py-3 font-label-md text-label-md text-text-secondary hover:text-text-primary transition-colors shrink-0">
+          Files
+        </button>
+<button class="py-3 font-label-md text-label-md text-text-secondary hover:text-text-primary transition-colors shrink-0 flex items-center gap-1.5">
+<span>Changes</span>
+<span class="px-1.5 py-0.2 bg-status-warning/20 border border-status-warning/30 text-status-warning font-label-sm text-label-sm rounded-full" id="tab-changes-badge">3</span>
+</button>
+<button class="py-3 font-label-md text-label-md text-text-secondary hover:text-text-primary transition-colors shrink-0">
+          Activity
+        </button>
+<button class="py-3 font-label-md text-label-md text-text-secondary hover:text-text-primary transition-colors shrink-0">
+          Artifacts
+        </button>
+</nav>
+<!-- Primary Content Area -->
+<div class="p-space-md space-y-space-lg flex-1">
+<!-- SECTION 1: Action Controls -->
+<section class="space-y-space-sm">
+<!-- Primary CTA Button (48px standard touch target) -->
+<button class="w-full h-12 rounded-lg bg-primary-container text-text-primary font-label-md text-label-md font-medium hover:bg-secondary-container active:bg-on-primary transition-colors flex items-center justify-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[20px] fill-1">auto_awesome</span>
+<span>Open coding chat</span>
+</button>
+<!-- Secondary Actions Grid -->
+<div class="grid grid-cols-2 gap-space-sm">
+<button class="h-11 rounded-lg bg-surface-main hover:bg-surface-elevated text-text-primary border border-border-subtle font-label-md text-label-md flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-[18px] text-text-secondary">folder_open</span>
+<span>Browse files</span>
+</button>
+<button class="h-11 rounded-lg bg-surface-main hover:bg-surface-elevated text-text-primary border border-border-subtle font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors" id="btn-review-counter">
+<span class="material-symbols-outlined text-[18px] text-status-warning">difference</span>
+<span>Review changes</span>
+<span class="bg-status-warning/20 text-status-warning border border-status-warning/30 px-1.5 py-0.5 rounded font-label-sm text-label-sm">3</span>
+</button>
+</div>
+</section>
+<!-- EMPTY STATE CONTAINER (Hidden by default) -->
+<section class="hidden bg-surface-main border border-dashed border-border-subtle rounded-xl p-space-xl text-center" id="state-empty">
+<div class="w-12 h-12 rounded-full bg-surface-elevated flex items-center justify-center mx-auto mb-3 text-primary">
+<span class="material-symbols-outlined text-[24px]">terminal</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-text-primary font-semibold">No Tasks Initiated</h3>
+<p class="font-body-sm text-body-sm text-text-secondary mt-1.5 max-w-[280px] mx-auto leading-relaxed">
+            No agent sessions or diff reviews have been created for <span class="font-code-sm text-code-sm text-primary">cloudaiagent</span> yet. Open chat to send your first prompt.
+          </p>
+<button class="mt-4 px-4 py-2 rounded-lg bg-primary-container text-text-primary font-label-md text-label-md hover:bg-secondary-container inline-flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+<span>Start first task</span>
+</button>
+</section>
+<!-- SECTION 2: Active Task & Proposed Changes (The Trust Boundary) -->
+<div class="space-y-space-md" id="section-trust-boundary">
+<!-- Proposed Changes Alert Banner (Draft Workspace isolation) -->
+<div class="bg-surface-elevated border border-status-warning/40 rounded-xl p-space-md space-y-space-sm relative" id="card-proposed-changes">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-status-warning text-[20px]">warning</span>
+<span class="font-label-md text-label-md text-text-primary font-semibold">3 files modified</span>
+</div>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-status-warning/10 text-status-warning border border-status-warning/20">
+                Awaiting review
+              </span>
+</div>
+<!-- Developer Trust Disclaimer -->
+<div class="bg-surface-main/80 rounded p-2 border border-border-subtle font-body-sm text-body-sm text-text-secondary leading-snug">
+<span class="text-text-primary font-medium">Draft isolation:</span> Changes are currently in workspace draft and <span class="text-status-warning">not committed</span> to the git branch.
+            </div>
+<div class="flex items-center justify-between pt-1">
+<div class="font-code-sm text-code-sm text-text-secondary truncate max-w-[190px]">
+                +42 / -11 in <span class="text-text-primary">auth_routes.py</span>
+</div>
+<button class="h-9 px-3 rounded bg-secondary-container hover:bg-on-primary-fixed-variant text-text-primary font-label-sm text-label-sm font-medium transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+<span>Review diff</span>
+</button>
+</div>
+</div>
+<!-- Active / Latest Task Card -->
+<div class="bg-surface-main border border-border-subtle rounded-xl p-space-md space-y-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-secondary uppercase tracking-wider">Active Execution</span>
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-label-sm text-label-sm bg-status-info/10 text-status-info border border-status-info/20" id="task-badge">
+<span class="w-1.5 h-1.5 rounded-full bg-status-info animate-ping"></span>
+                Running
+              </span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-text-primary font-medium leading-snug">
+                Add JWT token refresh endpoint to auth service
+              </h3>
+<p class="font-body-sm text-body-sm text-text-secondary mt-1 leading-normal">
+                Orchestrated via Claude 3.7 Sonnet on Antigravity CLI · Started 18m ago · 4 tool calls executed.
+              </p>
+</div>
+<div class="pt-2 border-t border-border-subtle">
+<a class="inline-flex items-center gap-1 text-primary hover:text-text-primary font-label-sm text-label-sm transition-colors group" href="#">
+<span>View task logs &amp; terminal output</span>
+<span class="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+<!-- SECTION 3: Environment & Workspace Health (Host vs Container Honesty) -->
+<section class="space-y-space-sm">
+<div class="flex items-center justify-between px-0.5">
+<h2 class="font-label-sm text-label-sm text-text-secondary uppercase tracking-wider">Host &amp; Agent Architecture</h2>
+<span class="font-code-sm text-code-sm text-status-success">100% telemetry local</span>
+</div>
+<!-- Assigned Workspace Card -->
+<div class="bg-surface-main border border-border-subtle rounded-xl p-space-md space-y-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">laptop_mac</span>
+<span class="font-headline-sm text-headline-sm text-text-primary font-medium">Laptop-Nagercoil</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-label-sm text-label-sm bg-status-success/10 text-status-success border border-status-success/20" id="workspace-status-badge">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+                24ms latency
+              </span>
+</div>
+<!-- Explicit Honesty Callout -->
+<div class="bg-surface-elevated/70 border-l-2 border-primary px-2.5 py-1.5 rounded font-body-sm text-body-sm text-text-secondary">
+<span class="text-text-primary font-medium">Host folder workspace:</span> Direct local filesystem bind (un-isolated bare metal, not a sandboxed container).
+            </div>
+<div class="space-y-1 pt-1 font-code-sm text-code-sm">
+<div class="flex items-start gap-2 text-text-secondary">
+<span class="material-symbols-outlined text-[16px] text-outline mt-0.5">folder</span>
+<span class="text-primary truncate">D:/SajivJess/jess dev ide/cloudaiagent</span>
+</div>
+<div class="flex items-center gap-2 text-text-secondary pt-1">
+<span class="material-symbols-outlined text-[16px] text-outline">memory</span>
+<span>Windows 11 · Python 3.12 · Node 20.10</span>
+</div>
+</div>
+</div>
+<!-- Connected Agent Card -->
+<div class="bg-surface-main border border-border-subtle rounded-xl p-space-md space-y-space-xs">
+<div class="flex items-center justify-between mb-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">smart_toy</span>
+<span class="font-label-md text-label-md text-text-primary font-medium">Antigravity CLI</span>
+</div>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-elevated text-text-secondary border border-border-subtle">
+                #sess_992a
+              </span>
+</div>
+<div class="grid grid-cols-2 gap-2 pt-1 font-body-sm text-body-sm">
+<div class="bg-surface-elevated p-2 rounded border border-border-subtle">
+<div class="font-label-sm text-label-sm text-text-secondary">MODEL</div>
+<div class="font-code-sm text-code-sm text-text-primary mt-0.5">Claude 3.7 Sonnet</div>
+</div>
+<div class="bg-surface-elevated p-2 rounded border border-border-subtle">
+<div class="font-label-sm text-label-sm text-text-secondary">PARAMETERS</div>
+<div class="font-code-sm text-code-sm text-text-primary mt-0.5">Temp 0.2 · TopP 0.9</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 4: Recent Activity Stream (Chronological Timeline) -->
+<section class="space-y-space-sm" id="section-activity">
+<div class="flex items-center justify-between px-0.5">
+<h2 class="font-label-sm text-label-sm text-text-secondary uppercase tracking-wider">Recent Activity</h2>
+<span class="font-label-sm text-label-sm text-text-secondary">Today</span>
+</div>
+<div class="bg-surface-main border border-border-subtle rounded-xl p-space-md divide-y divide-border-subtle/70">
+<!-- Item 1 -->
+<div class="py-2.5 first:pt-0 flex items-start gap-3">
+<div class="w-7 h-7 rounded bg-secondary-container/40 border border-border-subtle flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-secondary text-[16px]">edit_note</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-sm text-body-sm text-text-primary leading-tight">
+                  Antigravity generated diff for task <span class="font-code-sm text-code-sm text-primary">#492</span>
+</p>
+<p class="font-code-sm text-code-sm text-text-secondary truncate mt-0.5">
+                  auth_routes.py, test_auth.py
+                </p>
+<span class="font-label-sm text-label-sm text-text-secondary mt-1 block">15m ago</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="py-2.5 flex items-start gap-3">
+<div class="w-7 h-7 rounded bg-surface-elevated border border-border-subtle flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-text-secondary text-[16px]">bookmark</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-sm text-body-sm text-text-primary leading-tight">
+                  Branch checkpoint created
+                </p>
+<p class="font-code-sm text-code-sm text-text-secondary truncate mt-0.5">
+                  commit hash <span class="text-text-primary">e9bd95a</span>
+</p>
+<span class="font-label-sm text-label-sm text-text-secondary mt-1 block">1h ago</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="py-2.5 flex items-start gap-3">
+<div class="w-7 h-7 rounded bg-surface-elevated border border-border-subtle flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-text-secondary text-[16px]">download</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-sm text-body-sm text-text-primary leading-tight">
+                  Git pull executed from <span class="font-code-sm text-code-sm text-text-secondary">origin/main</span>
+</p>
+<span class="font-label-sm text-label-sm text-text-secondary mt-1 block">3h ago</span>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="py-2.5 last:pb-0 flex items-start gap-3">
+<div class="w-7 h-7 rounded bg-surface-elevated border border-border-subtle flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-text-secondary text-[16px]">power_settings_new</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-sm text-body-sm text-text-primary leading-tight">
+                  Project session initialized by Sajiv
+                </p>
+<span class="font-label-sm text-label-sm text-text-secondary mt-1 block">5h ago</span>
+</div>
+</div>
+</div>
+<!-- Bottom Footer Action -->
+<div class="text-center pt-1">
+<button class="inline-flex items-center gap-1.5 text-primary hover:text-text-primary font-label-md text-label-md transition-colors py-1">
+<span>View full activity log (34 events)</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- Interactive State Controller Script -->
+<script>
+    function setScenario(state) {
+      // Update interactive switcher button styling
+      document.querySelectorAll('.state-btn').forEach(btn => {
+        btn.classList.remove('bg-secondary-container', 'text-text-primary', 'border-primary-container');
+        btn.classList.add('bg-surface-main', 'text-text-secondary', 'border-border-subtle');
+      });
+      const activeBtn = document.getElementById('btn-' + state);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-surface-main', 'text-text-secondary', 'border-border-subtle');
+        activeBtn.classList.add('bg-secondary-container', 'text-text-primary', 'border-primary-container');
+      }
+
+      // UI Nodes
+      const skeletonView = document.getElementById('view-skeleton');
+      const contentView = document.getElementById('view-content');
+      const offlineBanner = document.getElementById('banner-offline');
+      const proposedCard = document.getElementById('card-proposed-changes');
+      const trustSection = document.getElementById('section-trust-boundary');
+      const emptySection = document.getElementById('state-empty');
+      const activitySection = document.getElementById('section-activity');
+      const activeStateLabel = document.getElementById('activeStateLabel');
+      const workspaceBadge = document.getElementById('workspace-status-badge');
+      const projChip = document.getElementById('proj-status-chip');
+      const tabBadge = document.getElementById('tab-changes-badge');
+      const reviewCounterBtn = document.getElementById('btn-review-counter');
+      const taskBadge = document.getElementById('task-badge');
+
+      // Reset base views
+      skeletonView.classList.add('hidden');
+      contentView.classList.remove('hidden');
+      offlineBanner.classList.add('hidden');
+      emptySection.classList.add('hidden');
+      trustSection.classList.remove('hidden');
+      proposedCard.classList.remove('hidden');
+      activitySection.classList.remove('hidden');
+      tabBadge.classList.remove('hidden');
+      reviewCounterBtn.classList.remove('opacity-50', 'pointer-events-none');
+
+      // Default healthy workspace
+      workspaceBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> 24ms latency';
+      workspaceBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded font-label-sm text-label-sm bg-status-success/10 text-status-success border border-status-success/20';
+
+      projChip.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse"></span> Active';
+      projChip.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-label-sm text-label-sm bg-status-success/10 text-status-success border border-status-success/20';
+
+      taskBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-status-info animate-ping"></span> Running';
+      taskBadge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-label-sm text-label-sm bg-status-info/10 text-status-info border border-status-info/20';
+
+      if (state === 'pending') {
+        activeStateLabel.textContent = 'Pending Review';
+        // Everything enabled and visible as populated default
+      } 
+      else if (state === 'healthy') {
+        activeStateLabel.textContent = 'Clean / No Diff';
+        proposedCard.classList.add('hidden');
+        tabBadge.classList.add('hidden');
+        reviewCounterBtn.classList.add('opacity-50', 'pointer-events-none');
+        taskBadge.innerHTML = '<span class="material-symbols-outlined text-[14px]">check</span> Idle';
+        taskBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded font-label-sm text-label-sm bg-status-success/10 text-status-success border border-status-success/20';
+      }
+      else if (state === 'offline') {
+        activeStateLabel.textContent = 'Workspace Offline';
+        offlineBanner.classList.remove('hidden');
+        workspaceBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-status-error"></span> Offline';
+        workspaceBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded font-label-sm text-label-sm bg-status-error/10 text-status-error border border-status-error/20';
+        projChip.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-status-error"></span> Disconnected';
+        projChip.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-label-sm text-label-sm bg-status-error/10 text-status-error border border-status-error/20';
+      }
+      else if (state === 'empty') {
+        activeStateLabel.textContent = 'Empty Project';
+        trustSection.classList.add('hidden');
+        activitySection.classList.add('hidden');
+        tabBadge.classList.add('hidden');
+        reviewCounterBtn.classList.add('opacity-50', 'pointer-events-none');
+        emptySection.classList.remove('hidden');
+      }
+      else if (state === 'skeleton') {
+        activeStateLabel.textContent = 'Loading Skeleton';
+        contentView.classList.add('hidden');
+        skeletonView.classList.remove('hidden');
+      }
+    }
+  </script>
+</body></html>

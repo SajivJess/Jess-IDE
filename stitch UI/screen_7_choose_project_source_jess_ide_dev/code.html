@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Jess IDE - New Project: Choose Source</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "status-success": "#34D399",
+            "surface-container": "#201f26",
+            "on-primary": "#3c0091",
+            "outline": "#958ea0",
+            "secondary-fixed": "#e7deff",
+            "tertiary-fixed": "#ffdcbb",
+            "primary-fixed-dim": "#d0bcff",
+            "on-secondary-container": "#baabf3",
+            "on-error": "#690005",
+            "tertiary": "#ffb869",
+            "text-primary": "#F5F3FA",
+            "secondary-fixed-dim": "#ccbeff",
+            "surface-container-high": "#2a2931",
+            "inverse-primary": "#6d3bd7",
+            "surface-tint": "#d0bcff",
+            "tertiary-fixed-dim": "#ffb869",
+            "on-secondary-fixed": "#1e0e4e",
+            "outline-variant": "#494454",
+            "surface-container-low": "#1c1b22",
+            "surface-main": "#1C1A24",
+            "primary-container": "#8B5CF6",
+            "on-primary-fixed": "#23005c",
+            "tertiary-container": "#ca801e",
+            "error": "#ffb4ab",
+            "on-error-container": "#ffdad6",
+            "surface-dim": "#131319",
+            "text-secondary": "#A6A1B3",
+            "surface-container-lowest": "#0e0d14",
+            "surface-variant": "#35343c",
+            "secondary-container": "#4a3d7c",
+            "on-primary-container": "#340080",
+            "primary": "#8B5CF6",
+            "surface-elevated": "#24222D",
+            "on-surface-variant": "#cbc3d7",
+            "surface-container-highest": "#35343c",
+            "on-tertiary-container": "#3f2300",
+            "primary-fixed": "#e9ddff",
+            "error-container": "#93000a",
+            "on-secondary": "#332664",
+            "on-background": "#e5e1eb",
+            "status-error": "#F87171",
+            "on-tertiary-fixed-variant": "#673d00",
+            "border-subtle": "#353140",
+            "on-secondary-fixed-variant": "#4a3d7c",
+            "on-primary-fixed-variant": "#5516be",
+            "inverse-on-surface": "#312f37",
+            "on-tertiary": "#482900",
+            "on-surface": "#e5e1eb",
+            "surface": "#15141B",
+            "inverse-surface": "#e5e1eb",
+            "on-tertiary-fixed": "#2c1700",
+            "status-warning": "#FBBF24",
+            "status-info": "#60A5FA",
+            "secondary": "#C4B5FD",
+            "background": "#15141B",
+            "surface-bright": "#3a3840"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "space-xl": "1.5rem",
+            "gutter": "1rem",
+            "space-2xl": "2rem",
+            "margin-desktop": "1.5rem",
+            "gutter-desktop": "1.5rem",
+            "margin": "1rem",
+            "space-md": "0.75rem",
+            "space-lg": "1rem",
+            "space-xs": "0.25rem"
+          },
+          "fontFamily": {
+            "body-md": ["Inter"],
+            "headline-md": ["Inter"],
+            "headline-sm": ["Inter"],
+            "code-sm": ["JetBrains Mono"],
+            "headline-xl-mobile": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-xl": ["Inter"],
+            "code-md": ["JetBrains Mono"],
+            "label-sm": ["JetBrains Mono"],
+            "headline-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "label-md": ["Inter"]
+          },
+          "fontSize": {
+            "body-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "400" }],
+            "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-sm": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "600" }],
+            "code-sm": ["0.75rem", { "lineHeight": "1.125rem", "fontWeight": "400" }],
+            "headline-xl-mobile": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-lg": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }],
+            "headline-xl": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "code-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }],
+            "label-sm": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "headline-lg": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["0.75rem", { "lineHeight": "1rem", "fontWeight": "400" }],
+            "label-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "500" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined[data-weight="fill"] {
+      font-variation-settings: 'FILL' 1;
+    }
+    /* Hardware-accelerated transitions */
+    .source-card {
+      transition: all 140ms ease-in-out;
+    }
+    /* Hide scrollbar on switcher bar */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-text-primary min-h-screen flex flex-col font-body-md antialiased selection:bg-primary selection:text-text-primary">
+<!-- Interactive Demo State Switcher (Preset Control) -->
+<section class="w-full bg-surface-container-lowest border-b border-border-subtle px-space-md py-space-xs sticky top-0 z-40 backdrop-blur-md">
+<div class="max-w-xl mx-auto flex items-center justify-between gap-space-sm overflow-x-auto no-scrollbar py-0.5">
+<div class="flex items-center gap-1.5 shrink-0 pr-space-xs text-text-secondary">
+<span class="material-symbols-outlined text-[16px] text-secondary">tune</span>
+<span class="font-label-sm text-label-sm tracking-wider uppercase text-text-secondary">Demo Mode:</span>
+</div>
+<div aria-label="Demo state presets" class="flex items-center gap-1.5 shrink-0" role="tablist">
+<button class="px-2.5 py-1 rounded-lg font-label-sm text-label-sm border border-primary bg-primary text-text-primary font-medium transition-colors" id="preset-github" onclick="applyPreset('github')">
+          Default (GitHub)
+        </button>
+<button class="px-2.5 py-1 rounded-lg font-label-sm text-label-sm border border-border-subtle bg-surface-main text-text-secondary hover:text-text-primary hover:border-outline-variant transition-colors" id="preset-ideation" onclick="applyPreset('ideation')">
+          Ideation Selected
+        </button>
+<button class="px-2.5 py-1 rounded-lg font-label-sm text-label-sm border border-border-subtle bg-surface-main text-text-secondary hover:text-text-primary hover:border-outline-variant transition-colors" id="preset-host" onclick="applyPreset('host')">
+          Host Folder Selected
+        </button>
+<button class="px-2.5 py-1 rounded-lg font-label-sm text-label-sm border border-border-subtle bg-surface-main text-text-secondary hover:text-text-primary hover:border-outline-variant transition-colors" id="preset-none" onclick="applyPreset('none')">
+          None (Disabled)
+        </button>
+</div>
+</div>
+</section>
+<!-- Global Brand TopAppBar Anchor -->
+<header class="flex justify-between items-center w-full px-space-lg h-14 bg-surface dark:bg-surface border-b border-border-subtle dark:border-border-subtle">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">terminal</span>
+<span class="font-headline-md text-headline-md-mobile font-semibold text-text-primary dark:text-text-primary tracking-tight">Jess IDE</span>
+<span class="ml-1 px-1.5 py-0.5 bg-surface-container-high border border-border-subtle rounded text-text-secondary font-code-sm text-code-sm">v2.4.0</span>
+</div>
+<div class="flex items-center gap-space-md">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-surface-container-high border border-border-subtle rounded-lg text-text-secondary font-code-sm text-code-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success inline-block"></span>
+        host:nagercoil
+      </span>
+<button aria-label="Help and documentation" class="text-text-secondary hover:text-text-primary transition-colors duration-150 p-1 rounded-lg hover:bg-surface-elevated" type="button">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+</button>
+</div>
+</header>
+<!-- Sub-Header: Wizard Step Context & Navigation -->
+<nav aria-label="Wizard progress and navigation" class="w-full bg-surface-main border-b border-border-subtle px-space-md sm:px-space-lg py-space-sm">
+<div class="max-w-xl mx-auto flex items-center justify-between">
+<button class="inline-flex items-center gap-1 text-text-secondary hover:text-text-primary font-label-md text-label-md transition-colors py-1 group" type="button">
+<span class="material-symbols-outlined text-[18px] group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
+<span>Projects</span>
+</button>
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-text-primary font-medium">New Project</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-elevated border border-border-subtle font-code-sm text-code-sm text-secondary font-medium">Step 1 of 4</span>
+</div>
+</div>
+</nav>
+<!-- Main Scrollable Canvas -->
+<main class="flex-1 w-full max-w-xl mx-auto px-space-md sm:px-space-lg py-space-lg pb-32">
+<!-- Header Title & Subtitle Section -->
+<section class="mb-space-lg">
+<h1 class="font-headline-lg text-headline-lg text-text-primary tracking-tight font-semibold">
+        Choose a project source
+      </h1>
+<p class="font-body-md text-body-md text-text-secondary mt-1">
+        Start from an existing repository, host files, a starter template, or a raw idea.
+      </p>
+</section>
+<!-- Source Selection Options List -->
+<section aria-label="Selectable project sources" class="space-y-space-sm" role="radiogroup">
+<!-- Card 1: GitHub Repository (Default Selected) -->
+<article aria-checked="true" class="source-card group relative p-space-md rounded-xl bg-surface-elevated border-2 border-primary cursor-pointer select-none" id="card-github" onclick="selectSource('github')" role="radio" tabindex="0">
+<div class="flex items-start gap-space-md">
+<!-- Icon slot -->
+<div class="w-10 h-10 rounded-lg bg-surface-container-high border border-primary/40 flex items-center justify-center shrink-0 mt-0.5 text-secondary" id="icon-box-github">
+<span class="material-symbols-outlined text-[22px]">fork_right</span>
+</div>
+<!-- Content slot -->
+<div class="flex-1 min-w-0 pr-space-xs">
+<div class="flex flex-wrap items-center gap-2">
+<h2 class="font-headline-sm text-headline-sm text-text-primary font-medium">GitHub repository</h2>
+<span class="inline-flex items-center px-2 py-0.5 rounded font-label-sm text-label-sm bg-primary/15 text-secondary border border-primary/25">Cloud sync</span>
+</div>
+<p class="font-body-md text-body-md text-text-secondary mt-1 leading-snug">
+              Connect your GitHub account and clone or import an existing repository.
+            </p>
+<div class="mt-2.5 flex items-center gap-1.5 text-text-secondary font-code-sm text-code-sm">
+<span class="text-secondary font-medium">Next:</span>
+<span class="truncate">Select repo & branch</span>
+</div>
+</div>
+<!-- Radio Indicator -->
+<div class="shrink-0 pt-0.5">
+<div class="w-5 h-5 rounded-full border-2 border-primary bg-primary flex items-center justify-center text-text-primary shadow-sm" id="radio-github">
+<span class="material-symbols-outlined text-[14px] font-bold">check</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 2: Local Host Folder -->
+<article aria-checked="false" class="source-card group relative p-space-md rounded-xl bg-surface-main border border-border-subtle hover:border-outline-variant hover:bg-surface-elevated/50 cursor-pointer select-none" id="card-host" onclick="selectSource('host')" role="radio" tabindex="0">
+<div class="flex items-start gap-space-md">
+<!-- Icon slot -->
+<div class="w-10 h-10 rounded-lg bg-surface-container-low border border-border-subtle flex items-center justify-center shrink-0 mt-0.5 text-text-secondary group-hover:text-text-primary" id="icon-box-host">
+<span class="material-symbols-outlined text-[22px]">folder_managed</span>
+</div>
+<!-- Content slot -->
+<div class="flex-1 min-w-0 pr-space-xs">
+<div class="flex flex-wrap items-center gap-2">
+<h2 class="font-headline-sm text-headline-sm text-text-primary font-medium">Local host folder</h2>
+<span class="inline-flex items-center px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-high text-text-secondary border border-border-subtle font-code-sm">Laptop (Nagercoil)</span>
+</div>
+<p class="font-body-md text-body-md text-text-secondary mt-1 leading-snug">
+              Select an existing project directory already located on your development machine.
+            </p>
+<div class="mt-2.5 flex items-center gap-1.5 text-text-secondary font-code-sm text-code-sm">
+<span class="text-secondary font-medium">Next:</span>
+<span class="truncate">Host path picker</span>
+</div>
+</div>
+<!-- Radio Indicator -->
+<div class="shrink-0 pt-0.5">
+<div class="w-5 h-5 rounded-full border border-border-subtle bg-surface-container-low flex items-center justify-center" id="radio-host">
+<span class="material-symbols-outlined text-[14px] text-transparent">check</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 3: ZIP Archive -->
+<article aria-checked="false" class="source-card group relative p-space-md rounded-xl bg-surface-main border border-border-subtle hover:border-outline-variant hover:bg-surface-elevated/50 cursor-pointer select-none" id="card-zip" onclick="selectSource('zip')" role="radio" tabindex="0">
+<div class="flex items-start gap-space-md">
+<!-- Icon slot -->
+<div class="w-10 h-10 rounded-lg bg-surface-container-low border border-border-subtle flex items-center justify-center shrink-0 mt-0.5 text-text-secondary group-hover:text-text-primary" id="icon-box-zip">
+<span class="material-symbols-outlined text-[22px]">archive</span>
+</div>
+<!-- Content slot -->
+<div class="flex-1 min-w-0 pr-space-xs">
+<div class="flex flex-wrap items-center gap-2">
+<h2 class="font-headline-sm text-headline-sm text-text-primary font-medium">ZIP archive</h2>
+<span class="inline-flex items-center px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-high text-text-secondary border border-border-subtle">Host filesystem</span>
+</div>
+<p class="font-body-md text-body-md text-text-secondary mt-1 leading-snug">
+              Extract and initialize a project from an archive file accessible to the host.
+            </p>
+<div class="mt-2.5 flex items-center gap-1.5 text-text-secondary font-code-sm text-code-sm">
+<span class="text-secondary font-medium">Next:</span>
+<span class="truncate">Select archive & target dir</span>
+</div>
+</div>
+<!-- Radio Indicator -->
+<div class="shrink-0 pt-0.5">
+<div class="w-5 h-5 rounded-full border border-border-subtle bg-surface-container-low flex items-center justify-center" id="radio-zip">
+<span class="material-symbols-outlined text-[14px] text-transparent">check</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 4: Starter Template -->
+<article aria-checked="false" class="source-card group relative p-space-md rounded-xl bg-surface-main border border-border-subtle hover:border-outline-variant hover:bg-surface-elevated/50 cursor-pointer select-none" id="card-template" onclick="selectSource('template')" role="radio" tabindex="0">
+<div class="flex items-start gap-space-md">
+<!-- Icon slot -->
+<div class="w-10 h-10 rounded-lg bg-surface-container-low border border-border-subtle flex items-center justify-center shrink-0 mt-0.5 text-text-secondary group-hover:text-text-primary" id="icon-box-template">
+<span class="material-symbols-outlined text-[22px]">dashboard_customize</span>
+</div>
+<!-- Content slot -->
+<div class="flex-1 min-w-0 pr-space-xs">
+<div class="flex flex-wrap items-center gap-2">
+<h2 class="font-headline-sm text-headline-sm text-text-primary font-medium">Starter template</h2>
+<span class="inline-flex items-center px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-high text-text-secondary border border-border-subtle">6 available</span>
+</div>
+<p class="font-body-md text-body-md text-text-secondary mt-1 leading-snug">
+              Bootstrap from a curated list of framework and agent templates.
+            </p>
+<div class="mt-2.5 flex items-center gap-1.5 text-text-secondary font-code-sm text-code-sm">
+<span class="text-secondary font-medium">Next:</span>
+<span class="truncate">Template gallery</span>
+</div>
+</div>
+<!-- Radio Indicator -->
+<div class="shrink-0 pt-0.5">
+<div class="w-5 h-5 rounded-full border border-border-subtle bg-surface-container-low flex items-center justify-center" id="radio-template">
+<span class="material-symbols-outlined text-[14px] text-transparent">check</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 5: Ideation (Idea to Specification) -->
+<article aria-checked="false" class="source-card group relative p-space-md rounded-xl bg-surface-main border border-border-subtle hover:border-outline-variant hover:bg-surface-elevated/50 cursor-pointer select-none" id="card-ideation" onclick="selectSource('ideation')" role="radio" tabindex="0">
+<div class="flex items-start gap-space-md">
+<!-- Icon slot -->
+<div class="w-10 h-10 rounded-lg bg-surface-container-low border border-border-subtle flex items-center justify-center shrink-0 mt-0.5 text-text-secondary group-hover:text-text-primary" id="icon-box-ideation">
+<span class="material-symbols-outlined text-[22px]">neurology</span>
+</div>
+<!-- Content slot -->
+<div class="flex-1 min-w-0 pr-space-xs">
+<div class="flex flex-wrap items-center gap-2">
+<h2 class="font-headline-sm text-headline-sm text-text-primary font-medium">Ideation</h2>
+<span class="inline-flex items-center px-2 py-0.5 rounded font-label-sm text-label-sm bg-status-success/10 text-status-success border border-status-success/20 font-medium">Recommended for new ideas</span>
+</div>
+<p class="font-body-md text-body-md text-text-secondary mt-1 leading-snug">
+              Describe your concept, attach documents, and generate a technical specification before coding.
+            </p>
+<div class="mt-2.5 flex items-center gap-1.5 text-text-secondary font-code-sm text-code-sm">
+<span class="text-secondary font-medium">Next:</span>
+<span class="truncate">Step 2: Ideation (upload files & prompt)</span>
+</div>
+</div>
+<!-- Radio Indicator -->
+<div class="shrink-0 pt-0.5">
+<div class="w-5 h-5 rounded-full border border-border-subtle bg-surface-container-low flex items-center justify-center" id="radio-ideation">
+<span class="material-symbols-outlined text-[14px] text-transparent">check</span>
+</div>
+</div>
+</div>
+</article>
+</section>
+<!-- Trust Boundary Notice: Host vs. Mobile Environment -->
+<aside class="mt-space-lg p-space-md bg-surface-main border border-border-subtle rounded-xl flex items-start gap-space-sm" role="note">
+<div class="text-status-info shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">info</span>
+</div>
+<div class="space-y-0.5">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-status-info font-medium block">Host Runtime Perimeter</span>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+          Local folder and ZIP selection use files accessible to the development host; selecting a file on your phone does not automatically place it on the host.
+        </p>
+</div>
+</aside>
+</main>
+<!-- Sticky Footer Action Row -->
+<footer class="fixed bottom-0 left-0 right-0 z-30 bg-surface border-t border-border-subtle px-space-md sm:px-space-lg py-3 backdrop-blur-md">
+<div class="max-w-xl mx-auto flex items-center gap-space-md">
+<!-- Cancel / Secondary Action -->
+<button class="h-12 px-space-lg rounded-lg border border-border-subtle bg-transparent text-text-primary font-label-md text-label-md hover:bg-surface-elevated transition-colors duration-150 shrink-0" type="button">
+        Cancel
+      </button>
+<!-- Primary CTA Action -->
+<button class="flex-1 h-12 px-space-lg rounded-lg bg-primary text-text-primary font-label-md text-label-md font-medium hover:bg-[#7C3AED] active:bg-[#6D28D9] transition-all duration-150 inline-flex items-center justify-center gap-2 group shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary" id="cta-button" type="button">
+<span id="cta-label">Continue to Repository Setup</span>
+<span class="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform" id="cta-arrow">arrow_forward</span>
+</button>
+</div>
+</footer>
+<!-- Vanilla Interaction Logic -->
+<script>
+    const SOURCES = ['github', 'host', 'zip', 'template', 'ideation'];
+    let currentSelection = 'github';
+
+    const CTA_TEXTS = {
+      'github': 'Continue to Repository Setup',
+      'host': 'Continue to Host Path Picker',
+      'zip': 'Continue to Archive Selection',
+      'template': 'Continue to Template Gallery',
+      'ideation': 'Continue to Step 2: Ideation',
+      'none': 'Select a source to continue'
+    };
+
+    function selectSource(sourceId) {
+      currentSelection = sourceId;
+      updateUI();
+    }
+
+    function updateUI() {
+      // Update cards
+      SOURCES.forEach(id => {
+        const card = document.getElementById(`card-${id}`);
+        const radio = document.getElementById(`radio-${id}`);
+        const iconBox = document.getElementById(`icon-box-${id}`);
+        const checkIcon = radio.querySelector('span');
+
+        if (id === currentSelection) {
+          // Selected Card
+          card.classList.remove('bg-surface-main', 'border-border-subtle');
+          card.classList.add('bg-surface-elevated', 'border-primary', 'border-2');
+          card.setAttribute('aria-checked', 'true');
+
+          // Icon Box
+          iconBox.classList.remove('bg-surface-container-low', 'border-border-subtle', 'text-text-secondary');
+          iconBox.classList.add('bg-surface-container-high', 'border-primary/40', 'text-secondary');
+
+          // Radio
+          radio.classList.remove('border-border-subtle', 'bg-surface-container-low');
+          radio.classList.add('border-primary', 'bg-primary', 'border-2', 'text-text-primary');
+          checkIcon.classList.remove('text-transparent');
+          checkIcon.classList.add('text-text-primary');
+        } else {
+          // Deselected Card
+          card.classList.remove('bg-surface-elevated', 'border-primary', 'border-2');
+          card.classList.add('bg-surface-main', 'border-border-subtle', 'border');
+          card.setAttribute('aria-checked', 'false');
+
+          // Icon Box
+          iconBox.classList.remove('bg-surface-container-high', 'border-primary/40', 'text-secondary');
+          iconBox.classList.add('bg-surface-container-low', 'border-border-subtle', 'text-text-secondary');
+
+          // Radio
+          radio.classList.remove('border-primary', 'bg-primary', 'border-2', 'text-text-primary');
+          radio.classList.add('border-border-subtle', 'bg-surface-container-low');
+          checkIcon.classList.add('text-transparent');
+          checkIcon.classList.remove('text-text-primary');
+        }
+      });
+
+      // Update CTA Button
+      const ctaButton = document.getElementById('cta-button');
+      const ctaLabel = document.getElementById('cta-label');
+      const ctaArrow = document.getElementById('cta-arrow');
+
+      if (!currentSelection || currentSelection === 'none') {
+        ctaButton.disabled = true;
+        ctaLabel.textContent = CTA_TEXTS['none'];
+        ctaArrow.classList.add('hidden');
+      } else {
+        ctaButton.disabled = false;
+        ctaLabel.textContent = CTA_TEXTS[currentSelection];
+        ctaArrow.classList.remove('hidden');
+      }
+
+      // Update Demo bar pill styling
+      ['github', 'ideation', 'host', 'none'].forEach(preset => {
+        const btn = document.getElementById(`preset-${preset}`);
+        if (!btn) return;
+        if ((preset === 'none' && currentSelection === null) || preset === currentSelection) {
+          btn.className = 'px-2.5 py-1 rounded-lg font-label-sm text-label-sm border border-primary bg-primary text-text-primary font-medium transition-colors';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded-lg font-label-sm text-label-sm border border-border-subtle bg-surface-main text-text-secondary hover:text-text-primary hover:border-outline-variant transition-colors';
+        }
+      });
+    }
+
+    function applyPreset(preset) {
+      if (preset === 'none') {
+        currentSelection = null;
+      } else {
+        currentSelection = preset;
+      }
+      updateUI();
+    }
+
+    // Keyboard support for cards
+    document.addEventListener('DOMContentLoaded', () => {
+      SOURCES.forEach(id => {
+        const card = document.getElementById(`card-${id}`);
+        card.addEventListener('keydown', (e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            selectSource(id);
+          }
+        });
+      });
+    });
+  </script>
+</body></html>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Jess IDE - Email Verification</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Inter & JetBrains Mono Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-container": "#3f2300",
+            "status-warning": "#FBBF24",
+            "tertiary": "#ffb869",
+            "secondary": "#ccbeff",
+            "error": "#ffb4ab",
+            "on-tertiary-fixed-variant": "#673d00",
+            "on-error-container": "#ffdad6",
+            "on-error": "#690005",
+            "surface-container-high": "#2a2931",
+            "tertiary-container": "#ca801e",
+            "text-secondary": "#A6A1B3",
+            "on-tertiary": "#482900",
+            "secondary-fixed-dim": "#ccbeff",
+            "on-secondary-container": "#baabf3",
+            "surface-container-highest": "#35343c",
+            "background": "#131319",
+            "primary-container": "#a078ff",
+            "surface-container-low": "#1c1b22",
+            "surface-dim": "#131319",
+            "on-secondary-fixed": "#1e0e4e",
+            "outline-variant": "#494454",
+            "on-tertiary-fixed": "#2c1700",
+            "text-primary": "#F5F3FA",
+            "status-info": "#60A5FA",
+            "on-secondary": "#332664",
+            "surface-main": "#1C1A24",
+            "primary": "#d0bcff",
+            "border-subtle": "#353140",
+            "surface-bright": "#3a3840",
+            "primary-fixed-dim": "#d0bcff",
+            "status-error": "#F87171",
+            "outline": "#958ea0",
+            "on-primary-fixed": "#23005c",
+            "surface": "#131319",
+            "tertiary-fixed": "#ffdcbb",
+            "surface-container": "#201f26",
+            "surface-tint": "#d0bcff",
+            "on-primary-fixed-variant": "#5516be",
+            "inverse-on-surface": "#312f37",
+            "on-primary-container": "#340080",
+            "inverse-primary": "#6d3bd7",
+            "status-success": "#34D399",
+            "error-container": "#93000a",
+            "secondary-container": "#4a3d7c",
+            "on-surface": "#e5e1eb",
+            "tertiary-fixed-dim": "#ffb869",
+            "surface-container-lowest": "#0e0d14",
+            "surface-elevated": "#24222D",
+            "inverse-surface": "#e5e1eb",
+            "surface-variant": "#35343c",
+            "on-background": "#e5e1eb",
+            "on-surface-variant": "#cbc3d7",
+            "on-primary": "#3c0091",
+            "on-secondary-fixed-variant": "#4a3d7c",
+            "primary-fixed": "#e9ddff",
+            "secondary-fixed": "#e7deff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-xl": "1.5rem",
+            "margin-desktop": "1.5rem",
+            "space-2xl": "2rem",
+            "space-md": "0.75rem",
+            "space-xs": "0.25rem",
+            "margin": "1rem",
+            "gutter": "1rem",
+            "space-sm": "0.5rem",
+            "space-lg": "1rem",
+            "gutter-desktop": "1.5rem"
+          },
+          "fontFamily": {
+            "headline-xl": ["Inter"],
+            "label-sm": ["JetBrains Mono"],
+            "code-sm": ["JetBrains Mono"],
+            "body-lg": ["Inter"],
+            "headline-lg": ["Inter"],
+            "headline-xl-mobile": ["Inter"],
+            "headline-sm": ["Inter"],
+            "headline-md": ["Inter"],
+            "body-sm": ["Inter"],
+            "code-md": ["JetBrains Mono"],
+            "body-md": ["Inter"],
+            "label-md": ["Inter"]
+          },
+          "fontSize": {
+            "headline-xl": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "label-sm": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "code-sm": ["0.75rem", { "lineHeight": "1.125rem", "fontWeight": "400" }],
+            "body-lg": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }],
+            "headline-lg": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-xl-mobile": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-sm": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "600" }],
+            "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["0.75rem", { "lineHeight": "1rem", "fontWeight": "400" }],
+            "code-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }],
+            "body-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "400" }],
+            "label-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "500" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#15141B] text-text-primary antialiased min-h-screen flex flex-col font-body-md selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar Anchor from Shared Components JSON -->
+<header class="flex justify-between items-center w-full px-space-lg h-14 bg-surface dark:bg-surface border-b border-border-subtle dark:border-border-subtle shrink-0 sticky top-0 z-50">
+<div class="flex items-center gap-2.5">
+<div class="flex items-center justify-center w-7 h-7 rounded-lg bg-surface-elevated border border-border-subtle text-primary">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-headline-md font-semibold text-text-primary dark:text-text-primary tracking-tight">Jess IDE</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded-lg bg-surface-elevated text-secondary border border-border-subtle">v0.9.4-beta</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-surface-elevated border border-border-subtle font-label-sm text-label-sm text-status-success">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-status-success animate-pulse"></span>
+<span class="font-code-sm text-code-sm">TLS 1.3 Active</span>
+</div>
+<button class="flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors duration-150 ease-in-out border border-transparent hover:border-border-subtle" title="Documentation &amp; Help">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+</button>
+</div>
+</header>
+<!-- Interactive Demo Switcher Bar -->
+<aside class="w-full bg-[#181620] border-b border-border-subtle py-2 px-space-md">
+<div class="max-w-md mx-auto flex items-center justify-between gap-1 sm:gap-2">
+<span class="font-label-sm text-label-sm text-text-secondary hidden xs:inline uppercase tracking-wider shrink-0">State:</span>
+<div class="flex items-center gap-1 overflow-x-auto w-full justify-center">
+<button class="state-btn active-state px-2.5 py-1 rounded text-[11px] font-medium font-code-sm border transition-colors border-border-subtle bg-surface-elevated text-text-primary" id="btn-waiting" onclick="switchState('waiting')">
+          Waiting
+        </button>
+<button class="state-btn px-2.5 py-1 rounded text-[11px] font-medium font-code-sm border border-transparent text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors" id="btn-resent" onclick="switchState('resent')">
+          Resent
+        </button>
+<button class="state-btn px-2.5 py-1 rounded text-[11px] font-medium font-code-sm border border-transparent text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors" id="btn-verified" onclick="switchState('verified')">
+          Verified
+        </button>
+<button class="state-btn px-2.5 py-1 rounded text-[11px] font-medium font-code-sm border border-transparent text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors" id="btn-expired" onclick="switchState('expired')">
+          Expired
+        </button>
+</div>
+</div>
+</aside>
+<!-- Main Viewport Area -->
+<main class="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 w-full max-w-lg mx-auto">
+<!-- Surface Card Container -->
+<div class="w-full bg-surface-main border border-border-subtle rounded-xl p-6 sm:p-8 flex flex-col shadow-none">
+<!-- STATE A: WAITING FOR VERIFICATION (Default) -->
+<section class="flex flex-col items-center text-center" id="state-waiting">
+<!-- Visual Icon Anchor -->
+<div class="w-16 h-16 rounded-xl bg-surface-elevated border border-border-subtle flex items-center justify-center mb-5 shrink-0">
+<span class="material-symbols-outlined text-[32px] text-[#C4B5FD]">mark_email_unread</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg font-semibold text-text-primary mb-2 tracking-tight">Verify your email</h1>
+<p class="font-body-md text-body-md text-text-secondary max-w-sm mb-5 leading-relaxed">
+          We've sent a verification link to your email address. Open the message and follow the link to activate your workspace.
+        </p>
+<!-- Displayed Email Capsule -->
+<div class="w-full bg-[#15141B] border border-border-subtle rounded-lg p-2.5 flex items-center justify-between mb-6">
+<div class="flex items-center gap-2 overflow-hidden pl-1">
+<span class="material-symbols-outlined text-text-secondary text-[18px] shrink-0">alternate_email</span>
+<span class="font-code-md text-code-md text-text-primary truncate">sajiv@example.com</span>
+</div>
+<button class="font-body-sm text-body-sm text-primary hover:text-text-primary shrink-0 transition-colors ml-2 hover:underline">
+            Change
+          </button>
+</div>
+<!-- Primary Action Trigger -->
+<button class="w-full h-12 bg-[#8B5CF6] hover:bg-[#7C3AED] active:bg-[#6D28D9] text-[#F5F3FA] rounded-lg font-body-md font-medium flex items-center justify-center gap-2 transition-colors mb-4 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:ring-offset-2 focus:ring-offset-[#15141B]" id="primary-check-btn" onclick="triggerCheckVerification()">
+<span class="flex items-center gap-2" id="btn-text">
+<span class="material-symbols-outlined text-[20px]">check</span>
+<span>I've verified my email</span>
+</span>
+<span class="hidden flex items-center gap-2" id="btn-spinner">
+<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+<span>Checking verification...</span>
+</span>
+</button>
+<!-- Resend Link Group -->
+<div class="flex flex-col items-center gap-1.5 mb-6 text-center">
+<span class="font-body-sm text-body-sm text-text-secondary">Didn't receive the email?</span>
+<button class="font-body-md text-body-md text-primary hover:text-text-primary font-medium transition-colors hover:underline flex items-center gap-1" id="resend-btn" onclick="simulateResend()">
+<span class="material-symbols-outlined text-[16px]">refresh</span>
+<span>Resend verification email</span>
+</button>
+<span class="font-label-sm text-label-sm text-text-secondary mt-0.5" id="resend-countdown">
+            You can request another email in <span class="font-code-sm text-primary">30s</span>
+</span>
+</div>
+<!-- Cryptographic Nonce & Token Badge -->
+<div class="w-full pt-4 border-t border-border-subtle flex items-center justify-between text-left">
+<div class="flex items-center gap-1.5 text-text-secondary">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">shield</span>
+<span class="font-label-sm text-label-sm">Token nonce: 15m ttl</span>
+</div>
+<span class="font-label-sm text-label-sm text-text-secondary">SHA-256 Validated</span>
+</div>
+</section>
+<!-- STATE B: RESENT CONFIRMATION (Banner Activated) -->
+<section class="hidden flex-col items-center text-center" id="state-resent">
+<!-- Success Inline Alert -->
+<div class="w-full bg-status-success/10 border border-status-success/30 rounded-lg p-3 flex items-start gap-2.5 text-left mb-5">
+<span class="material-symbols-outlined text-status-success text-[20px] shrink-0 mt-0.5">check_circle</span>
+<div class="flex-1">
+<p class="font-body-sm text-body-sm text-status-success font-medium">Verification email dispatched</p>
+<p class="font-body-sm text-body-sm text-status-success/80 mt-0.5">Check your inbox and spam folder. It should arrive in seconds.</p>
+</div>
+</div>
+<div class="w-16 h-16 rounded-xl bg-surface-elevated border border-border-subtle flex items-center justify-center mb-5 shrink-0">
+<span class="material-symbols-outlined text-[32px] text-status-info">forward_to_inbox</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg font-semibold text-text-primary mb-2 tracking-tight">Fresh email sent</h2>
+<p class="font-body-md text-body-md text-text-secondary max-w-sm mb-5 leading-relaxed">
+          A new security token has been generated and sent to your registered address.
+        </p>
+<div class="w-full bg-[#15141B] border border-border-subtle rounded-lg p-2.5 flex items-center justify-between mb-6">
+<div class="flex items-center gap-2 overflow-hidden pl-1">
+<span class="material-symbols-outlined text-text-secondary text-[18px] shrink-0">alternate_email</span>
+<span class="font-code-md text-code-md text-text-primary truncate">sajiv@example.com</span>
+</div>
+<button class="font-body-sm text-body-sm text-primary hover:text-text-primary shrink-0 transition-colors ml-2 hover:underline">
+            Change
+          </button>
+</div>
+<button class="w-full h-12 bg-[#8B5CF6] hover:bg-[#7C3AED] text-[#F5F3FA] rounded-lg font-body-md font-medium flex items-center justify-center gap-2 transition-colors mb-4" onclick="switchState('verified')">
+<span class="material-symbols-outlined text-[20px]">check</span>
+<span>I've verified my email</span>
+</button>
+<button class="font-body-sm text-body-sm text-text-secondary hover:text-text-primary transition-colors hover:underline" onclick="switchState('waiting')">
+          Return to previous view
+        </button>
+</section>
+<!-- STATE C: VERIFIED SUCCESS -->
+<section class="hidden flex flex-col items-center text-center" id="state-verified">
+<div class="w-16 h-16 rounded-xl bg-surface-elevated border border-status-success/40 flex items-center justify-center mb-5 shrink-0">
+<span class="material-symbols-outlined text-[34px] text-status-success">verified</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-status-success/10 border border-status-success/30 font-label-sm text-label-sm text-status-success mb-3">
+<span class="material-symbols-outlined text-[14px]">lock_open</span>
+<span>Security Handshake Complete</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg font-semibold text-text-primary mb-2 tracking-tight">Email verified</h2>
+<p class="font-body-md text-body-md text-text-secondary max-w-sm mb-6 leading-relaxed">
+          Your email address has been confirmed. You are ready to continue configuring your cloud orchestration workspace.
+        </p>
+<!-- Active User Profile Pill -->
+<div class="w-full bg-[#15141B] border border-border-subtle rounded-lg p-3 flex items-center justify-between mb-6">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-secondary flex items-center justify-center font-code-sm text-code-sm font-medium">
+              SJ
+            </div>
+<div class="text-left">
+<div class="font-body-sm text-body-sm font-medium text-text-primary">Sajiv Dev</div>
+<div class="font-code-sm text-code-sm text-text-secondary">sajiv@example.com</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-status-success text-[20px]">check_circle</span>
+</div>
+<!-- Launch Action -->
+<button class="w-full h-12 bg-[#8B5CF6] hover:bg-[#7C3AED] active:bg-[#6D28D9] text-[#F5F3FA] rounded-lg font-body-md font-medium flex items-center justify-center gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:ring-offset-2 focus:ring-offset-[#15141B]">
+<span>Continue to Jess IDE Dev</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</section>
+<!-- STATE D: EXPIRED LINK -->
+<section class="hidden flex-col items-center text-center" id="state-expired">
+<div class="w-16 h-16 rounded-xl bg-surface-elevated border border-status-warning/40 flex items-center justify-center mb-5 shrink-0">
+<span class="material-symbols-outlined text-[32px] text-status-warning">history</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-status-warning/10 border border-status-warning/30 font-label-sm text-label-sm text-status-warning mb-3">
+<span class="material-symbols-outlined text-[14px]">timer_off</span>
+<span>Nonce Expired (TTL 15m)</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg font-semibold text-text-primary mb-2 tracking-tight">This link has expired</h2>
+<p class="font-body-md text-body-md text-text-secondary max-w-sm mb-6 leading-relaxed">
+          Verification links expire automatically after 15 minutes for security reasons. Request a fresh link to activate your developer account.
+        </p>
+<!-- Fresh Resend Button -->
+<button class="w-full h-12 bg-[#8B5CF6] hover:bg-[#7C3AED] active:bg-[#6D28D9] text-[#F5F3FA] rounded-lg font-body-md font-medium flex items-center justify-center gap-2 transition-colors mb-3" onclick="switchState('resent')">
+<span class="material-symbols-outlined text-[20px]">refresh</span>
+<span>Resend verification email</span>
+</button>
+<!-- Secondary Ghost Navigation -->
+<button class="w-full h-11 bg-transparent hover:bg-surface-elevated text-text-primary border border-border-subtle rounded-lg font-body-md font-medium transition-colors flex items-center justify-center gap-1.5" onclick="switchState('waiting')">
+<span class="material-symbols-outlined text-[18px]">arrow_back</span>
+<span>Back to sign in</span>
+</button>
+</section>
+</div>
+<!-- Cluster Diagnostics Telemetry Footer (Screen 1 Match) -->
+<div class="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 font-label-sm text-label-sm text-text-secondary">
+<div class="flex items-center gap-1.5">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-status-success"></span>
+<span>Orchestrator: Operational</span>
+</div>
+<span class="text-border-subtle hidden xs:inline">•</span>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-text-secondary">dns</span>
+<span class="font-code-sm text-code-sm">Cluster: us-east-2</span>
+</div>
+</div>
+</main>
+<script>
+    function switchState(stateName) {
+      // Hide all states
+      const states = ['waiting', 'resent', 'verified', 'expired'];
+      states.forEach(s => {
+        const el = document.getElementById('state-' + s);
+        if (el) {
+          el.classList.add('hidden');
+          el.classList.remove('flex');
+        }
+        
+        const btn = document.getElementById('btn-' + s);
+        if (btn) {
+          btn.classList.remove('border-border-subtle', 'bg-surface-elevated', 'text-text-primary');
+          btn.classList.add('border-transparent', 'text-text-secondary');
+        }
+      });
+
+      // Show selected state
+      const target = document.getElementById('state-' + stateName);
+      if (target) {
+        target.classList.remove('hidden');
+        target.classList.add('flex');
+      }
+
+      // Highlight button
+      const targetBtn = document.getElementById('btn-' + stateName);
+      if (targetBtn) {
+        targetBtn.classList.remove('border-transparent', 'text-text-secondary');
+        targetBtn.classList.add('border-border-subtle', 'bg-surface-elevated', 'text-text-primary');
+      }
+    }
+
+    function triggerCheckVerification() {
+      const btn = document.getElementById('primary-check-btn');
+      const text = document.getElementById('btn-text');
+      const spinner = document.getElementById('btn-spinner');
+      
+      text.classList.add('hidden');
+      spinner.classList.remove('hidden');
+      btn.disabled = true;
+
+      setTimeout(() => {
+        text.classList.remove('hidden');
+        spinner.classList.add('hidden');
+        btn.disabled = false;
+        switchState('verified');
+      }, 1200);
+    }
+
+    function simulateResend() {
+      switchState('resent');
+    }
+  </script>
+</body></html>

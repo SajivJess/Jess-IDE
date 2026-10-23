@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Jess IDE Dev - Mobile Dashboard</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "outline": "#958ea0",
+            "secondary": "#ccbeff",
+            "on-tertiary-fixed": "#2c1700",
+            "surface-bright": "#3a3840",
+            "primary-container": "#a078ff",
+            "on-background": "#e5e1eb",
+            "secondary-container": "#4a3d7c",
+            "background": "#131319",
+            "surface-variant": "#35343c",
+            "status-warning": "#FBBF24",
+            "surface-tint": "#d0bcff",
+            "on-secondary-container": "#baabf3",
+            "error": "#ffb4ab",
+            "on-secondary": "#332664",
+            "outline-variant": "#494454",
+            "text-primary": "#F5F3FA",
+            "error-container": "#93000a",
+            "on-tertiary": "#482900",
+            "on-tertiary-container": "#3f2300",
+            "surface-container-highest": "#35343c",
+            "surface-container-high": "#2a2931",
+            "surface-main": "#1C1A24",
+            "on-primary-fixed-variant": "#5516be",
+            "status-info": "#60A5FA",
+            "on-primary-container": "#340080",
+            "on-surface": "#e5e1eb",
+            "inverse-on-surface": "#312f37",
+            "inverse-primary": "#6d3bd7",
+            "on-secondary-fixed-variant": "#4a3d7c",
+            "surface-container-low": "#1c1b22",
+            "inverse-surface": "#e5e1eb",
+            "surface-container": "#201f26",
+            "surface-container-lowest": "#0e0d14",
+            "secondary-fixed-dim": "#ccbeff",
+            "surface-elevated": "#24222D",
+            "surface": "#131319",
+            "tertiary-fixed": "#ffdcbb",
+            "on-primary": "#3c0091",
+            "on-error-container": "#ffdad6",
+            "tertiary-container": "#ca801e",
+            "on-primary-fixed": "#23005c",
+            "primary-fixed": "#e9ddff",
+            "primary": "#d0bcff",
+            "status-error": "#F87171",
+            "border-subtle": "#353140",
+            "text-secondary": "#A6A1B3",
+            "on-error": "#690005",
+            "primary-fixed-dim": "#d0bcff",
+            "on-surface-variant": "#cbc3d7",
+            "on-secondary-fixed": "#1e0e4e",
+            "status-success": "#34D399",
+            "surface-dim": "#131319",
+            "tertiary-fixed-dim": "#ffb869",
+            "secondary-fixed": "#e7deff",
+            "on-tertiary-fixed-variant": "#673d00",
+            "tertiary": "#ffb869"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "space-md": "0.75rem",
+            "margin": "1rem",
+            "space-lg": "1rem",
+            "space-xl": "1.5rem",
+            "space-sm": "0.5rem",
+            "margin-desktop": "1.5rem",
+            "gutter": "1rem",
+            "space-2xl": "2rem",
+            "gutter-desktop": "1.5rem"
+          },
+          "fontFamily": {
+            "headline-sm": ["Inter"],
+            "code-sm": ["JetBrains Mono"],
+            "headline-xl-mobile": ["Inter"],
+            "headline-md": ["Inter"],
+            "label-sm": ["JetBrains Mono"],
+            "label-md": ["Inter"],
+            "headline-xl": ["Inter"],
+            "body-sm": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "code-md": ["JetBrains Mono"]
+          },
+          "fontSize": {
+            "headline-sm": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "600" }],
+            "code-sm": ["0.75rem", { "lineHeight": "1.125rem", "fontWeight": "400" }],
+            "headline-xl-mobile": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-sm": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "label-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "500" }],
+            "headline-xl": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "body-sm": ["0.75rem", { "lineHeight": "1rem", "fontWeight": "400" }],
+            "body-lg": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }],
+            "headline-lg": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "400" }],
+            "code-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-block;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+      -webkit-font-smoothing: antialiased;
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.92); }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes shimmer {
+      100% { transform: translateX(100%); }
+    }
+    .skeleton-box {
+      position: relative;
+      overflow: hidden;
+      background-color: #24222D;
+    }
+    .skeleton-box::after {
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      transform: translateX(-100%);
+      background-image: linear-gradient(
+        90deg,
+        rgba(53, 49, 64, 0) 0,
+        rgba(53, 49, 64, 0.3) 50%,
+        rgba(53, 49, 64, 0) 100%
+      );
+      animation: shimmer 1.6s infinite;
+      content: '';
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-text-primary antialiased min-h-screen flex justify-center selection:bg-primary-container selection:text-on-primary-container">
+<!-- Mobile Viewport Container: strictly 360-430px -->
+<div class="w-full max-w-[428px] min-h-screen bg-surface border-x border-border-subtle flex flex-col relative pb-8">
+<!-- Interactive State Switcher Bar (Demo Tools) -->
+<section class="bg-surface-elevated border-b border-border-subtle px-3 py-2 flex items-center justify-between z-30">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-text-secondary text-sm" data-icon="tune">tune</span>
+<span class="font-label-sm text-label-sm text-text-secondary uppercase">STATE PREVIEW</span>
+</div>
+<div class="inline-flex rounded-lg p-0.5 bg-surface-container-low border border-border-subtle text-xs" id="state-selector">
+<button class="px-2 py-1 rounded font-label-sm text-label-sm font-medium bg-primary-container text-on-primary-container transition-colors" id="btn-populated" onclick="setState('populated')">Populated</button>
+<button class="px-2 py-1 rounded font-label-sm text-label-sm font-medium text-text-secondary hover:text-text-primary transition-colors" id="btn-disconnected" onclick="setState('disconnected')">Offline</button>
+<button class="px-2 py-1 rounded font-label-sm text-label-sm font-medium text-text-secondary hover:text-text-primary transition-colors" id="btn-empty" onclick="setState('empty')">Empty</button>
+<button class="px-2 py-1 rounded font-label-sm text-label-sm font-medium text-text-secondary hover:text-text-primary transition-colors" id="btn-skeleton" onclick="setState('skeleton')">Skeleton</button>
+</div>
+</section>
+<!-- TopAppBar (Shared Component Integration) -->
+<header class="flex justify-between items-center w-full px-space-lg h-14 bg-surface border-b border-border-subtle sticky top-0 z-20">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-surface-elevated border border-border-subtle flex items-center justify-center font-code-md text-code-md text-primary font-bold">
+          j.
+        </div>
+<div class="flex items-center gap-1.5">
+<span class="font-headline-md text-headline-md-mobile font-semibold text-text-primary tracking-tight">Jess IDE</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-subtle font-code-sm text-code-sm text-text-secondary">v0.9.4</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<!-- Notification button with indicator -->
+<button aria-label="Notifications" class="relative w-9 h-9 rounded-lg flex items-center justify-center text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors duration-150 ease-in-out">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-1.5 h-1.5 bg-status-warning rounded-full"></span>
+</button>
+<!-- User avatar badge -->
+<button aria-label="User Profile" class="w-8 h-8 rounded-full bg-secondary-container border border-border-subtle flex items-center justify-center font-label-sm text-label-sm text-secondary font-medium hover:ring-2 hover:ring-primary-container transition-all">
+          SD
+        </button>
+<!-- Quick menu -->
+<button aria-label="Menu" class="w-9 h-9 rounded-lg flex items-center justify-center text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors duration-150 ease-in-out">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 px-4 pt-4 pb-6 flex flex-col gap-5">
+<!-- ================= POPULATED STATE (DEFAULT) ================= -->
+<div class="flex flex-col gap-5" id="state-populated-view">
+<!-- Section 1: Greeting & Search & Action -->
+<section class="flex flex-col gap-3">
+<div class="flex items-baseline justify-between">
+<div>
+<h1 class="font-headline-md text-headline-md font-semibold text-text-primary">Good morning, Sajiv</h1>
+<p class="font-body-sm text-body-sm text-text-secondary mt-0.5">Pick up where you left off.</p>
+</div>
+<span class="inline-flex items-center gap-1 font-code-sm text-code-sm px-2 py-0.5 rounded bg-surface-elevated border border-border-subtle text-status-success">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> 3 active
+            </span>
+</div>
+<!-- Search Bar -->
+<div class="relative w-full">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-secondary">
+<span class="material-symbols-outlined text-lg" data-icon="search">search</span>
+</div>
+<input class="w-full h-11 pl-9 pr-12 rounded-lg bg-surface-main border border-border-subtle text-text-primary placeholder:text-text-secondary text-body-sm font-body-sm focus:border-primary-container focus:ring-1 focus:ring-primary-container focus:outline-none transition-all" placeholder="Search projects, tasks, or conversations..." type="text"/>
+<div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+<kbd class="px-1.5 py-0.5 text-[10px] font-code-sm text-text-secondary bg-surface-elevated border border-border-subtle rounded">⌘K</kbd>
+</div>
+</div>
+<!-- Primary Action CTA -->
+<button class="w-full h-11 bg-[#8B5CF6] hover:bg-[#7C3AED] active:bg-[#6D28D9] text-[#F5F3FA] rounded-lg font-label-md text-label-md font-medium flex items-center justify-center gap-2 transition-colors duration-150 shadow-sm">
+<span class="material-symbols-outlined text-lg" data-icon="add">add</span>
+<span>+ New project</span>
+</button>
+</section>
+<!-- Section 2: Workspace & Agent Connectivity Bar (Status Strip) -->
+<section class="p-3 rounded-lg bg-surface-elevated border border-border-subtle flex flex-col gap-2">
+<div class="flex items-center justify-between pb-2 border-b border-border-subtle">
+<div class="flex items-center gap-2">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-success opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-status-success"></span>
+</span>
+<span class="font-label-sm text-label-sm text-text-primary font-medium">Laptop (Nagercoil)</span>
+<span class="font-code-sm text-code-sm text-status-success">· Online</span>
+</div>
+<button class="font-label-sm text-label-sm text-secondary hover:text-text-primary flex items-center gap-0.5">
+<span>Manage</span>
+<span class="material-symbols-outlined text-xs" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+<div class="flex items-center justify-between text-body-sm pt-0.5">
+<div class="flex items-center gap-1.5 text-text-secondary font-code-sm text-code-sm">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="terminal">terminal</span>
+<span>Antigravity CLI</span>
+<span class="text-text-primary">· Ready</span>
+</div>
+<div class="font-code-sm text-code-sm text-text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="speed">speed</span>
+<span>us-east-2 · 28ms</span>
+</div>
+</div>
+</section>
+<!-- Section 3: Continue Working / Recent Projects -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Recent Projects</h2>
+<span class="font-code-sm text-code-sm text-text-secondary">(3)</span>
+</div>
+<a class="font-label-sm text-label-sm text-secondary hover:underline flex items-center gap-0.5" href="#all-projects">
+<span>View all</span>
+<span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+<!-- Cards Stack -->
+<div class="flex flex-col gap-2.5">
+<!-- Project 1 -->
+<div class="p-3.5 rounded-lg bg-surface-main border border-border-subtle hover:border-outline-variant hover:bg-surface-elevated transition-colors duration-150">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary text-base" data-icon="deployed_code">deployed_code</span>
+<span class="font-body-md text-body-md font-semibold text-text-primary">cloudaiagent</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-label-sm text-label-sm bg-[rgba(96,165,250,0.1)] text-status-info border border-[rgba(96,165,250,0.2)]">
+<span class="w-1.5 h-1.5 rounded-full bg-status-info animate-pulse-subtle"></span>
+                  Running task
+                </span>
+</div>
+<div class="mt-2.5 flex items-center gap-2 text-text-secondary font-code-sm text-code-sm flex-wrap">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-container border border-border-subtle text-text-primary">
+<span class="material-symbols-outlined text-xs" data-icon="fork_right">fork_right</span> main
+                </span>
+<span class="text-text-secondary">b7d41f0</span>
+<span>•</span>
+<span class="text-text-secondary">24m ago</span>
+</div>
+<div class="mt-2 pt-2 border-t border-border-subtle flex items-center justify-between text-body-sm">
+<span class="text-text-secondary font-code-sm text-code-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="smart_toy">smart_toy</span> Claude 3.7 Sonnet
+                </span>
+<span class="material-symbols-outlined text-text-secondary text-base" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<!-- Project 2 -->
+<div class="p-3.5 rounded-lg bg-surface-main border border-border-subtle hover:border-outline-variant hover:bg-surface-elevated transition-colors duration-150">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary text-base" data-icon="folder_code">folder_code</span>
+<span class="font-body-md text-body-md font-semibold text-text-primary">jess-ide-backend</span>
+</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded font-label-sm text-label-sm bg-[rgba(52,211,153,0.1)] text-status-success border border-[rgba(52,211,153,0.2)]">
+                  Ready
+                </span>
+</div>
+<div class="mt-2.5 flex items-center gap-2 text-text-secondary font-code-sm text-code-sm flex-wrap">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-container border border-border-subtle text-text-primary">
+<span class="material-symbols-outlined text-xs" data-icon="fork_right">fork_right</span> feature/auth-jwt
+                </span>
+<span class="text-text-secondary">a189f3c</span>
+<span>•</span>
+<span class="text-text-secondary">2h ago</span>
+</div>
+<div class="mt-2 pt-2 border-t border-border-subtle flex items-center justify-between text-body-sm">
+<span class="text-text-secondary font-code-sm text-code-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="laptop_mac">laptop_mac</span> Local dev machine
+                </span>
+<span class="material-symbols-outlined text-text-secondary text-base" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<!-- Project 3 -->
+<div class="p-3.5 rounded-lg bg-surface-main border border-border-subtle hover:border-outline-variant hover:bg-surface-elevated transition-colors duration-150">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary text-base" data-icon="source_environment">source_environment</span>
+<span class="font-body-md text-body-md font-semibold text-text-primary">stitch-orchestrator</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-label-sm text-label-sm bg-[rgba(251,191,36,0.1)] text-status-warning border border-[rgba(251,191,36,0.2)]">
+<span class="material-symbols-outlined text-xs" data-icon="priority_high">priority_high</span>
+                  Approval required
+                </span>
+</div>
+<div class="mt-2.5 flex items-center gap-2 text-text-secondary font-code-sm text-code-sm flex-wrap">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-container border border-border-subtle text-text-primary">
+<span class="material-symbols-outlined text-xs" data-icon="fork_right">fork_right</span> release/v1.2
+                </span>
+<span class="text-text-secondary">3e2210d</span>
+<span>•</span>
+<span class="text-text-secondary">Yesterday</span>
+</div>
+<div class="mt-2 pt-2 border-t border-border-subtle flex items-center justify-between text-body-sm">
+<span class="text-text-secondary font-code-sm text-code-sm">Pending schema sync</span>
+<span class="material-symbols-outlined text-text-secondary text-base" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 4: Recent Tasks & Activity -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Recent Tasks &amp; Activity</h2>
+<span class="font-code-sm text-code-sm text-text-secondary">Real-time log</span>
+</div>
+<div class="flex flex-col gap-2">
+<!-- Task 1: Running -->
+<div class="p-3 rounded-lg bg-surface-main border border-border-subtle flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-status-info">
+<span class="w-1.5 h-1.5 rounded-full bg-status-info animate-pulse-subtle"></span>
+                  RUNNING · 12m ago
+                </span>
+<span class="font-code-sm text-code-sm text-text-secondary">jess-ide-backend</span>
+</div>
+<p class="font-body-md text-body-md font-medium text-text-primary">Add JWT authentication to FastAPI backend</p>
+<p class="font-body-sm text-body-sm text-text-secondary font-code-sm">Generating test suites for token invalidation...</p>
+</div>
+<!-- Task 2: Waiting Approval -->
+<div class="p-3 rounded-lg bg-surface-main border border-status-warning/40 flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-status-warning">
+<span class="material-symbols-outlined text-xs" data-icon="lock">lock</span>
+                  APPROVAL REQUIRED · 45m ago
+                </span>
+<span class="font-code-sm text-code-sm text-text-secondary">stitch-orchestrator</span>
+</div>
+<p class="font-body-md text-body-md font-medium text-text-primary">Git Push: Deploy staging schema migrations</p>
+<div class="flex items-center justify-between mt-1">
+<button class="h-8 px-3 rounded bg-surface-elevated border border-border-subtle hover:border-status-warning font-label-sm text-label-sm text-text-primary flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-xs text-status-warning" data-icon="rule">rule</span>
+                  Review Diff &amp; Approve
+                </button>
+<span class="font-code-sm text-code-sm text-text-secondary">+142 / -18 lines</span>
+</div>
+</div>
+<!-- Task 3: Completed -->
+<div class="p-3 rounded-lg bg-surface-main border border-border-subtle flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-status-success">
+<span class="material-symbols-outlined text-xs" data-icon="check_circle">check_circle</span>
+                  COMPLETED · 2h ago
+                </span>
+<span class="font-code-sm text-code-sm text-text-secondary">cloudaiagent</span>
+</div>
+<p class="font-body-md text-body-md font-medium text-text-primary">Refactor Docker compose environment variables</p>
+</div>
+<!-- Task 4: Failed -->
+<div class="p-3 rounded-lg bg-surface-main border border-border-subtle flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-status-error">
+<span class="material-symbols-outlined text-xs" data-icon="error">error</span>
+                  FAILED · 4h ago
+                </span>
+<span class="font-code-sm text-code-sm text-text-secondary">cloudaiagent</span>
+</div>
+<p class="font-body-md text-body-md font-medium text-text-primary">Build container: runner-amd64</p>
+<div class="flex items-center justify-between">
+<span class="font-code-sm text-code-sm text-status-error">Exit code 137 (OOM killed)</span>
+<button class="font-label-sm text-label-sm text-secondary hover:underline flex items-center gap-0.5">
+                  View Logs / Retry
+                </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 5: Quick Shortcuts -->
+<section class="flex flex-col gap-2">
+<span class="font-label-sm text-label-sm text-text-secondary uppercase">Quick Access</span>
+<div class="grid grid-cols-3 gap-2">
+<button class="p-2.5 rounded-lg bg-surface-elevated border border-border-subtle hover:border-outline-variant flex flex-col items-center justify-center text-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="folder_managed">folder_managed</span>
+<span class="font-label-sm text-label-sm text-text-primary">All Projects</span>
+</button>
+<button class="p-2.5 rounded-lg bg-surface-elevated border border-border-subtle hover:border-outline-variant flex flex-col items-center justify-center text-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="chat">chat</span>
+<span class="font-label-sm text-label-sm text-text-primary">Start Chat</span>
+</button>
+<button class="p-2.5 rounded-lg bg-surface-elevated border border-border-subtle hover:border-outline-variant flex flex-col items-center justify-center text-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="dns">dns</span>
+<span class="font-label-sm text-label-sm text-text-primary">Workspaces</span>
+</button>
+</div>
+</section>
+</div>
+<!-- ================= DISCONNECTED STATE ================= -->
+<div class="hidden flex-col gap-5" id="state-disconnected-view">
+<!-- Offline Critical Banner -->
+<div class="p-3.5 rounded-lg bg-[rgba(248,113,113,0.1)] border border-status-error flex items-start gap-3">
+<span class="material-symbols-outlined text-status-error text-xl shrink-0 mt-0.5" data-icon="wifi_off">wifi_off</span>
+<div class="flex-1">
+<h3 class="font-headline-sm text-headline-sm text-text-primary">Laptop development server unreachable</h3>
+<p class="font-body-sm text-body-sm text-text-secondary mt-1">
+              Agent execution paused. The tunnel connection to <code class="font-code-sm text-text-primary">Laptop (Nagercoil)</code> dropped 4 minutes ago.
+            </p>
+<div class="mt-3 flex items-center gap-2">
+<button class="h-9 px-3 rounded-lg bg-[#8B5CF6] text-[#F5F3FA] font-label-md text-label-md font-medium hover:bg-[#7C3AED] transition-colors">
+                Retry Connection
+              </button>
+<button class="h-9 px-3 rounded-lg bg-transparent border border-border-subtle text-text-primary font-label-md text-label-md hover:bg-surface-elevated transition-colors">
+                Troubleshoot CLI
+              </button>
+</div>
+</div>
+</div>
+<!-- Disconnected Workspace Strip -->
+<section class="p-3 rounded-lg bg-surface-elevated border border-border-subtle opacity-80">
+<div class="flex items-center justify-between pb-2 border-b border-border-subtle">
+<div class="flex items-center gap-2">
+<span class="inline-flex rounded-full h-2 w-2 bg-status-error"></span>
+<span class="font-label-sm text-label-sm text-text-primary font-medium">Laptop (Nagercoil)</span>
+<span class="font-code-sm text-code-sm text-status-error">· Offline</span>
+</div>
+<span class="font-code-sm text-code-sm text-text-secondary">Last seen: 4m ago</span>
+</div>
+<div class="flex items-center justify-between text-body-sm pt-2">
+<div class="flex items-center gap-1.5 text-text-secondary font-code-sm text-code-sm">
+<span class="material-symbols-outlined text-sm text-status-error" data-icon="cloud_off">cloud_off</span>
+<span>Antigravity CLI</span>
+<span class="text-status-error">· Disconnected</span>
+</div>
+<button class="font-label-sm text-label-sm text-secondary hover:underline">Re-authenticate</button>
+</div>
+</section>
+<!-- Cached / Queued Action Warning -->
+<div class="p-3 rounded-lg bg-surface-main border border-border-subtle">
+<div class="flex items-center gap-2 text-status-warning font-label-sm text-label-sm mb-1.5">
+<span class="material-symbols-outlined text-base" data-icon="pending">pending</span>
+<span>2 TASKS QUEUED LOCALLY</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary">
+            Tasks targeting <span class="text-text-primary">jess-ide-backend</span> will resume automatically once the daemon re-establishes socket handshake.
+          </p>
+</div>
+</div>
+<!-- ================= EMPTY STATE ================= -->
+<div class="hidden flex-col gap-5 py-4" id="state-empty-view">
+<div class="p-6 rounded-lg bg-surface-main border border-border-subtle flex flex-col items-center text-center">
+<div class="w-14 h-14 rounded-full bg-surface-elevated border border-border-subtle flex items-center justify-center text-primary mb-4">
+<span class="material-symbols-outlined text-3xl" data-icon="terminal">terminal</span>
+</div>
+<h2 class="font-headline-md text-headline-md font-semibold text-text-primary">No active projects yet</h2>
+<p class="font-body-md text-body-md text-text-secondary mt-1.5 max-w-[280px]">
+            Connect a GitHub repository or start with an ideation brief to let your coding agent work.
+          </p>
+<div class="w-full mt-6 flex flex-col gap-2.5">
+<button class="w-full h-11 bg-[#8B5CF6] hover:bg-[#7C3AED] text-[#F5F3FA] rounded-lg font-label-md text-label-md font-medium flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="add">add</span>
+<span>+ Create your first project</span>
+</button>
+<button class="w-full h-11 bg-surface-elevated hover:bg-surface-variant border border-border-subtle text-text-primary rounded-lg font-label-md text-label-md font-medium flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-lg text-secondary" data-icon="link">link</span>
+<span>Clone GitHub Repository</span>
+</button>
+</div>
+<div class="mt-6 pt-4 border-t border-border-subtle w-full flex items-center justify-around font-code-sm text-code-sm text-text-secondary">
+<span>Daemon: Ready</span>
+<span>•</span>
+<span>CLI: v0.9.4</span>
+<span>•</span>
+<span>0 slots used</span>
+</div>
+</div>
+<!-- Quick Start Tips Card -->
+<div class="p-4 rounded-lg bg-surface-elevated border border-border-subtle">
+<div class="flex items-center gap-2 text-primary font-label-sm text-label-sm mb-2">
+<span class="material-symbols-outlined text-base" data-icon="lightbulb">lightbulb</span>
+<span>QUICK TIP: RUN CLI LOCALLY</span>
+</div>
+<div class="p-2.5 rounded bg-surface border border-border-subtle font-code-sm text-code-sm text-text-primary overflow-x-auto">
+<code>npx jess-cli@latest link</code>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary mt-2">
+            Run this in any project directory on your machine to stream live sessions here.
+          </p>
+</div>
+</div>
+<!-- ================= SKELETON LOADING STATE ================= -->
+<div class="hidden flex-col gap-5" id="state-skeleton-view">
+<!-- Skeleton Greeting -->
+<div class="flex flex-col gap-2">
+<div class="h-6 w-48 rounded skeleton-box"></div>
+<div class="h-4 w-32 rounded skeleton-box"></div>
+<div class="h-11 w-full rounded-lg skeleton-box mt-1"></div>
+<div class="h-11 w-full rounded-lg skeleton-box"></div>
+</div>
+<!-- Skeleton Connectivity Strip -->
+<div class="h-20 w-full rounded-lg skeleton-box"></div>
+<!-- Skeleton Projects Section -->
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-center">
+<div class="h-5 w-32 rounded skeleton-box"></div>
+<div class="h-4 w-16 rounded skeleton-box"></div>
+</div>
+<div class="h-24 w-full rounded-lg skeleton-box"></div>
+<div class="h-24 w-full rounded-lg skeleton-box"></div>
+<div class="h-24 w-full rounded-lg skeleton-box"></div>
+</div>
+<!-- Skeleton Tasks Section -->
+<div class="flex flex-col gap-2">
+<div class="h-5 w-40 rounded skeleton-box mb-1"></div>
+<div class="h-20 w-full rounded-lg skeleton-box"></div>
+<div class="h-24 w-full rounded-lg skeleton-box"></div>
+</div>
+</div>
+</main>
+<!-- Footer Status (Mobile Single Column - STRICTLY NO BOTTOM NAV BAR) -->
+<footer class="mt-auto px-4 pt-4 pb-2 border-t border-border-subtle flex flex-col gap-1 items-center text-center">
+<div class="flex items-center gap-1.5 font-code-sm text-code-sm text-text-secondary">
+<span class="w-2 h-2 rounded-full bg-status-success inline-block"></span>
+<span>Orchestrator: Operational</span>
+<span>·</span>
+<span>us-east-2</span>
+</div>
+<div class="font-code-sm text-code-sm text-text-secondary text-xs">
+        Jess Runtime v0.9.4-beta · Active node: Laptop (Nagercoil)
+      </div>
+</footer>
+</div>
+<!-- State Toggle Script -->
+<script>
+    function setState(state) {
+      // Hide all states
+      document.getElementById('state-populated-view').classList.add('hidden');
+      document.getElementById('state-disconnected-view').classList.add('hidden');
+      document.getElementById('state-empty-view').classList.add('hidden');
+      document.getElementById('state-skeleton-view').classList.add('hidden');
+      
+      // Reset button styles
+      const buttons = ['btn-populated', 'btn-disconnected', 'btn-empty', 'btn-skeleton'];
+      buttons.forEach(id => {
+        const btn = document.getElementById(id);
+        btn.className = 'px-2 py-1 rounded font-label-sm text-label-sm font-medium text-text-secondary hover:text-text-primary transition-colors';
+      });
+
+      // Show target state and mark button active
+      const activeBtn = document.getElementById(`btn-${state}`);
+      activeBtn.className = 'px-2 py-1 rounded font-label-sm text-label-sm font-medium bg-primary-container text-on-primary-container transition-colors';
+
+      const targetView = document.getElementById(`state-${state}-view`);
+      targetView.classList.remove('hidden');
+      targetView.classList.add('flex');
+    }
+  </script>
+</body></html>
