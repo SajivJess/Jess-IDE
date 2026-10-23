@@ -26,6 +26,13 @@ class Settings(BaseSettings):
         "http://127.0.0.1:8080",
     ]
 
+    # Database Configuration
+    DATABASE_URL: str = "sqlite+aiosqlite:///./jess_dev.db"
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+    DB_POOL_TIMEOUT: int = 30
+    DB_ECHO: bool = False
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:

@@ -28,6 +28,11 @@ htmlcov/
 # Logs
 *.log
 
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
 # IDE & OS files
 .vscode/
 .idea/

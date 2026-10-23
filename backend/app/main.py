@@ -8,7 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from app.core.config import settings
 from app.core.logging import logger
 from app.api.v1.api import api_router
-from app.api.v1.endpoints.health import health_check
+from app.api.v1.endpoints.health import health_check, readiness_check
 
 
 @asynccontextmanager
@@ -49,6 +49,13 @@ app.add_api_route(
     methods=["GET"],
     tags=["Health"],
     summary="Root Health Check",
+)
+app.add_api_route(
+    "/ready",
+    readiness_check,
+    methods=["GET"],
+    tags=["Health"],
+    summary="Root Readiness Check",
 )
 
 # API v1 Router
