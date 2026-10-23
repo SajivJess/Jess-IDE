@@ -5,6 +5,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/app_text_field.dart';
 import 'screen_7_choose_source.dart';
+import '../../services/projects_api_service.dart';
 
 class Screen8ConfigureProject extends StatefulWidget {
   final ProjectSource source;
@@ -25,8 +26,8 @@ class Screen8ConfigureProject extends StatefulWidget {
 class _Screen8ConfigureProjectState extends State<Screen8ConfigureProject> {
   final TextEditingController _nameController =
       TextEditingController(text: 'cloudaiagent-mobile');
-  final TextEditingController _descController = TextEditingController(
-      text: 'AI coding agent orchestration backend and mobile interface.');
+  final TextEditingController _descController =
+      TextEditingController(text: 'AI coding agent orchestration backend and mobile interface.');
   final TextEditingController _repoController =
       TextEditingController(text: 'https://github.com/SajivJess/cloudaiagent.git');
   final TextEditingController _branchController =
@@ -35,11 +36,41 @@ class _Screen8ConfigureProjectState extends State<Screen8ConfigureProject> {
   bool _isChecking = false;
 
   void _handleContinue() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a project name')),
+      );
+      return;
+    }
+
     setState(() => _isChecking = true);
-    await Future.delayed(const Duration(milliseconds: 700));
+    final result = await ProjectsApiService.createProject(
+      name: name,
+      description: _descController.text.trim().isNotEmpty ? _descController.text.trim() : null,
+      sourceType: widget.source.name,
+      repoUrl: _repoController.text.trim().isNotEmpty ? _repoController.text.trim() : null,
+      defaultBranch: _branchController.text.trim().isNotEmpty ? _branchController.text.trim() : 'main',
+    );
+
     if (mounted) {
       setState(() => _isChecking = false);
-      widget.onContinue?.call();
+      if (result.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Project "${result.project?.name ?? name}" created successfully!'),
+            backgroundColor: AppColors.statusSuccess,
+          ),
+        );
+        widget.onContinue?.call();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.errorMessage ?? 'Failed to create project on server.'),
+            backgroundColor: AppColors.statusError,
+          ),
+        );
+      }
     }
   }
 

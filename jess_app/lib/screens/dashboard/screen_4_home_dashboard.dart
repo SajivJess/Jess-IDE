@@ -4,6 +4,7 @@ import '../../theme/app_typography.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/status_badge.dart';
+import '../../services/projects_api_service.dart';
 
 enum DashboardState { populated, offline, empty, skeleton }
 
@@ -28,6 +29,40 @@ class Screen4HomeDashboard extends StatefulWidget {
 class _Screen4HomeDashboardState extends State<Screen4HomeDashboard> {
   DashboardState _state = DashboardState.populated;
   final TextEditingController _searchController = TextEditingController();
+
+  List<ProjectModel> _liveProjects = [];
+  bool _isLoadingProjects = false;
+  String? _projectsError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProjects();
+  }
+
+  Future<void> _loadProjects() async {
+    setState(() => _isLoadingProjects = true);
+    final result = await ProjectsApiService.listProjects(limit: 5);
+    if (mounted) {
+      setState(() {
+        _isLoadingProjects = false;
+        if (result.success) {
+          _liveProjects = result.items;
+          _projectsError = null;
+        } else {
+          _projectsError = result.errorMessage;
+        }
+      });
+    }
+  }
+
+  String _formatTimeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -330,7 +365,10 @@ class _Screen4HomeDashboardState extends State<Screen4HomeDashboard> {
               children: [
                 Text('Recent Projects', style: AppTypography.headlineSm),
                 const SizedBox(width: 6),
-                Text('(3)', style: AppTypography.codeSm),
+                Text(
+                  _isLoadingProjects ? '(...)' : '(${_liveProjects.length})',
+                  style: AppTypography.codeSm,
+                ),
               ],
             ),
             GestureDetector(
@@ -346,42 +384,68 @@ class _Screen4HomeDashboardState extends State<Screen4HomeDashboard> {
         ),
         const SizedBox(height: 10),
 
-        // Project Cards
-        _buildProjectCard(
-          name: 'cloudaiagent',
-          icon: Icons.code,
-          badgeLabel: 'Running task',
-          badgeType: StatusType.info,
-          branch: 'main',
-          commit: 'b7d41f0',
-          timeAgo: '24m ago',
-          agentInfo: 'Claude 3.7 Sonnet',
-          onTap: () => widget.onOpenProject?.call('cloudaiagent'),
-        ),
-        const SizedBox(height: 8),
-        _buildProjectCard(
-          name: 'jess-ide-backend',
-          icon: Icons.folder_outlined,
-          badgeLabel: 'Ready',
-          badgeType: StatusType.success,
-          branch: 'feature/auth-jwt',
-          commit: 'a189f3c',
-          timeAgo: '2h ago',
-          agentInfo: 'Local dev machine',
-          onTap: () => widget.onOpenProject?.call('jess-ide-backend'),
-        ),
-        const SizedBox(height: 8),
-        _buildProjectCard(
-          name: 'stitch-orchestrator',
-          icon: Icons.alt_route,
-          badgeLabel: 'Approval required',
-          badgeType: StatusType.warning,
-          branch: 'release/v1.2',
-          commit: '3e2210d',
-          timeAgo: 'Yesterday',
-          agentInfo: 'Pending schema sync',
-          onTap: () => widget.onOpenProject?.call('stitch-orchestrator'),
-        ),
+        if (_isLoadingProjects)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+              ),
+            ),
+          )
+        else if (_liveProjects.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.borderSubtle),
+            ),
+            child: Column(
+              children: [
+                const Icon(Icons.folder_open, size: 28, color: AppColors.textSecondary),
+                const SizedBox(height: 8),
+                Text('No projects found', style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Text(
+                  'Create your first project to start agentic development.',
+                  style: AppTypography.bodySm,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                AppButton(
+                  text: '+ Create Project',
+                  onPressed: widget.onNewProject,
+                ),
+              ],
+            ),
+          )
+        else
+          ..._liveProjects.take(3).map((project) {
+            IconData icon = Icons.folder_outlined;
+            if (project.sourceType == 'github') icon = Icons.code;
+            if (project.sourceType == 'ideation') icon = Icons.lightbulb_outline;
+            if (project.sourceType == 'scratch') icon = Icons.alt_route;
+
+            final timeAgo = _formatTimeAgo(project.updatedAt);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: _buildProjectCard(
+                name: project.name,
+                icon: icon,
+                badgeLabel: project.sourceType.toUpperCase(),
+                badgeType: StatusType.success,
+                branch: project.defaultBranch,
+                commit: project.workspacePath ?? project.repoUrl ?? 'Local',
+                timeAgo: timeAgo,
+                agentInfo: project.description ?? 'Project ready',
+                onTap: () => widget.onOpenProject?.call(project.name),
+              ),
+            );
+          }),
         const SizedBox(height: 22),
 
         // Recent Tasks & Activity Section

@@ -4,6 +4,7 @@ import '../../theme/app_typography.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/status_badge.dart';
+import '../../services/projects_api_service.dart';
 
 class Screen6ProjectOverview extends StatefulWidget {
   final String projectName;
@@ -112,12 +113,12 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const StatusBadge(label: 'Active', type: StatusType.success),
+                          const StatusBadge(label: 'Registered', type: StatusType.success),
                         ],
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'AI coding agent orchestration backend and mobile interface control plane.',
+                        'Project registered and stored in Jess Ide Dev database.',
                         style: AppTypography.bodyMd,
                       ),
                       const SizedBox(height: 12),
@@ -127,43 +128,41 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          _buildMetaPill(Icons.terminal, 'SajivJess/cloudaiagent'),
-                          _buildMetaPill(Icons.fork_right, 'main (255d346)'),
-                          _buildMetaPill(Icons.laptop_mac, 'Laptop (Nagercoil)'),
+                          _buildMetaPill(Icons.terminal, widget.projectName),
+                          _buildMetaPill(Icons.fork_right, 'main'),
+                          _buildMetaPill(Icons.laptop_mac, 'Local dev host'),
                         ],
                       ),
                       const SizedBox(height: 16),
 
                       // Primary Action: Open Chat
                       AppButton(
-                        text: 'Open AI Coding Chat',
+                        text: 'Open AI Coding Chat (Phase 5)',
                         icon: const Icon(Icons.chat_bubble_outline, size: 18, color: Colors.white),
                         onPressed: widget.onOpenChat,
                       ),
                       const SizedBox(height: 16),
 
-                      // Assigned Workspace Health Card
+                      // Assigned Workspace Card (Truthful status)
                       _buildSectionCard(
                         title: 'Assigned Workspace',
-                        badge: const StatusBadge(label: 'Online', type: StatusType.success),
+                        badge: const StatusBadge(label: 'Phase 6 Pending', type: StatusType.neutral),
                         children: [
-                          _buildInfoRow('Host Device:', 'Windows Laptop (Nagercoil)'),
-                          _buildInfoRow('Root Directory:', 'D:\\SajivJess\\jess dev ide'),
-                          _buildInfoRow('Isolation Level:', 'Host Folder (Shares user permissions)'),
-                          _buildInfoRow('Last Heartbeat:', '15s ago (WebSocket active)'),
+                          _buildInfoRow('Host Device:', 'Local developer host'),
+                          _buildInfoRow('Workspace Sandbox:', 'Decoupled Docker container (Phase 6)'),
+                          _buildInfoRow('State:', 'Metadata stored; container runner pending Phase 6'),
                         ],
                       ),
                       const SizedBox(height: 14),
 
-                      // Agent Session Card
+                      // Agent Session Card (Truthful status)
                       _buildSectionCard(
                         title: 'Agent Connection',
-                        badge: const StatusBadge(label: 'Ready', type: StatusType.info),
+                        badge: const StatusBadge(label: 'Phase 5 Pending', type: StatusType.neutral),
                         children: [
-                          _buildInfoRow('Provider:', 'Antigravity CLI (agy)'),
-                          _buildInfoRow('Active Model:', 'Gemini 2.5 Flash / Pro'),
-                          _buildInfoRow('Session Continuity:', 'Resumable (thread_01a149)'),
-                          _buildInfoRow('Execution Policy:', 'Safe Confirmation Required'),
+                          _buildInfoRow('Engine:', 'FastAPI Task Worker (Phase 5)'),
+                          _buildInfoRow('Adapter Interface:', 'BaseAgentAdapter (Gemini / Claude)'),
+                          _buildInfoRow('Live Stream:', 'WebSocket event stream pending Phase 5'),
                         ],
                       ),
                       const SizedBox(height: 14),

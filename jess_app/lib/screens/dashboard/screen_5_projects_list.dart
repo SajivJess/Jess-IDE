@@ -4,6 +4,7 @@ import '../../theme/app_typography.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/status_badge.dart';
+import '../../services/projects_api_service.dart';
 
 class ProjectItem {
   final String id;
@@ -46,6 +47,57 @@ class Screen5ProjectsList extends StatefulWidget {
 class _Screen5ProjectsListState extends State<Screen5ProjectsList> {
   String _selectedSource = 'all';
   final TextEditingController _searchController = TextEditingController();
+
+  List<ProjectItem> _apiProjects = [];
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _hasFetchedFromApi = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProjects();
+  }
+
+  Future<void> _fetchProjects() async {
+    setState(() => _isLoading = true);
+    final result = await ProjectsApiService.listProjects(
+      sourceType: _selectedSource,
+      search: _searchController.text.trim(),
+    );
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _hasFetchedFromApi = true;
+        if (result.success) {
+          _apiProjects = result.items.map((p) {
+            return ProjectItem(
+              id: p.id,
+              name: p.name,
+              description: p.description ?? 'Project registered in Jess Ide Dev.',
+              source: p.sourceType,
+              branch: p.defaultBranch,
+              workspacePath: p.workspacePath ?? p.repoUrl ?? 'Local folder',
+              lastActivity: _formatTime(p.updatedAt),
+              status: 'Ready',
+              statusType: StatusType.success,
+            );
+          }).toList();
+          _errorMessage = null;
+        } else {
+          _errorMessage = result.errorMessage;
+        }
+      });
+    }
+  }
+
+  String _formatTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
 
   final List<ProjectItem> _allProjects = const [
     ProjectItem(
@@ -116,8 +168,12 @@ class _Screen5ProjectsListState extends State<Screen5ProjectsList> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _allProjects.where((p) {
-      if (_selectedSource != 'all' && p.source != _selectedSource) return false;
+    final projectSourceList = _hasFetchedFromApi && _apiProjects.isNotEmpty
+        ? _apiProjects
+        : (_hasFetchedFromApi && _apiProjects.isEmpty ? <ProjectItem>[] : _allProjects);
+
+    final filtered = projectSourceList.where((p) {
+      if (_selectedSource != 'all' && p.source.toLowerCase() != _selectedSource.toLowerCase()) return false;
       final q = _searchController.text.trim().toLowerCase();
       if (q.isNotEmpty) {
         return p.name.toLowerCase().contains(q) ||
@@ -240,22 +296,46 @@ class _Screen5ProjectsListState extends State<Screen5ProjectsList> {
 
               // Projects List
               Expanded(
-                child: filtered.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No projects match your search.',
-                          style: AppTypography.bodyMd,
+                child: _isLoading
+                    ? const Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                         ),
                       )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final project = filtered[index];
-                          return _buildProjectRow(project);
-                        },
-                      ),
+                    : filtered.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.folder_open, size: 36, color: AppColors.textSecondary),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No projects match your filter.',
+                                  style: AppTypography.headlineSm,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Tap "+ New project" above to create one.',
+                                  style: AppTypography.bodySm,
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            color: AppColors.primary,
+                            onRefresh: _fetchProjects,
+                            child: ListView.separated(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, _) => const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final project = filtered[index];
+                                return _buildProjectRow(project);
+                              },
+                            ),
+                          ),
               ),
             ],
           ),

@@ -8,6 +8,12 @@ from app.schemas.auth import (
     UserRegister,
     VerifyEmailRequest,
 )
+from app.schemas.project import (
+    ProjectCreate,
+    ProjectListResponse,
+    ProjectRead,
+    ProjectUpdate,
+)
 
 __all__ = [
     "RegisterResponse",
@@ -18,4 +24,8 @@ __all__ = [
     "UserRead",
     "UserRegister",
     "VerifyEmailRequest",
+    "ProjectCreate",
+    "ProjectListResponse",
+    "ProjectRead",
+    "ProjectUpdate",
 ]
