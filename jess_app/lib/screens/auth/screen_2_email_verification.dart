@@ -4,6 +4,7 @@ import '../../theme/app_typography.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/status_badge.dart';
+import '../../services/auth_api_service.dart';
 
 enum VerificationState { waiting, resent, verified, expired }
 
@@ -30,21 +31,51 @@ class _Screen2EmailVerificationState extends State<Screen2EmailVerification> {
 
   void _checkVerification() async {
     setState(() => _isChecking = true);
-    await Future.delayed(const Duration(milliseconds: 1000));
+    final status = await AuthApiService.checkVerificationStatus(widget.email);
     if (mounted) {
-      setState(() {
-        _isChecking = false;
-        _currentState = VerificationState.verified;
-      });
+      setState(() => _isChecking = false);
+      if (status != null && status.isVerified) {
+        setState(() => _currentState = VerificationState.verified);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account successfully verified!'),
+            backgroundColor: AppColors.statusSuccess,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Verification pending: Email link not yet confirmed. Please click the link sent to your inbox.',
+            ),
+            backgroundColor: AppColors.statusWarning,
+          ),
+        );
+      }
     }
   }
 
-  void _simulateResend() {
-    setState(() {
-      _currentState = VerificationState.resent;
-      _cooldownSeconds = 30;
-    });
+  void _resendVerification() async {
+    setState(() => _isChecking = true);
+    final sent = await AuthApiService.resendVerification(widget.email);
+    if (mounted) {
+      setState(() {
+        _isChecking = false;
+        _currentState = VerificationState.resent;
+        _cooldownSeconds = 30;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(sent
+              ? 'Verification email dispatched. Check your inbox.'
+              : 'Unable to reach backend. Check connection.'),
+          backgroundColor: sent ? AppColors.statusSuccess : AppColors.statusError,
+        ),
+      );
+    }
   }
+
+  void _simulateResend() => _resendVerification();
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +208,7 @@ class _Screen2EmailVerificationState extends State<Screen2EmailVerification> {
         Text('Didn\'t receive the email?', style: AppTypography.bodySm),
         const SizedBox(height: 4),
         GestureDetector(
-          onTap: _simulateResend,
+          onTap: _resendVerification,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -324,7 +355,7 @@ class _Screen2EmailVerificationState extends State<Screen2EmailVerification> {
         const SizedBox(height: 24),
         AppButton(
           text: 'Resend verification email',
-          onPressed: _simulateResend,
+          onPressed: _resendVerification,
         ),
       ],
     );

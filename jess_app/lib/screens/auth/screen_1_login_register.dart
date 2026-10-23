@@ -4,6 +4,7 @@ import '../../theme/app_typography.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/app_text_field.dart';
+import '../../services/auth_api_service.dart';
 
 class Screen1LoginRegister extends StatefulWidget {
   final VoidCallback? onLoginSuccess;
@@ -27,6 +28,7 @@ class _Screen1LoginRegisterState extends State<Screen1LoginRegister> {
   bool showErrorBanner = false;
   bool rememberSession = true;
   bool agreeTerms = false;
+  String? errorMessage;
 
   final TextEditingController _signInEmailController =
       TextEditingController(text: 'lead.dev@workspace.internal');
@@ -39,15 +41,43 @@ class _Screen1LoginRegisterState extends State<Screen1LoginRegister> {
   final TextEditingController _signUpConfirmPasswordController = TextEditingController();
 
   void _handleSignIn() async {
-    setState(() => isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
+    final email = _signInEmailController.text.trim();
+    final password = _signInPasswordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email and password')),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    final result = await AuthApiService.login(email: email, password: password);
+
     if (mounted) {
       setState(() => isLoading = false);
-      if (widget.onLoginSuccess != null) {
-        widget.onLoginSuccess!();
+      if (result.success) {
+        if (widget.onLoginSuccess != null) {
+          widget.onLoginSuccess!();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Signed in successfully!')),
+          );
+        }
       } else {
+        setState(() {
+          errorMessage = result.message;
+          showErrorBanner = true;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signed in successfully!')),
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: AppColors.statusError,
+          ),
         );
       }
     }
@@ -60,12 +90,54 @@ class _Screen1LoginRegisterState extends State<Screen1LoginRegister> {
       );
       return;
     }
-    setState(() => isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
+
+    final email = _signUpEmailController.text.trim();
+    final password = _signUpPasswordController.text;
+    final confirmPassword = _signUpConfirmPasswordController.text;
+    final fullName = _signUpNameController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter email and password')),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    final result = await AuthApiService.register(
+      email: email,
+      password: password,
+      fullName: fullName.isNotEmpty ? fullName : null,
+    );
+
     if (mounted) {
       setState(() => isLoading = false);
-      if (widget.onNavigateToVerification != null) {
-        widget.onNavigateToVerification!();
+      if (result.success) {
+        if (widget.onNavigateToVerification != null) {
+          widget.onNavigateToVerification!();
+        }
+      } else {
+        setState(() {
+          errorMessage = result.message;
+          showErrorBanner = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: AppColors.statusError,
+          ),
+        );
       }
     }
   }

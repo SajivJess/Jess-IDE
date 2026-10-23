@@ -7,6 +7,8 @@ from app.db.base import Base, TimestampMixin, UUIDMixin
 if TYPE_CHECKING:
     from app.db.models.workspace import Workspace
     from app.db.models.project import Project
+    from app.db.models.refresh_token import RefreshToken
+    from app.db.models.verification_token import EmailVerificationToken
 
 
 class User(Base, UUIDMixin, TimestampMixin):
@@ -33,6 +35,11 @@ class User(Base, UUIDMixin, TimestampMixin):
         default=True,
         nullable=False,
     )
+    is_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
     is_superuser: Mapped[bool] = mapped_column(
         Boolean,
         default=False,
@@ -47,6 +54,16 @@ class User(Base, UUIDMixin, TimestampMixin):
     )
     projects: Mapped[List["Project"]] = relationship(
         "Project",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    refresh_tokens: Mapped[List["RefreshToken"]] = relationship(
+        "RefreshToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    verification_tokens: Mapped[List["EmailVerificationToken"]] = relationship(
+        "EmailVerificationToken",
         back_populates="user",
         cascade="all, delete-orphan",
     )

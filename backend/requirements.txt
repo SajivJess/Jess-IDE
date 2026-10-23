@@ -11,6 +11,11 @@ asyncpg>=0.29.0,<1.0.0
 aiosqlite>=0.20.0,<1.0.0
 greenlet>=3.0.3
 
+# Security & Authentication
+argon2-cffi>=23.1.0,<26.0.0
+pyjwt>=2.8.0,<3.0.0
+email-validator>=2.1.0,<3.0.0
+
 # Testing
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
