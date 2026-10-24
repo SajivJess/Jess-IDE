@@ -14,6 +14,16 @@ from app.schemas.project import (
     ProjectRead,
     ProjectUpdate,
 )
+from app.schemas.task import (
+    TaskApprovalRequest,
+    TaskCancelResponse,
+    TaskCreate,
+    TaskEventListResponse,
+    TaskEventRead,
+    TaskListResponse,
+    TaskRead,
+    TaskStatus,
+)
 
 __all__ = [
     "RegisterResponse",
@@ -28,4 +38,12 @@ __all__ = [
     "ProjectListResponse",
     "ProjectRead",
     "ProjectUpdate",
+    "TaskApprovalRequest",
+    "TaskCancelResponse",
+    "TaskCreate",
+    "TaskEventListResponse",
+    "TaskEventRead",
+    "TaskListResponse",
+    "TaskRead",
+    "TaskStatus",
 ]

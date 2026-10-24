@@ -1,5 +1,5 @@
 import uuid
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
@@ -8,6 +8,7 @@ from app.db.base import Base, TimestampMixin, UUIDMixin
 
 if TYPE_CHECKING:
     from app.db.models.project import Project
+    from app.db.models.task_event import TaskEvent
     from app.db.models.workspace import Workspace
 
 
@@ -28,13 +29,18 @@ class Task(Base, UUIDMixin, TimestampMixin):
         nullable=True,
         index=True,
     )
+    title: Mapped[str] = mapped_column(
+        String(255),
+        default="Untitled Task",
+        nullable=False,
+    )
     prompt: Mapped[str] = mapped_column(
         Text,
         nullable=False,
     )
     status: Mapped[str] = mapped_column(
         String(50),
-        default="pending",
+        default="QUEUED",
         nullable=False,
     )
     active_branch: Mapped[Optional[str]] = mapped_column(
@@ -58,6 +64,12 @@ class Task(Base, UUIDMixin, TimestampMixin):
     workspace: Mapped[Optional["Workspace"]] = relationship(
         "Workspace",
         back_populates="tasks",
+    )
+    events: Mapped[List["TaskEvent"]] = relationship(
+        "TaskEvent",
+        back_populates="task",
+        cascade="all, delete-orphan",
+        order_by="TaskEvent.sequence_num",
     )
 
     def __repr__(self) -> str:

@@ -59,8 +59,13 @@ app.add_api_route(
     summary="Root Readiness Check",
 )
 
+from app.api.v1.endpoints.ws import router as ws_router
+
 # API v1 Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Direct /ws route for convenience
+app.include_router(ws_router, prefix="/ws", tags=["WebSockets"])
 
 
 # Basic Request Error Handling
