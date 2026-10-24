@@ -25,6 +25,20 @@ from app.schemas.task import (
     TaskStatus,
 )
 
+from app.schemas.workspace import (
+    WorkspaceCommandRequest,
+    WorkspaceCommandResponse,
+    WorkspaceCreate,
+    WorkspaceFileListResponse,
+    WorkspaceFileReadResponse,
+    WorkspaceFileWriteRequest,
+    WorkspaceGitDiffResponse,
+    WorkspaceGitStatusResponse,
+    WorkspaceListResponse,
+    WorkspaceRead,
+    WorkspaceStatus,
+)
+
 __all__ = [
     "RegisterResponse",
     "RefreshTokenRequest",
@@ -46,4 +60,15 @@ __all__ = [
     "TaskListResponse",
     "TaskRead",
     "TaskStatus",
+    "WorkspaceCommandRequest",
+    "WorkspaceCommandResponse",
+    "WorkspaceCreate",
+    "WorkspaceFileListResponse",
+    "WorkspaceFileReadResponse",
+    "WorkspaceFileWriteRequest",
+    "WorkspaceGitDiffResponse",
+    "WorkspaceGitStatusResponse",
+    "WorkspaceListResponse",
+    "WorkspaceRead",
+    "WorkspaceStatus",
 ]

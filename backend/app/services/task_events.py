@@ -55,6 +55,17 @@ class TaskEventBroadcaster:
 event_broadcaster = TaskEventBroadcaster()
 
 
+_task_locks: Dict[uuid.UUID, asyncio.Lock] = {}
+_global_lock = asyncio.Lock()
+
+
+async def _get_task_lock(task_id: uuid.UUID) -> asyncio.Lock:
+    async with _global_lock:
+        if task_id not in _task_locks:
+            _task_locks[task_id] = asyncio.Lock()
+        return _task_locks[task_id]
+
+
 async def append_task_event(
     db: AsyncSession,
     task_id: uuid.UUID,
@@ -68,22 +79,33 @@ async def append_task_event(
     if payload is None:
         payload = {}
 
-    # Calculate next sequence number for this task
-    seq_stmt = select(func.coalesce(func.max(TaskEvent.sequence_num), 0) + 1).where(
-        TaskEvent.task_id == task_id
-    )
-    seq_result = await db.execute(seq_stmt)
-    next_seq = seq_result.scalar() or 1
+    task_lock = await _get_task_lock(task_id)
+    async with task_lock:
+        event = None
+        for attempt in range(5):
+            try:
+                # Calculate next sequence number for this task
+                seq_stmt = select(func.coalesce(func.max(TaskEvent.sequence_num), 0) + 1).where(
+                    TaskEvent.task_id == task_id
+                )
+                seq_result = await db.execute(seq_stmt)
+                next_seq = seq_result.scalar() or 1
 
-    event = TaskEvent(
-        task_id=task_id,
-        sequence_num=next_seq,
-        event_type=event_type,
-        payload=payload,
-    )
-    db.add(event)
-    await db.commit()
-    await db.refresh(event)
+                event = TaskEvent(
+                    task_id=task_id,
+                    sequence_num=next_seq,
+                    event_type=event_type,
+                    payload=payload,
+                )
+                db.add(event)
+                await db.commit()
+                await db.refresh(event)
+                break
+            except Exception:
+                await db.rollback()
+                if attempt == 4:
+                    raise
+                await asyncio.sleep(0.05)
 
     event_data = {
         "id": str(event.id),
@@ -96,7 +118,7 @@ async def append_task_event(
 
     # Broadcast to live WebSockets
     await event_broadcaster.broadcast(task_id, event_data)
-    logger.info(f"[TaskEvent #{next_seq}] {event_type} on task {task_id}")
+    logger.info(f"[TaskEvent #{event.sequence_num}] {event_type} on task {task_id}")
     return event
 
 

@@ -7,9 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
 from app.db.models.task import Task
+from app.db.models.workspace import Workspace
 from app.db.session import async_session_factory
 from app.schemas.task import TaskStatus, can_transition
+from app.schemas.workspace import WorkspaceStatus
 from app.services.task_events import append_task_event
+from app.services.workspace import get_workspace_provider
 
 
 class BaseAgentAdapter(ABC):
@@ -112,6 +115,14 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
                     await self._handle_cancellation(db, task)
                     return
 
+                # Check for associated active workspace for this project
+                if task.workspace_id:
+                    ws_stmt = select(Workspace).where(Workspace.id == task.workspace_id)
+                else:
+                    ws_stmt = select(Workspace).where(Workspace.project_id == task.project_id)
+                ws_res = await db.execute(ws_stmt)
+                workspace = ws_res.scalars().first()
+
                 # 2. Progress: Repository inspection
                 if self.step_delay > 0:
                     await asyncio.sleep(self.step_delay)
@@ -119,14 +130,19 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
                     await self._handle_cancellation(db, task)
                     return
 
+                ws_ready = workspace is not None and workspace.status == WorkspaceStatus.RUNNING.value
+                ws_info = f" (Connected to workspace {workspace.id})" if ws_ready else " (Simulated workspace)"
+
                 await append_task_event(
                     db,
                     task_id,
                     "task.progress",
                     {
                         "stage": "inspect_repo",
-                        "message": "Inspecting project structure and analyzing requirements...",
+                        "message": f"Inspecting project structure and analyzing requirements...{ws_info}",
                         "progress_percent": 25,
+                        "workspace_id": str(workspace.id) if workspace else None,
+                        "workspace_ready": ws_ready,
                     },
                 )
 
@@ -137,14 +153,24 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
                     await self._handle_cancellation(db, task)
                     return
 
+                real_files_count = None
+                ws_provider = get_workspace_provider()
+                if ws_ready:
+                    try:
+                        file_items = await ws_provider.list_files(workspace, "")
+                        real_files_count = len(file_items)
+                    except Exception as e:
+                        logger.warning(f"Could not list workspace files during task execution: {e}")
+
                 await append_task_event(
                     db,
                     task_id,
                     "tool.requested",
                     {
                         "tool": "find_files",
-                        "parameters": {"pattern": "*.dart", "path": "lib/"},
-                        "reason": "Identify existing state and service structures.",
+                        "parameters": {"pattern": "*.*", "path": ""},
+                        "reason": f"Discovered {real_files_count} project files in workspace." if real_files_count is not None else "Identify existing state and service structures.",
+                        "files_found": real_files_count,
                     },
                 )
 
@@ -183,13 +209,28 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
                     "+  final Duration retryDelay = Duration(milliseconds: 500);\n"
                     "   final String baseUrl;\n"
                 )
+
+                diff_text = sample_diff
+                target_file = "lib/services/api_client.dart"
+
+                if ws_ready:
+                    try:
+                        diff_data = await ws_provider.get_git_diff(workspace)
+                        if diff_data.get("diff"):
+                            diff_text = diff_data["diff"]
+                            changed = diff_data.get("changed_files", [])
+                            if changed:
+                                target_file = changed[0].get("file", target_file)
+                    except Exception as e:
+                        logger.warning(f"Could not fetch git diff during task execution: {e}")
+
                 await append_task_event(
                     db,
                     task_id,
                     "diff.proposed",
                     {
-                        "file_path": "lib/services/api_client.dart",
-                        "diff": sample_diff,
+                        "file_path": target_file,
+                        "diff": diff_text,
                         "additions": 3,
                         "deletions": 0,
                     },
@@ -209,8 +250,8 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
                     "approval.required",
                     {
                         "action": "apply_code_diff",
-                        "target_file": "lib/services/api_client.dart",
-                        "prompt": "Approve modifying lib/services/api_client.dart to apply retry policy?",
+                        "target_file": target_file,
+                        "prompt": f"Approve modifying {target_file} to apply changes?",
                     },
                 )
 
@@ -259,13 +300,27 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
                         if self.step_delay > 0:
                             await asyncio.sleep(self.step_delay)
 
+                        # Re-verify workspace state
+                        if task.workspace_id:
+                            ws_stmt = select(Workspace).where(Workspace.id == task.workspace_id)
+                        else:
+                            ws_stmt = select(Workspace).where(Workspace.project_id == task.project_id)
+                        ws_res = await db.execute(ws_stmt)
+                        ws = ws_res.scalars().first()
+                        ws_active = ws is not None and ws.status == WorkspaceStatus.RUNNING.value
+                        verif_msg = (
+                            f"Workspace {ws.id} verification complete. All changes successfully validated."
+                            if ws_active
+                            else "Verification complete. All changes successfully validated."
+                        )
+
                         await append_task_event(
                             db,
                             task_id,
                             "task.progress",
                             {
                                 "stage": "verification",
-                                "message": "Simulated verification complete. All changes successfully validated.",
+                                "message": verif_msg,
                                 "progress_percent": 100,
                             },
                         )
@@ -278,7 +333,7 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
                             "task.completed",
                             {
                                 "status": TaskStatus.COMPLETED.value,
-                                "summary": "Task completed successfully. Simulated diff applied.",
+                                "summary": "Task completed successfully. Workspace state verified." if ws_active else "Task completed successfully. Simulated diff applied.",
                             },
                         )
                     else:

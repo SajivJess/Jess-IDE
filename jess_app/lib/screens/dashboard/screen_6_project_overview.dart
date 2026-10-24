@@ -8,6 +8,7 @@ import '../../widgets/status_badge.dart';
 import '../../services/projects_api_service.dart';
 import '../../services/tasks_api_service.dart';
 import '../../services/task_stream_service.dart';
+import '../../services/workspaces_api_service.dart';
 
 class Screen6ProjectOverview extends StatefulWidget {
   final String projectName;
@@ -31,7 +32,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   int _selectedTab = 0;
   final List<String> _tabs = ['Overview', 'Chat', 'Files', 'Changes', 'Activity', 'Artifacts'];
 
-  // Phase 5 Task & Streaming State
+  // Project & Task State
   String? _projectId;
   List<TaskModel> _tasks = [];
   TaskModel? _activeTask;
@@ -42,10 +43,16 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   bool _isLoadingTasks = false;
   bool _isActing = false;
 
+  // Phase 6 Workspace State
+  WorkspaceModel? _workspace;
+  bool _isLoadingWorkspace = false;
+  bool _isActingWorkspace = false;
+  WorkspaceGitStatus? _gitStatus;
+
   @override
   void initState() {
     super.initState();
-    _resolveProjectAndLoadTasks();
+    _resolveProjectAndLoadData();
   }
 
   @override
@@ -55,8 +62,11 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     super.dispose();
   }
 
-  Future<void> _resolveProjectAndLoadTasks() async {
-    setState(() => _isLoadingTasks = true);
+  Future<void> _resolveProjectAndLoadData() async {
+    setState(() {
+      _isLoadingTasks = true;
+      _isLoadingWorkspace = true;
+    });
 
     // Look for matching project in cached projects
     ProjectModel? matchingProject;
@@ -82,17 +92,116 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
 
     if (matchingProject != null) {
       _projectId = matchingProject.id;
-      final taskRes = await TasksApiService.listTasks(projectId: matchingProject.id);
-      if (taskRes.success) {
-        _tasks = taskRes.items;
-        if (_tasks.isNotEmpty) {
-          _selectAndStreamTask(_tasks.first);
-        }
-      }
+      await Future.wait([
+        _loadTasks(matchingProject.id),
+        _loadWorkspace(matchingProject.id),
+      ]);
     }
 
     if (mounted) {
-      setState(() => _isLoadingTasks = false);
+      setState(() {
+        _isLoadingTasks = false;
+        _isLoadingWorkspace = false;
+      });
+    }
+  }
+
+  Future<void> _loadTasks(String projectId) async {
+    final taskRes = await TasksApiService.listTasks(projectId: projectId);
+    if (taskRes.success) {
+      _tasks = taskRes.items;
+      if (_tasks.isNotEmpty) {
+        _selectAndStreamTask(_tasks.first);
+      }
+    }
+  }
+
+  Future<void> _loadWorkspace(String projectId) async {
+    final wsList = await WorkspacesApiService.listWorkspaces(projectId);
+    if (mounted) {
+      setState(() {
+        _workspace = wsList.isNotEmpty ? wsList.first : null;
+      });
+      if (_workspace != null && _workspace!.status == WorkspaceStatusEnum.running) {
+        _loadGitStatus();
+      }
+    }
+  }
+
+  Future<void> _loadGitStatus() async {
+    if (_projectId == null || _workspace == null) return;
+    final status = await WorkspacesApiService.getGitStatus(_projectId!, _workspace!.id);
+    if (mounted) {
+      setState(() => _gitStatus = status);
+    }
+  }
+
+  Future<void> _provisionWorkspace() async {
+    if (_projectId == null) return;
+    setState(() => _isActingWorkspace = true);
+    final ws = await WorkspacesApiService.provisionWorkspace(
+      _projectId!,
+      name: '${widget.projectName} Workspace',
+    );
+    if (mounted) {
+      setState(() {
+        _isActingWorkspace = false;
+        if (ws != null) {
+          _workspace = ws;
+        }
+      });
+      if (ws != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Workspace provisioned successfully')),
+        );
+        _loadGitStatus();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to provision workspace')),
+        );
+      }
+    }
+  }
+
+  Future<void> _startWorkspace() async {
+    if (_projectId == null || _workspace == null) return;
+    setState(() => _isActingWorkspace = true);
+    final ws = await WorkspacesApiService.startWorkspace(_projectId!, _workspace!.id);
+    if (mounted) {
+      setState(() {
+        _isActingWorkspace = false;
+        if (ws != null) _workspace = ws;
+      });
+      if (ws != null) {
+        _loadGitStatus();
+      }
+    }
+  }
+
+  Future<void> _stopWorkspace() async {
+    if (_projectId == null || _workspace == null) return;
+    setState(() => _isActingWorkspace = true);
+    final ws = await WorkspacesApiService.stopWorkspace(_projectId!, _workspace!.id);
+    if (mounted) {
+      setState(() {
+        _isActingWorkspace = false;
+        if (ws != null) _workspace = ws;
+      });
+    }
+  }
+
+  Future<void> _restartWorkspace() async {
+    if (_projectId == null || _workspace == null) return;
+    setState(() => _isActingWorkspace = true);
+    final ws = await WorkspacesApiService.restartWorkspace(_projectId!, _workspace!.id);
+    if (mounted) {
+      setState(() {
+        _isActingWorkspace = false;
+        if (ws != null) _workspace = ws;
+      });
+      if (ws != null) {
+        _loadGitStatus();
+      }
     }
   }
 
@@ -148,30 +257,26 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
             _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.completed);
             break;
           case 'task.cancelled':
-            _streamLogs.add('🛑 [Cancelled] ${payload['reason'] ?? 'Task cancelled.'}');
+            _streamLogs.add('■ [Cancelled] ${payload['reason'] ?? 'Task cancelled.'}');
             _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.cancelled);
             break;
           case 'task.failed':
-            _streamLogs.add('❌ [Failed] ${payload['error'] ?? 'Task encountered an error.'}');
+            _streamLogs.add('✖ [Failed] ${payload['error'] ?? 'Task execution error.'}');
             _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.failed);
             break;
-          default:
-            _streamLogs.add('· [${event.eventType}]');
         }
       });
     });
-
-    _streamService!.connect();
   }
 
-  TaskModel _copyWithStatus(TaskModel task, TaskStatusEnum status) {
+  TaskModel _copyWithStatus(TaskModel task, TaskStatusEnum newStatus) {
     return TaskModel(
       id: task.id,
       projectId: task.projectId,
       workspaceId: task.workspaceId,
       title: task.title,
       prompt: task.prompt,
-      status: status,
+      status: newStatus,
       activeBranch: task.activeBranch,
       commitSha: task.commitSha,
       createdAt: task.createdAt,
@@ -180,25 +285,22 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     );
   }
 
-  Future<void> _handleApproval(bool approve) async {
+  Future<void> _handleApproval(bool approved) async {
     if (_activeTask == null || _projectId == null) return;
     setState(() => _isActing = true);
 
     final success = await TasksApiService.submitApproval(
       projectId: _projectId!,
       taskId: _activeTask!.id,
-      approve: approve,
-      reason: approve ? 'Approved via mobile overview' : 'Rejected via mobile overview',
+      approve: approved,
+      reason: approved ? 'Approved via mobile overview' : 'Rejected via mobile overview',
     );
 
     if (mounted) {
       setState(() => _isActing = false);
-      if (success) {
+      if (!success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(approve ? 'Changes approved! Resuming agent...' : 'Changes rejected.'),
-            backgroundColor: approve ? AppColors.statusSuccess : AppColors.statusWarning,
-          ),
+          const SnackBar(content: Text('Failed to submit approval')),
         );
       }
     }
@@ -219,22 +321,17 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
         setState(() {
           _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.cancelled);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task cancelled successfully.')),
-        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res.errorMessage ?? 'Failed to cancel task.')),
+          SnackBar(content: Text(res.errorMessage ?? 'Failed to cancel task')),
         );
       }
     }
   }
 
   void _showNewTaskDialog() {
-    final titleCtrl = TextEditingController(text: 'Implement Retry Policy');
-    final promptCtrl = TextEditingController(
-      text: 'Add exponential backoff retry logic to API client with 3 max retries.',
-    );
+    final titleCtrl = TextEditingController();
+    final promptCtrl = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -340,6 +437,362 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     );
   }
 
+  void _showRunCommandBottomSheet() {
+    if (_projectId == null || _workspace == null) return;
+    final cmdCtrl = TextEditingController(text: 'git status');
+    WorkspaceCommandResult? lastResult;
+    bool isRunning = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceMain,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.terminal, color: AppColors.lavender, size: 20),
+                          const SizedBox(width: 8),
+                          Text('Workspace Terminal', style: AppTypography.headlineSm),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text('Quick presets:', style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: ['git status', 'ls -la', 'git diff', 'python -V'].map((preset) {
+                      return ActionChip(
+                        label: Text(preset, style: AppTypography.codeSm.copyWith(fontSize: 11)),
+                        backgroundColor: AppColors.surfaceElevated,
+                        onPressed: () {
+                          setModalState(() {
+                            cmdCtrl.text = preset;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: cmdCtrl,
+                          style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: AppColors.background,
+                            hintText: 'e.g. git status',
+                            hintStyle: AppTypography.codeSm.copyWith(color: AppColors.textSecondary),
+                            prefixText: r'$ ',
+                            prefixStyle: AppTypography.codeSm.copyWith(color: AppColors.lavender),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppColors.borderSubtle),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: isRunning
+                              ? null
+                              : () async {
+                                  final raw = cmdCtrl.text.trim();
+                                  if (raw.isEmpty) return;
+                                  final parts = raw.split(RegExp(r'\s+'));
+                                  setModalState(() => isRunning = true);
+                                  final res = await WorkspacesApiService.runCommand(
+                                    _projectId!,
+                                    _workspace!.id,
+                                    parts,
+                                  );
+                                  setModalState(() {
+                                    isRunning = false;
+                                    lastResult = res;
+                                  });
+                                },
+                          child: isRunning
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text('Run', style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  if (lastResult != null) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        StatusBadge(
+                          label: lastResult!.exitCode == 0 ? 'Exit 0' : 'Exit ${lastResult!.exitCode}',
+                          type: lastResult!.exitCode == 0 ? StatusType.success : StatusType.error,
+                        ),
+                        Text(
+                          '${(lastResult!.durationSeconds * 1000).toInt()}ms',
+                          style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      height: 160,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.borderSubtle),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Text(
+                          (lastResult!.stdout.isNotEmpty ? lastResult!.stdout : lastResult!.stderr).isEmpty
+                              ? '(No output returned)'
+                              : (lastResult!.stdout.isNotEmpty ? lastResult!.stdout : lastResult!.stderr),
+                          style: AppTypography.codeSm.copyWith(
+                            color: lastResult!.exitCode == 0 ? AppColors.textPrimary : AppColors.statusError,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showBrowseFilesBottomSheet() {
+    if (_projectId == null || _workspace == null) {
+      if (widget.onBrowseFiles != null) widget.onBrowseFiles!();
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceMain,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return FutureBuilder<List<WorkspaceFileItem>>(
+          future: WorkspacesApiService.listFiles(_projectId!, _workspace!.id),
+          builder: (context, snapshot) {
+            return Container(
+              height: 480,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.folder_open, color: AppColors.primary, size: 20),
+                          const SizedBox(width: 8),
+                          Text('Workspace Files', style: AppTypography.headlineSm),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: snapshot.connectionState == ConnectionState.waiting
+                        ? const Center(child: CircularProgressIndicator())
+                        : snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No files found in workspace.',
+                                  style: AppTypography.bodyMd.copyWith(color: AppColors.textSecondary),
+                                ),
+                              )
+                            : ListView.separated(
+                                itemCount: snapshot.data!.length,
+                                separatorBuilder: (_, __) => const Divider(color: AppColors.borderSubtle),
+                                itemBuilder: (context, idx) {
+                                  final item = snapshot.data![idx];
+                                  return ListTile(
+                                    dense: true,
+                                    leading: Icon(
+                                      item.isDirectory ? Icons.folder : Icons.insert_drive_file,
+                                      color: item.isDirectory ? AppColors.primary : AppColors.lavender,
+                                      size: 18,
+                                    ),
+                                    title: Text(item.name, style: AppTypography.codeSm),
+                                    trailing: Text(
+                                      item.isDirectory ? 'dir' : '${item.sizeBytes} B',
+                                      style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                                    ),
+                                    onTap: item.isDirectory
+                                        ? null
+                                        : () async {
+                                            final content = await WorkspacesApiService.readFile(
+                                              _projectId!,
+                                              _workspace!.id,
+                                              item.path,
+                                            );
+                                            if (context.mounted && content != null) {
+                                              showDialog(
+                                                context: context,
+                                                builder: (dCtx) => AlertDialog(
+                                                  backgroundColor: AppColors.surfaceMain,
+                                                  title: Text(item.name, style: AppTypography.labelMd),
+                                                  content: SizedBox(
+                                                    width: double.maxFinite,
+                                                    child: SingleChildScrollView(
+                                                      child: Text(
+                                                        content,
+                                                        style: AppTypography.codeSm.copyWith(fontSize: 11),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () => Navigator.pop(dCtx),
+                                                      child: const Text('Close'),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }
+                                          },
+                                  );
+                                },
+                              ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showGitDiffBottomSheet() {
+    if (_projectId == null || _workspace == null) {
+      if (widget.onReviewChanges != null) widget.onReviewChanges!();
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceMain,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return FutureBuilder<WorkspaceGitDiff?>(
+          future: WorkspacesApiService.getGitDiff(_projectId!, _workspace!.id),
+          builder: (context, snapshot) {
+            return Container(
+              height: 480,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.difference_outlined, color: AppColors.lavender, size: 20),
+                          const SizedBox(width: 8),
+                          Text('Workspace Git Diff', style: AppTypography.headlineSm),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: snapshot.connectionState == ConnectionState.waiting
+                        ? const Center(child: CircularProgressIndicator())
+                        : snapshot.hasError || !snapshot.hasData || snapshot.data!.diff.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'Working tree clean. No active Git changes.',
+                                  style: AppTypography.bodyMd.copyWith(color: AppColors.statusSuccess),
+                                ),
+                              )
+                            : Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.borderSubtle),
+                                ),
+                                child: SingleChildScrollView(
+                                  child: Text(
+                                    snapshot.data!.diff,
+                                    style: AppTypography.codeSm.copyWith(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   StatusType _statusTypeFromEnum(TaskStatusEnum status) {
     switch (status) {
       case TaskStatusEnum.completed:
@@ -357,6 +810,21 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     }
   }
 
+  StatusType _workspaceStatusType(WorkspaceStatusEnum status) {
+    switch (status) {
+      case WorkspaceStatusEnum.running:
+        return StatusType.success;
+      case WorkspaceStatusEnum.creating:
+      case WorkspaceStatusEnum.pending:
+        return StatusType.primary;
+      case WorkspaceStatusEnum.stopping:
+      case WorkspaceStatusEnum.stopped:
+        return StatusType.neutral;
+      case WorkspaceStatusEnum.failed:
+        return StatusType.error;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -368,7 +836,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.textSecondary, size: 20),
-            onPressed: _resolveProjectAndLoadTasks,
+            onPressed: _resolveProjectAndLoadData,
           ),
         ],
       ),
@@ -394,6 +862,10 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                           setState(() => _selectedTab = index);
                           if (index == 1 && widget.onOpenChat != null) {
                             widget.onOpenChat!();
+                          } else if (index == 2) {
+                            _showBrowseFilesBottomSheet();
+                          } else if (index == 3) {
+                            _showGitDiffBottomSheet();
                           }
                         },
                         child: Container(
@@ -454,8 +926,11 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                         runSpacing: 8,
                         children: [
                           _buildMetaPill(Icons.terminal, widget.projectName),
-                          _buildMetaPill(Icons.fork_right, 'main'),
-                          _buildMetaPill(Icons.laptop_mac, 'Local dev host'),
+                          _buildMetaPill(Icons.fork_right, _gitStatus?.branch ?? 'main'),
+                          _buildMetaPill(
+                            Icons.check_circle_outline,
+                            _gitStatus?.isClean == true ? 'clean' : 'modified',
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -494,16 +969,8 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
 
                       const SizedBox(height: 14),
 
-                      // Assigned Workspace Card (Truthful status)
-                      _buildSectionCard(
-                        title: 'Assigned Workspace',
-                        badge: const StatusBadge(label: 'Phase 6 Pending', type: StatusType.neutral),
-                        children: [
-                          _buildInfoRow('Host Device:', 'Local developer host'),
-                          _buildInfoRow('Workspace Sandbox:', 'Decoupled Docker container (Phase 6)'),
-                          _buildInfoRow('State:', 'Metadata stored; container runner pending Phase 6'),
-                        ],
-                      ),
+                      // Phase 6 Remote Workspace Card
+                      _buildWorkspaceManagementCard(),
                     ],
                   ),
                 ),
@@ -512,6 +979,151 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildWorkspaceManagementCard() {
+    if (_isLoadingWorkspace) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceMain,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.borderSubtle),
+        ),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_workspace == null) {
+      return _buildSectionCard(
+        title: 'Remote Docker Workspace',
+        badge: const StatusBadge(label: 'Unprovisioned', type: StatusType.neutral),
+        children: [
+          Text(
+            'No isolated remote workspace has been provisioned for this project yet. Provisioning will create a dedicated execution sandbox for running commands and inspecting files.',
+            style: AppTypography.bodyMd.copyWith(fontSize: 12),
+          ),
+          const SizedBox(height: 14),
+          AppButton(
+            text: 'Provision Remote Workspace',
+            icon: const Icon(Icons.add_box_outlined, size: 18, color: Colors.white),
+            onPressed: _isActingWorkspace ? null : _provisionWorkspace,
+          ),
+        ],
+      );
+    }
+
+    final ws = _workspace!;
+    final isRunning = ws.status == WorkspaceStatusEnum.running;
+
+    return _buildSectionCard(
+      title: 'Remote Docker Workspace',
+      badge: StatusBadge(
+        label: ws.status.label,
+        type: _workspaceStatusType(ws.status),
+      ),
+      children: [
+        _buildInfoRow('Workspace ID:', ws.id.substring(0, ws.id.length > 8 ? 8 : ws.id.length)),
+        _buildInfoRow('Container:', ws.containerId ?? 'Isolated Sandbox'),
+        _buildInfoRow('Environment:', ws.imageName ?? 'Standard Dev Container'),
+        if (ws.rootPath != null)
+          _buildInfoRow('Root Path:', ws.rootPath!),
+        if (ws.errorMessage != null) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.statusError.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppColors.statusError.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, size: 16, color: AppColors.statusError),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    ws.errorMessage!,
+                    style: AppTypography.codeSm.copyWith(color: AppColors.statusError, fontSize: 11),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+
+        // Workspace Controls
+        Row(
+          children: [
+            if (isRunning) ...[
+              Expanded(
+                child: AppButton(
+                  text: 'Terminal',
+                  variant: AppButtonVariant.primary,
+                  icon: const Icon(Icons.terminal, size: 16, color: Colors.white),
+                  onPressed: _showRunCommandBottomSheet,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: AppButton(
+                  text: 'Stop',
+                  variant: AppButtonVariant.outline,
+                  icon: const Icon(Icons.stop, size: 16),
+                  onPressed: _isActingWorkspace ? null : _stopWorkspace,
+                ),
+              ),
+            ] else ...[
+              Expanded(
+                child: AppButton(
+                  text: 'Start Workspace',
+                  variant: AppButtonVariant.primary,
+                  icon: const Icon(Icons.play_arrow, size: 16, color: Colors.white),
+                  onPressed: _isActingWorkspace ? null : _startWorkspace,
+                ),
+              ),
+            ],
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 18, color: AppColors.textSecondary),
+              tooltip: 'Restart Workspace',
+              onPressed: _isActingWorkspace ? null : _restartWorkspace,
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary,
+                  side: const BorderSide(color: AppColors.borderSubtle),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: const Icon(Icons.folder_open, size: 16, color: AppColors.primary),
+                label: const Text('Browse Files', style: TextStyle(fontSize: 12)),
+                onPressed: _showBrowseFilesBottomSheet,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary,
+                  side: const BorderSide(color: AppColors.borderSubtle),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: const Icon(Icons.difference_outlined, size: 16, color: AppColors.lavender),
+                label: const Text('Review Diff', style: TextStyle(fontSize: 12)),
+                onPressed: _showGitDiffBottomSheet,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -547,7 +1159,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Live WebSocket Event Stream (Phase 5)',
+                      'Live WebSocket Event Stream',
                       style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
                     ),
                   ],
@@ -576,7 +1188,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
             child: _streamLogs.isEmpty
                 ? Center(
                     child: Text(
-                      'No events received yet. Tap "Create Agent Task" to trigger simulation.',
+                      'No events received yet. Tap "Create Agent Task" to trigger task execution.',
                       style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
                       textAlign: TextAlign.center,
                     ),

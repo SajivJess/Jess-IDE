@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
 
+    # Workspace Execution Settings
+    WORKSPACE_DATA_DIR: str = "workspaces_data"
+    DEFAULT_WORKSPACE_IMAGE: str = "python:3.10-slim"
+    WORKSPACE_COMMAND_TIMEOUT_SECONDS: int = 60
+    WORKSPACE_MAX_OUTPUT_BYTES: int = 1048576  # 1 MB
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:

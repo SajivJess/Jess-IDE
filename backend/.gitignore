@@ -38,3 +38,6 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Runtime isolated workspaces storage
+workspaces_data/
