@@ -13,6 +13,8 @@ import 'screens/project_create/screen_8_configure_project.dart';
 import 'screens/project_create/screen_9_ideation.dart';
 import 'screens/project_create/screen_10_idea_analysis.dart';
 import 'screens/project_create/screen_11_technology_stack.dart';
+import 'screens/settings/settings_screen.dart';
+import 'services/auth_api_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,220 +43,223 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _currentScreenIndex = 3; // Default to Screen 4: Home Dashboard
-  ProjectSource _selectedSource = ProjectSource.github;
+  bool _isAuthenticated = false;
+  int _selectedTabIndex = 0;
   String _activeProjectName = 'cloudaiagent';
 
-  final List<String> _screenTitles = [
-    'Screen 1: Login & Register',
-    'Screen 2: Email Verification',
-    'Screen 3: Password Recovery',
-    'Screen 4: Home Dashboard',
-    'Screen 5: Projects List',
-    'Screen 6: Project Overview',
-    'Screen 7: Choose Source',
-    'Screen 8: Configure Project',
-    'Screen 9: Ideation Funnel',
-    'Screen 10: Idea Analysis',
-    'Screen 11: Technology Stack',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialAuth();
+  }
 
-  Widget _buildScreen(int index) {
-    switch (index) {
-      case 0:
-        return Screen1LoginRegister(
-          onLoginSuccess: () => setState(() => _currentScreenIndex = 3),
-          onNavigateToVerification: () => setState(() => _currentScreenIndex = 1),
-          onNavigateToRecovery: () => setState(() => _currentScreenIndex = 2),
-        );
-      case 1:
-        return Screen2EmailVerification(
-          onContinue: () => setState(() => _currentScreenIndex = 3),
-          onChangeEmail: () => setState(() => _currentScreenIndex = 0),
-        );
-      case 2:
-        return Screen3PasswordRecovery(
-          onBackToLogin: () => setState(() => _currentScreenIndex = 0),
-        );
-      case 3:
-        return Screen4HomeDashboard(
-          onNewProject: () => setState(() => _currentScreenIndex = 6),
-          onViewAllProjects: () => setState(() => _currentScreenIndex = 4),
-          onOpenProject: (name) {
-            setState(() {
-              _activeProjectName = name;
-              _currentScreenIndex = 5;
-            });
-          },
-          onOpenDrawer: () => _openScreenSelector(context),
-        );
-      case 4:
-        return Screen5ProjectsList(
-          onNewProject: () => setState(() => _currentScreenIndex = 6),
-          onSelectProject: (name) {
-            setState(() {
-              _activeProjectName = name;
-              _currentScreenIndex = 5;
-            });
-          },
-        );
-      case 5:
-        return Screen6ProjectOverview(
-          projectName: _activeProjectName,
-          onOpenChat: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Opening AI Coding Chat (Screen 17)...')),
-            );
-          },
-          onBrowseFiles: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Opening File Explorer (Screen 19)...')),
-            );
-          },
-          onReviewChanges: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Opening Diff & Change Review (Screen 21)...')),
-            );
-          },
-        );
-      case 6:
-        return Screen7ChooseSource(
-          onContinue: (source) {
-            setState(() {
-              _selectedSource = source;
-              if (source == ProjectSource.ideation) {
-                _currentScreenIndex = 8; // Screen 9: Ideation
-              } else {
-                _currentScreenIndex = 7; // Screen 8: Configure Project
-              }
-            });
-          },
-          onCancel: () => setState(() => _currentScreenIndex = 3),
-        );
-      case 7:
-        return Screen8ConfigureProject(
-          source: _selectedSource,
-          onBack: () => setState(() => _currentScreenIndex = 6),
-          onContinue: () => setState(() => _currentScreenIndex = 10), // Proceed to Screen 11: Tech Stack
-        );
-      case 8:
-        return Screen9Ideation(
-          onBack: () => setState(() => _currentScreenIndex = 6),
-          onAnalyzeIdea: () => setState(() => _currentScreenIndex = 9), // Screen 10
-        );
-      case 9:
-        return Screen10IdeaAnalysis(
-          onBack: () => setState(() => _currentScreenIndex = 8),
-          onConfirmAnalysis: () => setState(() => _currentScreenIndex = 10), // Screen 11
-        );
-      case 10:
-        return Screen11TechnologyStack(
-          onBack: () => setState(() => _currentScreenIndex = 9),
-          onConfirmStack: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Stack Confirmed! Project ready to create.')),
-            );
-            setState(() => _currentScreenIndex = 5); // Return to overview
-          },
-        );
-      default:
-        return const Center(child: Text('Screen not found'));
+  Future<void> _checkInitialAuth() async {
+    if (AuthApiService.currentAccessToken != null) {
+      setState(() => _isAuthenticated = true);
+      return;
+    }
+    final res = await AuthApiService.login(
+      email: 'dev@jess.dev',
+      password: 'DevPass123!',
+    );
+    if (mounted && res.success) {
+      setState(() => _isAuthenticated = true);
     }
   }
 
-  void _openScreenSelector(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceMain,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+  void _openProjectWorkspace(String projectName) {
+    setState(() {
+      _activeProjectName = projectName;
+      _selectedTabIndex = 2; // Switch to Workspace tab
+    });
+  }
+
+  void _openCreateProjectFlow(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => Screen7ChooseSource(
+          onCancel: () => Navigator.of(ctx).pop(),
+          onContinue: (source) {
+            Navigator.of(ctx).pop();
+            _navigateCreateDetails(context, source);
+          },
+        ),
       ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Jump to Screen (1–11)', style: AppTypography.headlineSm),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(color: AppColors.borderSubtle),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _screenTitles.length,
-                  itemBuilder: (ctx, i) {
-                    final isSelected = _currentScreenIndex == i;
-                    return ListTile(
-                      dense: true,
-                      leading: Container(
-                        width: 24,
-                        height: 24,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary : AppColors.surfaceElevated,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          '${i + 1}',
-                          style: AppTypography.codeSm.copyWith(
-                            color: isSelected ? Colors.white : AppColors.textSecondary,
-                            fontSize: 11,
+    );
+  }
+
+  void _navigateCreateDetails(BuildContext context, ProjectSource source) {
+    if (source == ProjectSource.ideation) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (ctx) => Screen9Ideation(
+            onBack: () => Navigator.of(ctx).pop(),
+            onAnalyzeIdea: () {
+              Navigator.of(ctx).push(
+                MaterialPageRoute(
+                  builder: (aCtx) => Screen10IdeaAnalysis(
+                    onBack: () => Navigator.of(aCtx).pop(),
+                    onConfirmAnalysis: () {
+                      Navigator.of(aCtx).push(
+                        MaterialPageRoute(
+                          builder: (sCtx) => Screen11TechnologyStack(
+                            onBack: () => Navigator.of(sCtx).pop(),
+                            onConfirmStack: () {
+                              Navigator.of(context).popUntil((route) => route.isFirst);
+                              _openProjectWorkspace('autonomous-code-editor');
+                            },
                           ),
                         ),
-                      ),
-                      title: Text(
-                        _screenTitles[i],
-                        style: AppTypography.bodyMd.copyWith(
-                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        ),
-                      ),
-                      trailing: isSelected
-                          ? const Icon(Icons.check, size: 16, color: AppColors.primary)
-                          : null,
-                      onTap: () {
-                        setState(() => _currentScreenIndex = i);
-                        Navigator.pop(ctx);
-                      },
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              );
+            },
           ),
+        ),
+      );
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (ctx) => Screen8ConfigureProject(
+            source: source,
+            onBack: () => Navigator.of(ctx).pop(),
+            onContinue: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              setState(() {
+                _selectedTabIndex = 1; // Show projects list with newly created project
+              });
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildBody() {
+    switch (_selectedTabIndex) {
+      case 0:
+        return Screen4HomeDashboard(
+          onNewProject: () => _openCreateProjectFlow(context),
+          onViewAllProjects: () => setState(() => _selectedTabIndex = 1),
+          onOpenProject: (name) => _openProjectWorkspace(name),
         );
-      },
-    );
+      case 1:
+        return Screen5ProjectsList(
+          onNewProject: () => _openCreateProjectFlow(context),
+          onSelectProject: (name) => _openProjectWorkspace(name),
+        );
+      case 2:
+        return Screen6ProjectOverview(
+          key: ValueKey(_activeProjectName),
+          projectName: _activeProjectName,
+          onOpenChat: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('AI Coding Chat ready.')),
+            );
+          },
+          onBrowseFiles: () {},
+          onReviewChanges: () {},
+        );
+      case 3:
+        return SettingsScreen(
+          onSignOut: () => setState(() => _isAuthenticated = false),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_isAuthenticated) {
+      return Screen1LoginRegister(
+        onLoginSuccess: () => setState(() => _isAuthenticated = true),
+        onNavigateToVerification: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (ctx) => Screen2EmailVerification(
+                onContinue: () {
+                  Navigator.of(ctx).pop();
+                  setState(() => _isAuthenticated = true);
+                },
+                onChangeEmail: () => Navigator.of(ctx).pop(),
+              ),
+            ),
+          );
+        },
+        onNavigateToRecovery: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (ctx) => Screen3PasswordRecovery(
+                onBackToLogin: () => Navigator.of(ctx).pop(),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: _buildScreen(_currentScreenIndex),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.surfaceElevated,
-        foregroundColor: AppColors.lavender,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: AppColors.primary, width: 1.2),
+      body: SafeArea(
+        top: false,
+        child: _buildBody(),
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceMain,
+          border: Border(top: BorderSide(color: AppColors.borderSubtle)),
         ),
-        elevation: 4,
-        icon: const Icon(Icons.layers_outlined, size: 18),
-        label: Text(
-          'Screen ${_currentScreenIndex + 1}/11',
-          style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            backgroundColor: AppColors.surfaceMain,
+            indicatorColor: AppColors.surfaceElevated,
+            labelTextStyle: MaterialStateProperty.resolveWith((states) {
+              final isSelected = states.contains(MaterialState.selected);
+              return AppTypography.codeSm.copyWith(
+                color: isSelected ? AppColors.lavender : AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              );
+            }),
+            iconTheme: MaterialStateProperty.resolveWith((states) {
+              final isSelected = states.contains(MaterialState.selected);
+              return IconThemeData(
+                color: isSelected ? AppColors.lavender : AppColors.textSecondary,
+                size: 20,
+              );
+            }),
+          ),
+          child: NavigationBar(
+            height: 60,
+            selectedIndex: _selectedTabIndex,
+            onDestinationSelected: (index) => setState(() => _selectedTabIndex = index),
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.space_dashboard_outlined),
+                selectedIcon: Icon(Icons.space_dashboard),
+                label: 'Dashboard',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.folder_outlined),
+                selectedIcon: Icon(Icons.folder),
+                label: 'Projects',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.terminal_outlined),
+                selectedIcon: Icon(Icons.terminal),
+                label: 'Workspace',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.tune_outlined),
+                selectedIcon: Icon(Icons.tune),
+                label: 'Settings',
+              ),
+            ],
+          ),
         ),
-        onPressed: () => _openScreenSelector(context),
       ),
     );
   }

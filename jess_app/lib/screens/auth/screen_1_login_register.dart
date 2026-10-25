@@ -31,9 +31,9 @@ class _Screen1LoginRegisterState extends State<Screen1LoginRegister> {
   String? errorMessage;
 
   final TextEditingController _signInEmailController =
-      TextEditingController(text: 'lead.dev@workspace.internal');
+      TextEditingController(text: 'dev@jess.dev');
   final TextEditingController _signInPasswordController =
-      TextEditingController(text: 'supersecretdevkey');
+      TextEditingController(text: 'DevPass123!');
 
   final TextEditingController _signUpNameController = TextEditingController();
   final TextEditingController _signUpEmailController = TextEditingController();
@@ -153,71 +153,14 @@ class _Screen1LoginRegisterState extends State<Screen1LoginRegister> {
           );
         },
       ),
-      body: Column(
-        children: [
-          // Interactive Demo Bar (matches Stitch preview rail)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceMain,
-              border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
-            ),
-            child: Row(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.statusSuccess,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Demo Controls:',
-                  style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary),
-                ),
-                const Spacer(),
-                InkWell(
-                  onTap: () => setState(() => showErrorBanner = !showErrorBanner),
-                  borderRadius: BorderRadius.circular(4),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceElevated,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: AppColors.borderSubtle),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 13,
-                          color: showErrorBanner ? AppColors.statusError : AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          showErrorBanner ? 'Hide Error' : 'Sim Error',
-                          style: AppTypography.labelSm,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Main Scrollable Content
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
                       // Kicker Badge
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -547,9 +490,6 @@ class _Screen1LoginRegisterState extends State<Screen1LoginRegister> {
                 ),
               ),
             ),
-          ),
-        ],
-      ),
     );
   }
 }

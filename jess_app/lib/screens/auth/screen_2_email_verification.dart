@@ -85,77 +85,22 @@ class _Screen2EmailVerificationState extends State<Screen2EmailVerification> {
         showBack: true,
         onBackPressed: () => Navigator.of(context).maybePop(),
       ),
-      body: Column(
-        children: [
-          // State Switcher Rail (Demo Helper)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceMain,
-              border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
-            ),
-            child: Row(
-              children: [
-                Text('State:', style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: VerificationState.values.map((state) {
-                        final isSelected = _currentState == state;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: InkWell(
-                            onTap: () => setState(() => _currentState = state),
-                            borderRadius: BorderRadius.circular(4),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppColors.surfaceElevated : Colors.transparent,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: isSelected ? AppColors.primary : AppColors.borderSubtle,
-                                ),
-                              ),
-                              child: Text(
-                                state.name.toUpperCase(),
-                                style: AppTypography.labelSm.copyWith(
-                                  color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Main Body
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceMain,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.borderSubtle),
-                    ),
-                    child: _buildStateContent(),
-                  ),
-                ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMain,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.borderSubtle),
               ),
+              child: _buildStateContent(),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

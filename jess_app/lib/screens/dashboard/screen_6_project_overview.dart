@@ -913,13 +913,6 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                           const StatusBadge(label: 'Registered', type: StatusType.success),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Project registered and stored in Jess Ide Dev database.',
-                        style: AppTypography.bodyMd,
-                      ),
-                      const SizedBox(height: 12),
-
                       // Metadata Pills
                       Wrap(
                         spacing: 8,
@@ -1001,7 +994,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
         badge: const StatusBadge(label: 'Unprovisioned', type: StatusType.neutral),
         children: [
           Text(
-            'No isolated remote workspace has been provisioned for this project yet. Provisioning will create a dedicated execution sandbox for running commands and inspecting files.',
+            'No isolated sandbox environment provisioned for this project.',
             style: AppTypography.bodyMd.copyWith(fontSize: 12),
           ),
           const SizedBox(height: 14),
@@ -1188,7 +1181,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
             child: _streamLogs.isEmpty
                 ? Center(
                     child: Text(
-                      'No events received yet. Tap "Create Agent Task" to trigger task execution.',
+                      'Terminal idle · Ready for task execution',
                       style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
                       textAlign: TextAlign.center,
                     ),
@@ -1230,7 +1223,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                 )
               else
                 Text(
-                  '${_tasks.length} tasks registered in database',
+                  '${_tasks.length} tasks',
                   style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
                 ),
               TextButton.icon(
@@ -1259,13 +1252,13 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Approval Gate Required', style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600, color: AppColors.statusWarning)),
-              const StatusBadge(label: 'Pending Approval', type: StatusType.warning),
+              Text('Approval Required', style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600, color: AppColors.statusWarning)),
+              const StatusBadge(label: 'Pending', type: StatusType.warning),
             ],
           ),
           const SizedBox(height: 6),
           Text(
-            'The agent has prepared modifications to lib/services/api_client.dart. Review proposed changes below and decide whether to approve.',
+            'Review proposed modifications and decide whether to apply changes.',
             style: AppTypography.bodyMd.copyWith(fontSize: 12),
           ),
           const SizedBox(height: 10),
