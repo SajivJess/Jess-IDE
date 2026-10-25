@@ -11,14 +11,18 @@ import '../../services/task_stream_service.dart';
 import '../../services/workspaces_api_service.dart';
 
 class Screen6ProjectOverview extends StatefulWidget {
+  final String? projectId;
   final String projectName;
+  final int initialTab;
   final VoidCallback? onOpenChat;
   final VoidCallback? onBrowseFiles;
   final VoidCallback? onReviewChanges;
 
   const Screen6ProjectOverview({
     super.key,
+    this.projectId,
     this.projectName = 'cloudaiagent',
+    this.initialTab = 0,
     this.onOpenChat,
     this.onBrowseFiles,
     this.onReviewChanges,
@@ -30,10 +34,11 @@ class Screen6ProjectOverview extends StatefulWidget {
 
 class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   int _selectedTab = 0;
-  final List<String> _tabs = ['Overview', 'Chat', 'Files', 'Changes', 'Activity', 'Artifacts'];
+  final List<String> _tabs = ['Overview', 'Chat', 'Workspace', 'Changes'];
 
   // Project & Task State
   String? _projectId;
+  ProjectModel? _project;
   List<TaskModel> _tasks = [];
   TaskModel? _activeTask;
   TaskStreamService? _streamService;
@@ -48,10 +53,19 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   bool _isLoadingWorkspace = false;
   bool _isActingWorkspace = false;
   WorkspaceGitStatus? _gitStatus;
+  WorkspaceGitDiff? _gitDiff;
+  List<WorkspaceFileItem> _workspaceFiles = [];
+  bool _isLoadingFiles = false;
+
+  // Terminal Runner State
+  final TextEditingController _cmdController = TextEditingController(text: 'git status');
+  bool _isRunningCommand = false;
+  WorkspaceCommandResult? _lastCommandResult;
 
   @override
   void initState() {
     super.initState();
+    _selectedTab = widget.initialTab;
     _resolveProjectAndLoadData();
   }
 
@@ -59,6 +73,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   void dispose() {
     _streamSub?.cancel();
     _streamService?.dispose();
+    _cmdController.dispose();
     super.dispose();
   }
 
@@ -68,33 +83,38 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       _isLoadingWorkspace = true;
     });
 
-    // Look for matching project in cached projects
-    ProjectModel? matchingProject;
-    for (final p in ProjectsApiService.cachedProjects) {
-      if (p.name.toLowerCase() == widget.projectName.toLowerCase()) {
-        matchingProject = p;
-        break;
+    if (widget.projectId != null) {
+      _projectId = widget.projectId;
+      for (final p in ProjectsApiService.cachedProjects) {
+        if (p.id == widget.projectId) {
+          _project = p;
+          break;
+        }
       }
     }
 
-    if (matchingProject == null) {
+    if (_projectId == null || _project == null) {
       final listRes = await ProjectsApiService.listProjects();
       if (listRes.success && listRes.items.isNotEmpty) {
         for (final p in listRes.items) {
-          if (p.name.toLowerCase() == widget.projectName.toLowerCase()) {
-            matchingProject = p;
+          if ((widget.projectId != null && p.id == widget.projectId) ||
+              p.name.toLowerCase() == widget.projectName.toLowerCase()) {
+            _project = p;
+            _projectId = p.id;
             break;
           }
         }
-        matchingProject ??= listRes.items.first;
+        if (_project == null && listRes.items.isNotEmpty) {
+          _project = listRes.items.first;
+          _projectId = _project!.id;
+        }
       }
     }
 
-    if (matchingProject != null) {
-      _projectId = matchingProject.id;
+    if (_projectId != null) {
       await Future.wait([
-        _loadTasks(matchingProject.id),
-        _loadWorkspace(matchingProject.id),
+        _loadTasks(_projectId!),
+        _loadWorkspace(_projectId!),
       ]);
     }
 
@@ -110,7 +130,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     final taskRes = await TasksApiService.listTasks(projectId: projectId);
     if (taskRes.success) {
       _tasks = taskRes.items;
-      if (_tasks.isNotEmpty) {
+      if (_tasks.isNotEmpty && _activeTask == null) {
         _selectAndStreamTask(_tasks.first);
       }
     }
@@ -124,6 +144,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       });
       if (_workspace != null && _workspace!.status == WorkspaceStatusEnum.running) {
         _loadGitStatus();
+        _loadWorkspaceFiles();
       }
     }
   }
@@ -131,8 +152,24 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   Future<void> _loadGitStatus() async {
     if (_projectId == null || _workspace == null) return;
     final status = await WorkspacesApiService.getGitStatus(_projectId!, _workspace!.id);
+    final diff = await WorkspacesApiService.getGitDiff(_projectId!, _workspace!.id);
     if (mounted) {
-      setState(() => _gitStatus = status);
+      setState(() {
+        _gitStatus = status;
+        _gitDiff = diff;
+      });
+    }
+  }
+
+  Future<void> _loadWorkspaceFiles() async {
+    if (_projectId == null || _workspace == null) return;
+    setState(() => _isLoadingFiles = true);
+    final files = await WorkspacesApiService.listFiles(_projectId!, _workspace!.id);
+    if (mounted) {
+      setState(() {
+        _workspaceFiles = files;
+        _isLoadingFiles = false;
+      });
     }
   }
 
@@ -152,28 +189,14 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       });
       if (ws != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Workspace provisioned successfully')),
+          const SnackBar(content: Text('Workspace provisioned successfully.')),
         );
         _loadGitStatus();
+        _loadWorkspaceFiles();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to provision workspace')),
+          const SnackBar(content: Text('Failed to provision workspace.')),
         );
-      }
-    }
-  }
-
-  Future<void> _startWorkspace() async {
-    if (_projectId == null || _workspace == null) return;
-    setState(() => _isActingWorkspace = true);
-    final ws = await WorkspacesApiService.startWorkspace(_projectId!, _workspace!.id);
-    if (mounted) {
-      setState(() {
-        _isActingWorkspace = false;
-        if (ws != null) _workspace = ws;
-      });
-      if (ws != null) {
-        _loadGitStatus();
       }
     }
   }
@@ -201,6 +224,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       });
       if (ws != null) {
         _loadGitStatus();
+        _loadWorkspaceFiles();
       }
     }
   }
@@ -238,15 +262,12 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
           case 'diff.proposed':
             _proposedDiff = payload['diff'] as String?;
             final file = payload['file_path'] ?? 'file';
-            _streamLogs.add('📄 [Diff Proposed] Patch prepared for $file');
-            break;
-          case 'approval.required':
-            _streamLogs.add('⚠️ [Approval Gate] User confirmation required.');
+            _streamLogs.add('📝 [Diff Proposed] $file');
             _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.approvalRequired);
             break;
-          case 'approval.granted':
-            _streamLogs.add('✔ [Approval Granted] Resuming execution...');
-            _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.running);
+          case 'approval.submitted':
+            final approved = payload['approved'] == true;
+            _streamLogs.add(approved ? '✔ [Approved] Changes accepted.' : '✖ [Rejected] Changes declined.');
             break;
           case 'approval.rejected':
             _streamLogs.add('✖ [Approval Rejected] Task aborted.');
@@ -306,26 +327,24 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     }
   }
 
-  Future<void> _handleCancelTask() async {
-    if (_activeTask == null || _projectId == null) return;
-    setState(() => _isActing = true);
+  Future<void> _runTerminalCommand() async {
+    final raw = _cmdController.text.trim();
+    if (raw.isEmpty || _projectId == null || _workspace == null) return;
+    final parts = raw.split(RegExp(r'\s+'));
+    setState(() => _isRunningCommand = true);
 
-    final res = await TasksApiService.cancelTask(
-      projectId: _projectId!,
-      taskId: _activeTask!.id,
+    final res = await WorkspacesApiService.runCommand(
+      _projectId!,
+      _workspace!.id,
+      parts,
     );
 
     if (mounted) {
-      setState(() => _isActing = false);
-      if (res.success) {
-        setState(() {
-          _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.cancelled);
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res.errorMessage ?? 'Failed to cancel task')),
-        );
-      }
+      setState(() {
+        _isRunningCommand = false;
+        _lastCommandResult = res;
+      });
+      _loadGitStatus();
     }
   }
 
@@ -355,7 +374,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Create Agent Coding Task', style: AppTypography.headlineSm),
+                  Text('New Agent Task', style: AppTypography.headlineSm),
                   IconButton(
                     icon: const Icon(Icons.close, color: AppColors.textSecondary),
                     onPressed: () => Navigator.pop(ctx),
@@ -375,7 +394,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.borderSubtle),
                   ),
-                  hintText: 'e.g. Implement Retry Policy',
+                  hintText: 'e.g. Implement retry policy',
                 ),
               ),
               const SizedBox(height: 14),
@@ -398,31 +417,27 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
               const SizedBox(height: 18),
               AppButton(
                 text: 'Launch Agent Task',
-                icon: const Icon(Icons.play_arrow, size: 18, color: Colors.white),
+                icon: const Icon(Icons.play_circle_fill, size: 18, color: Colors.white),
                 onPressed: () async {
-                  if (_projectId == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Cannot create task: Project not loaded.')),
-                    );
-                    return;
-                  }
+                  final title = titleCtrl.text.trim();
+                  final prompt = promptCtrl.text.trim();
+                  if (title.isEmpty || prompt.isEmpty || _projectId == null) return;
                   Navigator.pop(ctx);
-                  setState(() => _isLoadingTasks = true);
 
                   final res = await TasksApiService.createTask(
                     projectId: _projectId!,
-                    title: titleCtrl.text,
-                    prompt: promptCtrl.text,
+                    title: title,
+                    prompt: prompt,
                   );
 
-                  if (mounted) {
-                    setState(() => _isLoadingTasks = false);
-                    if (res.success && res.task != null) {
-                      setState(() {
-                        _tasks.insert(0, res.task!);
-                      });
+                  if (res.success && res.task != null) {
+                    setState(() {
+                      _tasks.insert(0, res.task!);
                       _selectAndStreamTask(res.task!);
-                    } else {
+                      _selectedTab = 1; // Switch to Chat/Coding Session
+                    });
+                  } else {
+                    if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(res.errorMessage ?? 'Failed to create task')),
                       );
@@ -437,363 +452,42 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     );
   }
 
-  void _showRunCommandBottomSheet() {
+  void _showFileContentDialog(String filePath, String fileName) async {
     if (_projectId == null || _workspace == null) return;
-    final cmdCtrl = TextEditingController(text: 'git status');
-    WorkspaceCommandResult? lastResult;
-    bool isRunning = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surfaceMain,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.terminal, color: AppColors.lavender, size: 20),
-                          const SizedBox(width: 8),
-                          Text('Workspace Terminal', style: AppTypography.headlineSm),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text('Quick presets:', style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary)),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: ['git status', 'ls -la', 'git diff', 'python -V'].map((preset) {
-                      return ActionChip(
-                        label: Text(preset, style: AppTypography.codeSm.copyWith(fontSize: 11)),
-                        backgroundColor: AppColors.surfaceElevated,
-                        onPressed: () {
-                          setModalState(() {
-                            cmdCtrl.text = preset;
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: cmdCtrl,
-                          style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: AppColors.background,
-                            hintText: 'e.g. git status',
-                            hintStyle: AppTypography.codeSm.copyWith(color: AppColors.textSecondary),
-                            prefixText: r'$ ',
-                            prefixStyle: AppTypography.codeSm.copyWith(color: AppColors.lavender),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: AppColors.borderSubtle),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          onPressed: isRunning
-                              ? null
-                              : () async {
-                                  final raw = cmdCtrl.text.trim();
-                                  if (raw.isEmpty) return;
-                                  final parts = raw.split(RegExp(r'\s+'));
-                                  setModalState(() => isRunning = true);
-                                  final res = await WorkspacesApiService.runCommand(
-                                    _projectId!,
-                                    _workspace!.id,
-                                    parts,
-                                  );
-                                  setModalState(() {
-                                    isRunning = false;
-                                    lastResult = res;
-                                  });
-                                },
-                          child: isRunning
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : const Text('Run', style: TextStyle(color: Colors.white)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  if (lastResult != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        StatusBadge(
-                          label: lastResult!.exitCode == 0 ? 'Exit 0' : 'Exit ${lastResult!.exitCode}',
-                          type: lastResult!.exitCode == 0 ? StatusType.success : StatusType.error,
-                        ),
-                        Text(
-                          '${(lastResult!.durationSeconds * 1000).toInt()}ms',
-                          style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      height: 160,
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.borderSubtle),
-                      ),
-                      child: SingleChildScrollView(
-                        child: Text(
-                          (lastResult!.stdout.isNotEmpty ? lastResult!.stdout : lastResult!.stderr).isEmpty
-                              ? '(No output returned)'
-                              : (lastResult!.stdout.isNotEmpty ? lastResult!.stdout : lastResult!.stderr),
-                          style: AppTypography.codeSm.copyWith(
-                            color: lastResult!.exitCode == 0 ? AppColors.textPrimary : AppColors.statusError,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          },
-        );
-      },
+    final content = await WorkspacesApiService.readFile(
+      _projectId!,
+      _workspace!.id,
+      filePath,
     );
-  }
 
-  void _showBrowseFilesBottomSheet() {
-    if (_projectId == null || _workspace == null) {
-      if (widget.onBrowseFiles != null) widget.onBrowseFiles!();
-      return;
+    if (mounted && content != null) {
+      showDialog(
+        context: context,
+        builder: (dCtx) => AlertDialog(
+          backgroundColor: AppColors.surfaceMain,
+          title: Text(fileName, style: AppTypography.labelMd),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 380,
+            child: SingleChildScrollView(
+              child: Text(
+                content,
+                style: AppTypography.codeSm.copyWith(fontSize: 11),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dCtx),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
     }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surfaceMain,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return FutureBuilder<List<WorkspaceFileItem>>(
-          future: WorkspacesApiService.listFiles(_projectId!, _workspace!.id),
-          builder: (context, snapshot) {
-            return Container(
-              height: 480,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.folder_open, color: AppColors.primary, size: 20),
-                          const SizedBox(width: 8),
-                          Text('Workspace Files', style: AppTypography.headlineSm),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: snapshot.connectionState == ConnectionState.waiting
-                        ? const Center(child: CircularProgressIndicator())
-                        : snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'No files found in workspace.',
-                                  style: AppTypography.bodyMd.copyWith(color: AppColors.textSecondary),
-                                ),
-                              )
-                            : ListView.separated(
-                                itemCount: snapshot.data!.length,
-                                separatorBuilder: (_, __) => const Divider(color: AppColors.borderSubtle),
-                                itemBuilder: (context, idx) {
-                                  final item = snapshot.data![idx];
-                                  return ListTile(
-                                    dense: true,
-                                    leading: Icon(
-                                      item.isDirectory ? Icons.folder : Icons.insert_drive_file,
-                                      color: item.isDirectory ? AppColors.primary : AppColors.lavender,
-                                      size: 18,
-                                    ),
-                                    title: Text(item.name, style: AppTypography.codeSm),
-                                    trailing: Text(
-                                      item.isDirectory ? 'dir' : '${item.sizeBytes} B',
-                                      style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
-                                    ),
-                                    onTap: item.isDirectory
-                                        ? null
-                                        : () async {
-                                            final content = await WorkspacesApiService.readFile(
-                                              _projectId!,
-                                              _workspace!.id,
-                                              item.path,
-                                            );
-                                            if (context.mounted && content != null) {
-                                              showDialog(
-                                                context: context,
-                                                builder: (dCtx) => AlertDialog(
-                                                  backgroundColor: AppColors.surfaceMain,
-                                                  title: Text(item.name, style: AppTypography.labelMd),
-                                                  content: SizedBox(
-                                                    width: double.maxFinite,
-                                                    child: SingleChildScrollView(
-                                                      child: Text(
-                                                        content,
-                                                        style: AppTypography.codeSm.copyWith(fontSize: 11),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () => Navigator.pop(dCtx),
-                                                      child: const Text('Close'),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                            }
-                                          },
-                                  );
-                                },
-                              ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 
-  void _showGitDiffBottomSheet() {
-    if (_projectId == null || _workspace == null) {
-      if (widget.onReviewChanges != null) widget.onReviewChanges!();
-      return;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surfaceMain,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return FutureBuilder<WorkspaceGitDiff?>(
-          future: WorkspacesApiService.getGitDiff(_projectId!, _workspace!.id),
-          builder: (context, snapshot) {
-            return Container(
-              height: 480,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.difference_outlined, color: AppColors.lavender, size: 20),
-                          const SizedBox(width: 8),
-                          Text('Workspace Git Diff', style: AppTypography.headlineSm),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: snapshot.connectionState == ConnectionState.waiting
-                        ? const Center(child: CircularProgressIndicator())
-                        : snapshot.hasError || !snapshot.hasData || snapshot.data!.diff.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'Working tree clean. No active Git changes.',
-                                  style: AppTypography.bodyMd.copyWith(color: AppColors.statusSuccess),
-                                ),
-                              )
-                            : Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: AppColors.background,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: AppColors.borderSubtle),
-                                ),
-                                child: SingleChildScrollView(
-                                  child: Text(
-                                    snapshot.data!.diff,
-                                    style: AppTypography.codeSm.copyWith(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  StatusType _statusTypeFromEnum(TaskStatusEnum status) {
+  StatusType _statusType(TaskStatusEnum status) {
     switch (status) {
       case TaskStatusEnum.completed:
         return StatusType.success;
@@ -803,7 +497,6 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
         return StatusType.warning;
       case TaskStatusEnum.failed:
       case TaskStatusEnum.cancelled:
-        return StatusType.neutral;
       case TaskStatusEnum.queued:
       default:
         return StatusType.neutral;
@@ -832,7 +525,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       appBar: AppHeader(
         showBack: true,
         onBackPressed: () => Navigator.of(context).maybePop(),
-        title: 'Projects / ${widget.projectName}',
+        title: widget.projectName,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.textSecondary, size: 20),
@@ -842,10 +535,10 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
+          constraints: const BoxConstraints(maxWidth: 620),
           child: Column(
             children: [
-              // Horizontal Project Tabs
+              // Contextual Project Navigation Tabs (Overview, Chat, Workspace, Changes)
               Container(
                 decoration: const BoxDecoration(
                   color: AppColors.surfaceMain,
@@ -857,15 +550,31 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                   child: Row(
                     children: List.generate(_tabs.length, (index) {
                       final isSelected = _selectedTab == index;
+                      IconData tabIcon;
+                      switch (index) {
+                        case 0:
+                          tabIcon = Icons.info_outline;
+                          break;
+                        case 1:
+                          tabIcon = Icons.chat_bubble_outline;
+                          break;
+                        case 2:
+                          tabIcon = Icons.terminal;
+                          break;
+                        case 3:
+                          tabIcon = Icons.difference_outlined;
+                          break;
+                        default:
+                          tabIcon = Icons.circle;
+                      }
+
                       return InkWell(
                         onTap: () {
                           setState(() => _selectedTab = index);
-                          if (index == 1 && widget.onOpenChat != null) {
-                            widget.onOpenChat!();
-                          } else if (index == 2) {
-                            _showBrowseFilesBottomSheet();
+                          if (index == 2 && _workspaceFiles.isEmpty && _workspace != null) {
+                            _loadWorkspaceFiles();
                           } else if (index == 3) {
-                            _showGitDiffBottomSheet();
+                            _loadGitStatus();
                           }
                         },
                         child: Container(
@@ -878,12 +587,23 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                               ),
                             ),
                           ),
-                          child: Text(
-                            _tabs[index],
-                            style: AppTypography.labelMd.copyWith(
-                              color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                tabIcon,
+                                size: 14,
+                                color: isSelected ? AppColors.lavender : AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _tabs[index],
+                                style: AppTypography.labelMd.copyWith(
+                                  color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -892,81 +612,9 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                 ),
               ),
 
-              // Overview Content
+              // Tab Body
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Project Header Block
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              widget.projectName,
-                              style: AppTypography.headlineLg,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const StatusBadge(label: 'Registered', type: StatusType.success),
-                        ],
-                      ),
-                      // Metadata Pills
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildMetaPill(Icons.terminal, widget.projectName),
-                          _buildMetaPill(Icons.fork_right, _gitStatus?.branch ?? 'main'),
-                          _buildMetaPill(
-                            Icons.check_circle_outline,
-                            _gitStatus?.isClean == true ? 'clean' : 'modified',
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Phase 5 Action: Launch or View Tasks
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppButton(
-                              text: 'Create Agent Task',
-                              icon: const Icon(Icons.play_circle_outline, size: 18, color: Colors.white),
-                              onPressed: _showNewTaskDialog,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          AppButton(
-                            text: 'Chat',
-                            width: 90,
-                            variant: AppButtonVariant.outline,
-                            icon: const Icon(Icons.chat_bubble_outline, size: 16),
-                            onPressed: widget.onOpenChat,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Real-time Agent Streaming & Task Engine Section
-                      _buildLiveAgentStreamCard(),
-                      const SizedBox(height: 14),
-
-                      // Proposed Changes / Approval Card
-                      if (_activeTask != null && _activeTask!.status == TaskStatusEnum.approvalRequired)
-                        _buildApprovalGateCard()
-                      else if (_proposedDiff != null)
-                        _buildDiffPreviewCard(),
-
-                      const SizedBox(height: 14),
-
-                      // Phase 6 Remote Workspace Card
-                      _buildWorkspaceManagementCard(),
-                    ],
-                  ),
-                ),
+                child: _buildSelectedTabContent(),
               ),
             ],
           ),
@@ -975,165 +623,603 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     );
   }
 
-  Widget _buildWorkspaceManagementCard() {
+  Widget _buildSelectedTabContent() {
+    switch (_selectedTab) {
+      case 0:
+        return _buildOverviewTab();
+      case 1:
+        return _buildChatSessionTab();
+      case 2:
+        return _buildWorkspaceTab();
+      case 3:
+        return _buildChangesTab();
+      default:
+        return _buildOverviewTab();
+    }
+  }
+
+  // TAB 0: Project Overview (Metadata, Primary Session CTA, Workspace Status, Recent Tasks)
+  Widget _buildOverviewTab() {
+    final defaultBranch = _project?.defaultBranch ?? _gitStatus?.branch ?? 'main';
+    final repoOrPath = _project?.workspacePath ?? _project?.repoUrl ?? 'Local Folder';
+    final isDockerRunning = _workspace != null && _workspace!.status == WorkspaceStatusEnum.running;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Project Title & Status Badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  widget.projectName,
+                  style: AppTypography.headlineLg,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              StatusBadge(
+                label: isDockerRunning ? 'Docker: Running' : 'Connected',
+                type: StatusType.success,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Metadata Chips
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _buildMetaPill(Icons.fork_right, defaultBranch),
+              _buildMetaPill(Icons.folder_outlined, repoOrPath),
+              if (_project?.sourceType != null)
+                _buildMetaPill(Icons.tag, _project!.sourceType.toUpperCase()),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Primary Actions Row: Open Coding Session + Open Workspace
+          Row(
+            children: [
+              Expanded(
+                child: AppButton(
+                  text: 'Open Coding Session',
+                  icon: const Icon(Icons.play_circle_outline, size: 18, color: Colors.white),
+                  onPressed: () => setState(() => _selectedTab = 1),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 48,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.lavender,
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.terminal, size: 16),
+                  label: const Text('Workspace'),
+                  onPressed: () => setState(() => _selectedTab = 2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Remote Docker Workspace Summary Card
+          _buildWorkspaceSummaryCard(),
+          const SizedBox(height: 16),
+
+          // Recent Tasks Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Project Tasks', style: AppTypography.headlineSm),
+              TextButton.icon(
+                icon: const Icon(Icons.add, size: 14, color: AppColors.lavender),
+                label: Text('New Task', style: AppTypography.labelSm.copyWith(color: AppColors.lavender)),
+                onPressed: _showNewTaskDialog,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          if (_isLoadingTasks)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                ),
+              ),
+            )
+          else if (_tasks.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMain,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.borderSubtle),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle_outline, color: AppColors.textSecondary, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'No tasks created yet. Tap "Open Coding Session" to start.',
+                      style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ..._tasks.map((task) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: InkWell(
+                  onTap: () {
+                    _selectAndStreamTask(task);
+                    setState(() => _selectedTab = 1);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceMain,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: task.status == TaskStatusEnum.approvalRequired
+                            ? AppColors.statusWarning.withOpacity(0.5)
+                            : AppColors.borderSubtle,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(task.title, style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 2),
+                              Text(
+                                task.prompt,
+                                style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        StatusBadge(label: task.status.label.toUpperCase(), type: _statusType(task.status)),
+                        const Icon(Icons.chevron_right, size: 16, color: AppColors.textSecondary),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  // TAB 1: Coding Session (Agent Chat, WebSocket Stream, Approvals, Diff)
+  Widget _buildChatSessionTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Agent Coding Session', style: AppTypography.headlineSm),
+              AppButton(
+                text: '+ New Task',
+                width: 105,
+                height: 36,
+                onPressed: _showNewTaskDialog,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Active Task Card
+          if (_activeTask != null) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMain,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.borderSubtle),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _activeTask!.title,
+                          style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      StatusBadge(
+                        label: _activeTask!.status.label.toUpperCase(),
+                        type: _statusType(_activeTask!.status),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _activeTask!.prompt,
+                    style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Approval Gate Card
+          if (_activeTask != null && _activeTask!.status == TaskStatusEnum.approvalRequired) ...[
+            _buildApprovalGateCard(),
+            const SizedBox(height: 12),
+          ],
+
+          // Live WebSocket Agent Event Stream Box
+          _buildLiveAgentStreamCard(),
+          const SizedBox(height: 12),
+
+          // Proposed Diff Preview
+          if (_proposedDiff != null) ...[
+            _buildDiffPreviewCard(),
+            const SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // TAB 2: Workspace (Sandboxed Terminal Runner & File Explorer)
+  Widget _buildWorkspaceTab() {
     if (_isLoadingWorkspace) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceMain,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.borderSubtle),
-        ),
-        child: const Center(child: CircularProgressIndicator()),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_workspace == null) {
-      return _buildSectionCard(
-        title: 'Remote Docker Workspace',
-        badge: const StatusBadge(label: 'Unprovisioned', type: StatusType.neutral),
-        children: [
-          Text(
-            'No isolated sandbox environment provisioned for this project.',
-            style: AppTypography.bodyMd.copyWith(fontSize: 12),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.dns_outlined, size: 48, color: AppColors.textSecondary),
+              const SizedBox(height: 12),
+              Text('No Workspace Provisioned', style: AppTypography.headlineSm),
+              const SizedBox(height: 6),
+              Text(
+                'Create an isolated Docker container sandbox to run terminal commands and inspect project files.',
+                style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              AppButton(
+                text: 'Provision Docker Workspace',
+                width: 230,
+                onPressed: _isActingWorkspace ? null : _provisionWorkspace,
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
-          AppButton(
-            text: 'Provision Remote Workspace',
-            icon: const Icon(Icons.add_box_outlined, size: 18, color: Colors.white),
-            onPressed: _isActingWorkspace ? null : _provisionWorkspace,
-          ),
-        ],
+        ),
       );
     }
 
-    final ws = _workspace!;
-    final isRunning = ws.status == WorkspaceStatusEnum.running;
-
-    return _buildSectionCard(
-      title: 'Remote Docker Workspace',
-      badge: StatusBadge(
-        label: ws.status.label,
-        type: _workspaceStatusType(ws.status),
-      ),
-      children: [
-        _buildInfoRow('Workspace ID:', ws.id.substring(0, ws.id.length > 8 ? 8 : ws.id.length)),
-        _buildInfoRow('Container:', ws.containerId ?? 'Isolated Sandbox'),
-        _buildInfoRow('Environment:', ws.imageName ?? 'Standard Dev Container'),
-        if (ws.rootPath != null)
-          _buildInfoRow('Root Path:', ws.rootPath!),
-        if (ws.errorMessage != null) ...[
-          const SizedBox(height: 6),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Container Banner
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.statusError.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppColors.statusError.withOpacity(0.3)),
+              color: AppColors.surfaceMain,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.borderSubtle),
             ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.error_outline, size: 16, color: AppColors.statusError),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    ws.errorMessage!,
-                    style: AppTypography.codeSm.copyWith(color: AppColors.statusError, fontSize: 11),
-                  ),
+                Row(
+                  children: [
+                    const Icon(Icons.dns, color: AppColors.lavender, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      _workspace!.imageName ?? 'python:3.10-slim',
+                      style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+                StatusBadge(
+                  label: _workspace!.status.label.toUpperCase(),
+                  type: _workspaceStatusType(_workspace!.status),
                 ),
               ],
             ),
           ),
-        ],
-        const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
-        // Workspace Controls
-        Row(
-          children: [
-            if (isRunning) ...[
+          // Terminal Execution Section
+          Text('Terminal Command Execution', style: AppTypography.headlineSm),
+          const SizedBox(height: 8),
+          Row(
+            children: [
               Expanded(
-                child: AppButton(
-                  text: 'Terminal',
-                  variant: AppButtonVariant.primary,
-                  icon: const Icon(Icons.terminal, size: 16, color: Colors.white),
-                  onPressed: _showRunCommandBottomSheet,
+                child: TextField(
+                  controller: _cmdController,
+                  style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: AppColors.surfaceMain,
+                    hintText: 'e.g. git status, ls -la, python -V',
+                    hintStyle: AppTypography.codeSm.copyWith(color: AppColors.textSecondary),
+                    prefixText: r'$ ',
+                    prefixStyle: AppTypography.codeSm.copyWith(color: AppColors.lavender),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.borderSubtle),
+                    ),
+                    isDense: true,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: AppButton(
-                  text: 'Stop',
-                  variant: AppButtonVariant.outline,
-                  icon: const Icon(Icons.stop, size: 16),
-                  onPressed: _isActingWorkspace ? null : _stopWorkspace,
-                ),
-              ),
-            ] else ...[
-              Expanded(
-                child: AppButton(
-                  text: 'Start Workspace',
-                  variant: AppButtonVariant.primary,
-                  icon: const Icon(Icons.play_arrow, size: 16, color: Colors.white),
-                  onPressed: _isActingWorkspace ? null : _startWorkspace,
+              SizedBox(
+                height: 42,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: _isRunningCommand ? null : _runTerminalCommand,
+                  child: _isRunningCommand
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Run', style: TextStyle(color: Colors.white)),
                 ),
               ),
             ],
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.refresh, size: 18, color: AppColors.textSecondary),
-              tooltip: 'Restart Workspace',
-              onPressed: _isActingWorkspace ? null : _restartWorkspace,
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textPrimary,
-                  side: const BorderSide(color: AppColors.borderSubtle),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                icon: const Icon(Icons.folder_open, size: 16, color: AppColors.primary),
-                label: const Text('Browse Files', style: TextStyle(fontSize: 12)),
-                onPressed: _showBrowseFilesBottomSheet,
+          ),
+          const SizedBox(height: 10),
+
+          // Terminal Output Window
+          if (_lastCommandResult != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceElevated,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.borderSubtle),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      StatusBadge(
+                        label: _lastCommandResult!.exitCode == 0 ? 'EXIT 0' : 'EXIT ${_lastCommandResult!.exitCode}',
+                        type: _lastCommandResult!.exitCode == 0 ? StatusType.success : StatusType.error,
+                      ),
+                      Text(
+                        '${(_lastCommandResult!.durationSeconds * 1000).toInt()}ms',
+                        style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    (_lastCommandResult!.stdout.isNotEmpty ? _lastCommandResult!.stdout : _lastCommandResult!.stderr).trim(),
+                    style: AppTypography.codeSm.copyWith(
+                      color: _lastCommandResult!.exitCode == 0 ? AppColors.textPrimary : AppColors.statusError,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textPrimary,
-                  side: const BorderSide(color: AppColors.borderSubtle),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                icon: const Icon(Icons.difference_outlined, size: 16, color: AppColors.lavender),
-                label: const Text('Review Diff', style: TextStyle(fontSize: 12)),
-                onPressed: _showGitDiffBottomSheet,
+            const SizedBox(height: 16),
+          ],
+
+          // Workspace Files Explorer
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Workspace Files', style: AppTypography.headlineSm),
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 16, color: AppColors.textSecondary),
+                onPressed: _loadWorkspaceFiles,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          if (_isLoadingFiles)
+            const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+          else if (_workspaceFiles.isEmpty)
+            Text('No files found in container root.', style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary))
+          else
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMain,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.borderSubtle),
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _workspaceFiles.length,
+                separatorBuilder: (_, __) => const Divider(color: AppColors.borderSubtle, height: 1),
+                itemBuilder: (context, idx) {
+                  final item = _workspaceFiles[idx];
+                  return ListTile(
+                    dense: true,
+                    leading: Icon(
+                      item.isDirectory ? Icons.folder : Icons.insert_drive_file_outlined,
+                      color: item.isDirectory ? AppColors.primary : AppColors.lavender,
+                      size: 16,
+                    ),
+                    title: Text(item.name, style: AppTypography.codeSm),
+                    trailing: Text(
+                      item.isDirectory ? 'dir' : '${item.sizeBytes} B',
+                      style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                    ),
+                    onTap: item.isDirectory ? null : () => _showFileContentDialog(item.path, item.name),
+                  );
+                },
               ),
             ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildLiveAgentStreamCard() {
-    final status = _activeTask?.status ?? TaskStatusEnum.queued;
-    final isStreaming = status == TaskStatusEnum.running || status == TaskStatusEnum.queued;
+  // TAB 3: Changes (Git Status & Diff Review)
+  Widget _buildChangesTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Git Changes & Review', style: AppTypography.headlineSm),
+              TextButton.icon(
+                icon: const Icon(Icons.refresh, size: 14, color: AppColors.lavender),
+                label: Text('Refresh', style: AppTypography.labelSm.copyWith(color: AppColors.lavender)),
+                onPressed: _loadGitStatus,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
 
+          // Status Strip
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceMain,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.borderSubtle),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.fork_right, size: 16, color: AppColors.lavender),
+                    const SizedBox(width: 6),
+                    Text(
+                      _gitStatus?.branch ?? 'main',
+                      style: AppTypography.codeSm.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+                StatusBadge(
+                  label: _gitStatus?.isClean == true ? 'CLEAN' : 'MODIFIED',
+                  type: _gitStatus?.isClean == true ? StatusType.success : StatusType.warning,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Unified Diff Viewer
+          Text('Working Tree Diff', style: AppTypography.labelMd),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.borderSubtle),
+            ),
+            child: Text(
+              _gitDiff?.diff.isNotEmpty == true
+                  ? _gitDiff!.diff
+                  : (_gitStatus?.isClean == true ? 'Working tree clean. No uncommitted modifications.' : 'No diff detected.'),
+              style: AppTypography.codeSm.copyWith(fontSize: 11),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkspaceSummaryCard() {
+    if (_isLoadingWorkspace) {
+      return const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator()));
+    }
+
+    if (_workspace == null) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceMain,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.borderSubtle),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Docker Workspace', style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600)),
+                const StatusBadge(label: 'UNPROVISIONED', type: StatusType.neutral),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'No container environment active for this project.',
+              style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
+            ),
+            const SizedBox(height: 10),
+            AppButton(
+              text: 'Provision Docker Workspace',
+              onPressed: _isActingWorkspace ? null : _provisionWorkspace,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final ws = _workspace!;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surfaceMain,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: status == TaskStatusEnum.approvalRequired
-              ? AppColors.statusWarning
-              : AppColors.borderSubtle,
-        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1141,97 +1227,64 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _activeTask?.title ?? 'Agent Task Engine',
-                      style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Live WebSocket Event Stream',
-                      style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-              StatusBadge(
-                label: status.label,
-                type: _statusTypeFromEnum(status),
-              ),
+              Text('Docker Workspace', style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600)),
+              StatusBadge(label: ws.status.label.toUpperCase(), type: _workspaceStatusType(ws.status)),
             ],
           ),
-          const SizedBox(height: 10),
-          const Divider(color: AppColors.borderSubtle),
           const SizedBox(height: 8),
-
-          // Real-time Event Terminal
-          Container(
-            height: 120,
-            width: double.infinity,
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppColors.borderSubtle),
-            ),
-            child: _streamLogs.isEmpty
-                ? Center(
-                    child: Text(
-                      'Terminal idle · Ready for task execution',
-                      style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                : ListView.builder(
-                    reverse: false,
-                    itemCount: _streamLogs.length,
-                    itemBuilder: (ctx, i) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2.0),
-                        child: Text(
-                          _streamLogs[i],
-                          style: AppTypography.codeSm.copyWith(
-                            color: _streamLogs[i].contains('⚠️')
-                                ? AppColors.statusWarning
-                                : _streamLogs[i].contains('✔')
-                                    ? AppColors.statusSuccess
-                                    : _streamLogs[i].contains('⚡')
-                                        ? AppColors.lavender
-                                        : AppColors.textPrimary,
-                            fontSize: 11,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+          Text(
+            'Image: ${ws.imageName ?? 'python:3.10-slim'} · ID: ${ws.id.substring(0, ws.id.length > 8 ? 8 : ws.id.length)}',
+            style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
           ),
-          const SizedBox(height: 10),
+        ],
+      ),
+    );
+  }
 
-          // Controls
+  Widget _buildLiveAgentStreamCard() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMain,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if (isStreaming)
-                TextButton.icon(
-                  icon: const Icon(Icons.cancel_outlined, size: 16, color: AppColors.statusError),
-                  label: Text('Cancel Task', style: AppTypography.codeSm.copyWith(color: AppColors.statusError)),
-                  onPressed: _isActing ? null : _handleCancelTask,
-                )
-              else
-                Text(
-                  '${_tasks.length} tasks',
-                  style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
-                ),
-              TextButton.icon(
-                icon: const Icon(Icons.add, size: 16, color: AppColors.primary),
-                label: Text('New Task', style: AppTypography.codeSm.copyWith(color: AppColors.primary)),
-                onPressed: _showNewTaskDialog,
+              Row(
+                children: [
+                  const Icon(Icons.stream, size: 14, color: AppColors.primary),
+                  const SizedBox(width: 6),
+                  Text('Agent Live Stream', style: AppTypography.labelMd),
+                ],
+              ),
+              StatusBadge(
+                label: _streamLogs.isNotEmpty ? 'STREAMING' : 'IDLE',
+                type: _streamLogs.isNotEmpty ? StatusType.success : StatusType.neutral,
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            height: 150,
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppColors.borderSubtle),
+            ),
+            child: SingleChildScrollView(
+              reverse: true,
+              child: Text(
+                _streamLogs.isEmpty ? 'No events yet. Launch a task to start agent execution.' : _streamLogs.join('\n'),
+                style: AppTypography.codeSm.copyWith(fontSize: 10),
+              ),
+            ),
           ),
         ],
       ),
@@ -1240,56 +1293,49 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
 
   Widget _buildApprovalGateCard() {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surfaceMain,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.statusWarning, width: 1.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.statusWarning),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Approval Required', style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600, color: AppColors.statusWarning)),
-              const StatusBadge(label: 'Pending', type: StatusType.warning),
-            ],
+          const StatusBadge(
+            label: 'APPROVAL REQUIRED',
+            type: StatusType.warning,
+            icon: Icons.lock_outline,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
-            'Review proposed modifications and decide whether to apply changes.',
-            style: AppTypography.bodyMd.copyWith(fontSize: 12),
+            'The agent has prepared modifications that require your review and approval.',
+            style: AppTypography.bodySm,
           ),
-          const SizedBox(height: 10),
-          if (_proposedDiff != null)
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                _proposedDiff!,
-                style: AppTypography.codeSm.copyWith(color: AppColors.statusSuccess, fontSize: 11),
-              ),
-            ),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: AppButton(
-                  text: 'Approve & Apply',
-                  height: 38,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.statusSuccess,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  icon: const Icon(Icons.check, size: 16, color: Colors.white),
+                  label: const Text('Approve', style: TextStyle(color: Colors.white)),
                   onPressed: _isActing ? null : () => _handleApproval(true),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: AppButton(
-                  text: 'Reject',
-                  height: 38,
-                  variant: AppButtonVariant.outline,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.statusError,
+                    side: const BorderSide(color: AppColors.statusError),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  icon: const Icon(Icons.close, size: 16),
+                  label: const Text('Reject'),
                   onPressed: _isActing ? null : () => _handleApproval(false),
                 ),
               ),
@@ -1302,26 +1348,28 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
 
   Widget _buildDiffPreviewCard() {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surfaceMain,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Proposed Diff Applied', style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
+          Text('Proposed Changes', style: AppTypography.labelMd),
+          const SizedBox(height: 6),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: AppColors.surfaceElevated,
               borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppColors.borderSubtle),
             ),
             child: Text(
-              _proposedDiff!,
-              style: AppTypography.codeSm.copyWith(color: AppColors.statusSuccess, fontSize: 11),
+              _proposedDiff ?? '',
+              style: AppTypography.codeSm.copyWith(fontSize: 10),
             ),
           ),
         ],
@@ -1331,7 +1379,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
 
   Widget _buildMetaPill(IconData icon, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(6),
@@ -1340,63 +1388,12 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: AppColors.lavender),
-          const SizedBox(width: 6),
-          Text(label, style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary, fontSize: 11)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionCard({
-    required String title,
-    required Widget badge,
-    required List<Widget> children,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceMain,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(title, style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(width: 8),
-              badge,
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Divider(color: AppColors.borderSubtle),
-          const SizedBox(height: 8),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(label, style: AppTypography.codeSm.copyWith(fontSize: 11)),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary, fontSize: 11),
-            ),
+          Icon(icon, size: 12, color: AppColors.lavender),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary, fontSize: 10),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

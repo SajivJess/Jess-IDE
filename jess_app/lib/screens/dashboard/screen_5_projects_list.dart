@@ -8,7 +8,7 @@ import '../../services/projects_api_service.dart';
 
 class Screen5ProjectsList extends StatefulWidget {
   final VoidCallback? onNewProject;
-  final ValueChanged<String>? onSelectProject;
+  final void Function(String projectId, String projectName)? onSelectProject;
 
   const Screen5ProjectsList({
     super.key,
@@ -304,7 +304,7 @@ class _Screen5ProjectsListState extends State<Screen5ProjectsList> {
     if (project.sourceType == 'scratch') icon = Icons.alt_route;
 
     return InkWell(
-      onTap: () => widget.onSelectProject?.call(project.name),
+      onTap: () => widget.onSelectProject?.call(project.id, project.name),
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.all(12),

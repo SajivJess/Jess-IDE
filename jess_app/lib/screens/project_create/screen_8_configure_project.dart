@@ -10,7 +10,7 @@ import '../../services/projects_api_service.dart';
 class Screen8ConfigureProject extends StatefulWidget {
   final ProjectSource source;
   final VoidCallback? onBack;
-  final VoidCallback? onContinue;
+  final void Function(ProjectModel? project)? onContinue;
 
   const Screen8ConfigureProject({
     super.key,
@@ -62,7 +62,7 @@ class _Screen8ConfigureProjectState extends State<Screen8ConfigureProject> {
             backgroundColor: AppColors.statusSuccess,
           ),
         );
-        widget.onContinue?.call();
+        widget.onContinue?.call(result.project);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

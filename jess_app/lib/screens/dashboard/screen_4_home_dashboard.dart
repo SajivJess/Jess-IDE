@@ -10,7 +10,7 @@ import '../../services/auth_api_service.dart';
 
 class Screen4HomeDashboard extends StatefulWidget {
   final VoidCallback? onNewProject;
-  final ValueChanged<String>? onOpenProject;
+  final void Function(String projectId, String projectName)? onOpenProject;
   final VoidCallback? onViewAllProjects;
   final VoidCallback? onOpenDrawer;
 
@@ -449,7 +449,7 @@ class _Screen4HomeDashboardState extends State<Screen4HomeDashboard> {
     final timeAgo = _formatTimeAgo(project.updatedAt);
 
     return InkWell(
-      onTap: () => widget.onOpenProject?.call(project.name),
+      onTap: () => widget.onOpenProject?.call(project.id, project.name),
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.all(12),

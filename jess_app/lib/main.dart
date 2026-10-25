@@ -45,7 +45,6 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   bool _isAuthenticated = false;
   int _selectedTabIndex = 0;
-  String _activeProjectName = 'cloudaiagent';
 
   @override
   void initState() {
@@ -67,11 +66,15 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
-  void _openProjectWorkspace(String projectName) {
-    setState(() {
-      _activeProjectName = projectName;
-      _selectedTabIndex = 2; // Switch to Workspace tab
-    });
+  void _openProjectOverview(String projectId, String projectName) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => Screen6ProjectOverview(
+          projectId: projectId,
+          projectName: projectName,
+        ),
+      ),
+    );
   }
 
   void _openCreateProjectFlow(BuildContext context) {
@@ -106,7 +109,7 @@ class _MainShellState extends State<MainShell> {
                             onBack: () => Navigator.of(sCtx).pop(),
                             onConfirmStack: () {
                               Navigator.of(context).popUntil((route) => route.isFirst);
-                              _openProjectWorkspace('autonomous-code-editor');
+                              _openProjectOverview('autonomous-code-editor', 'autonomous-code-editor');
                             },
                           ),
                         ),
@@ -125,11 +128,13 @@ class _MainShellState extends State<MainShell> {
           builder: (ctx) => Screen8ConfigureProject(
             source: source,
             onBack: () => Navigator.of(ctx).pop(),
-            onContinue: () {
+            onContinue: (createdProject) {
               Navigator.of(context).popUntil((route) => route.isFirst);
-              setState(() {
-                _selectedTabIndex = 1; // Show projects list with newly created project
-              });
+              if (createdProject != null) {
+                _openProjectOverview(createdProject.id, createdProject.name);
+              } else {
+                setState(() => _selectedTabIndex = 1);
+              }
             },
           ),
         ),
@@ -143,26 +148,14 @@ class _MainShellState extends State<MainShell> {
         return Screen4HomeDashboard(
           onNewProject: () => _openCreateProjectFlow(context),
           onViewAllProjects: () => setState(() => _selectedTabIndex = 1),
-          onOpenProject: (name) => _openProjectWorkspace(name),
+          onOpenProject: (id, name) => _openProjectOverview(id, name),
         );
       case 1:
         return Screen5ProjectsList(
           onNewProject: () => _openCreateProjectFlow(context),
-          onSelectProject: (name) => _openProjectWorkspace(name),
+          onSelectProject: (id, name) => _openProjectOverview(id, name),
         );
       case 2:
-        return Screen6ProjectOverview(
-          key: ValueKey(_activeProjectName),
-          projectName: _activeProjectName,
-          onOpenChat: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('AI Coding Chat ready.')),
-            );
-          },
-          onBrowseFiles: () {},
-          onReviewChanges: () {},
-        );
-      case 3:
         return SettingsScreen(
           onSignOut: () => setState(() => _isAuthenticated = false),
         );
@@ -246,11 +239,6 @@ class _MainShellState extends State<MainShell> {
                 icon: Icon(Icons.folder_outlined),
                 selectedIcon: Icon(Icons.folder),
                 label: 'Projects',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.terminal_outlined),
-                selectedIcon: Icon(Icons.terminal),
-                label: 'Workspace',
               ),
               NavigationDestination(
                 icon: Icon(Icons.tune_outlined),
