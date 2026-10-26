@@ -51,8 +51,18 @@ class DockerWorkspaceProvider(BaseWorkspaceProvider):
     async def provision(self, workspace: Workspace, project: Project) -> Dict[str, Any]:
         has_docker = await self.check_docker_available()
         if not has_docker:
-            logger.info(
-                f"Docker is not available on this host. Falling back to LocalSandbox for workspace {workspace.id}."
+            if getattr(workspace, "provider_type", None) == "docker" or getattr(settings, "REQUIRE_DOCKER_ISOLATION", False):
+                err_msg = (
+                    f"Docker isolation is strictly required for workspace {workspace.id}, "
+                    "but Docker CLI/daemon is unavailable on this host. "
+                    "Silent host fallback is refused for safety."
+                )
+                logger.error(err_msg)
+                raise RuntimeError(err_msg)
+
+            logger.warning(
+                f"Docker is not available on this host. Falling back to LocalSandbox for workspace {workspace.id}. "
+                "Notice: Execution will run in isolated local directory, not a Docker container."
             )
             res = await self.fallback.provision(workspace, project)
             workspace.host_type = "local_sandbox"

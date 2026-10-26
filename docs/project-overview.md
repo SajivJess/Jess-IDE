@@ -2,9 +2,9 @@
 
 **Status date:** 21 October 2026
 
-**Repository:** [SajivJess/cloudaiagent](https://github.com/SajivJess/cloudaiagent)
+**Repository:** [SajivJess/Jess-IDE](https://github.com/SajivJess/Jess-IDE)
 
-**Implementation checkpoint assessed:** [`255d346`](https://github.com/SajivJess/cloudaiagent/commit/255d346a63d24844cfed8233482708d01fb170ca) on `main`
+**Implementation checkpoint assessed:** [`255d346`](https://github.com/SajivJess/Jess-IDE/commit/255d346a63d24844cfed8233482708d01fb170ca) on `main`
 
 **Execution host:** the owner's Windows laptop in Nagercoil
 
@@ -184,10 +184,10 @@ The future isolated execution broker is not shown as a working connection. It mu
 
 | Location | Purpose | Stored in GitHub? |
 | --- | --- | --- |
-| `E:\cloudaiagent` | Application source, migrations, tests and documentation | Tracked source is pushed. |
-| `E:\cloudaiagent\node_modules` | Installed project dependencies | No; reproduce from the lockfile. |
-| `E:\cloudaiagent\dist` | Generated application/editor bundles | No; reproduce with the build. |
-| `E:\cloudaiagent\.env` and `.local` | Local configuration, credentials, logs, reports and process metadata | No. |
+| `E:\Jess-IDE` | Application source, migrations, tests and documentation | Tracked source is pushed. |
+| `E:\Jess-IDE\node_modules` | Installed project dependencies | No; reproduce from the lockfile. |
+| `E:\Jess-IDE\dist` | Generated application/editor bundles | No; reproduce with the build. |
+| `E:\Jess-IDE\.env` and `.local` | Local configuration, credentials, logs, reports and process metadata | No. |
 | `E:\tools` | Node, Git, PostgreSQL, CLI, tunnel binary and browser tooling | No. |
 | `E:\local-data\jess\pgdata` | Application and test PostgreSQL storage | No. |
 | `E:\local-data\jess\workspaces` | Configured local task clones/artifacts | No. |

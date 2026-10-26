@@ -8,7 +8,7 @@ The Project chat subpage now displays recorded native CLI conversations and offe
 
 ## This laptop's layout
 
-- Repository: `E:\cloudaiagent`
+- Repository: `E:\Jess-IDE`
 - Node 24: `E:\tools\node-v24.22.0-win-x64\node.exe`
 - Official Cloudflare tunnel binary: `E:\tools\cloudflared.exe`
 - Local configuration/password/owner UUID: `.local/remote-config.json`
@@ -23,7 +23,7 @@ Both configuration files are Git-ignored. Do not commit credentials, session coo
 First start the database, API and worker using `.local/start.ps1`. Then:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File E:\cloudaiagent\remote\start.ps1
+powershell -ExecutionPolicy Bypass -File E:\Jess-IDE\remote\start.ps1
 ```
 
 The script prints the public URL. Read the password from the local configuration file and enter it on the phone. The URL is temporary and changes when the tunnel is recreated. Keep the laptop powered on, awake, and connected to the internet. These processes are not installed as Windows startup services.
@@ -31,7 +31,7 @@ The script prints the public URL. Read the password from the local configuration
 To revoke the link immediately:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File E:\cloudaiagent\remote\stop.ps1
+powershell -ExecutionPolicy Bypass -File E:\Jess-IDE\remote\stop.ps1
 ```
 
 To change the password, stop public access, update `password` in `.local/remote-config.json` to at least 20 random characters, then start again. Preserve the `owner` UUID to retain access to that owner's tasks. Sessions expire after eight hours and are cleared on portal restart.

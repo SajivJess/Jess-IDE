@@ -11,8 +11,16 @@ export interface AgentResult {
   summary: string;
   simulated: boolean;
   files: { path: string; change: 'added' | 'modified' | 'deleted' }[];
-  checks: { name: string; status: 'simulated' | 'passed' | 'failed' | 'skipped' }[];
+  checks: { name: string; status: 'simulated' | 'passed' | 'failed' | 'skipped'; exitCode?: number; durationMs?: number }[];
   execution?: { branch: string; baseCommit: string; diff: string; truncated: boolean };
+  /** Present only when a real provider adapter ran. Never contains credentials. */
+  meta?: {
+    provider: string;
+    modelId: string;
+    repairAttempts: number;
+    toolIterations: number;
+    usage?: { promptTokens: number; completionTokens: number; totalTokens: number };
+  };
 }
 
 export interface Task {

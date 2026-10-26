@@ -20,17 +20,17 @@ A local administrator supplies an E-drive JSON configuration:
 
 ```json
 {
-  "name": "cloudaiagent",
-  "githubUrl": "https://github.com/SajivJess/cloudaiagent",
+  "name": "Jess-IDE",
+  "githubUrl": "https://github.com/SajivJess/Jess-IDE",
   "branch": "main",
-  "sourceDirectory": "E:\\cloudaiagent"
+  "sourceDirectory": "E:\\Jess-IDE"
 }
 ```
 
 After applying migrations, run from the repository with the configured owner's UUID:
 
 ```powershell
-node --env-file=.env --import tsx src/tools/register-repository.ts E:\cloudaiagent\.local\repository-registration.json <owner-uuid>
+node --env-file=.env --import tsx src/tools/register-repository.ts E:\Jess-IDE\.local\repository-registration.json <owner-uuid>
 ```
 
 Use the existing gateway owner, without exposing its password or backend token. Registration is explicit, not automatic on startup. Each registration is an immutable version; repeating the command creates another registration and consumes quota. The importer verifies the configured GitHub identity against local `origin`, resolves only the permitted local branch, then reads committed objects by SHA. It does not clone, fetch, read dirty worktree contents, execute repository hooks, or contact GitHub. A local `origin` string is an administrator assertion, not remote proof that the commit exists on GitHub.

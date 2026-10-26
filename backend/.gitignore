@@ -39,5 +39,8 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Workspace data
+workspaces_data/
+
 # Runtime isolated workspaces storage
 workspaces_data/

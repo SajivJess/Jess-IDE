@@ -1,4 +1,5 @@
 import type { AntigravityOptions } from './agents/antigravity.js';
+import type { MetaOptions } from './agents/meta.js';
 
 export interface Config {
   nodeEnv: 'development' | 'test';
@@ -8,8 +9,9 @@ export interface Config {
   pollMs: number;
   leaseMs: number;
   fakeStepMs: number;
-  agentProvider: 'fake' | 'antigravity';
+  agentProvider: 'fake' | 'antigravity' | 'meta';
   antigravity?: AntigravityOptions;
+  meta?: MetaOptions;
 }
 
 function integer(value: string | undefined, fallback: number, min: number, max: number): number {
@@ -31,10 +33,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   try { parsed = new URL(databaseUrl); } catch { throw new Error('A valid PostgreSQL DATABASE_URL is required'); }
   if (!['postgres:', 'postgresql:'].includes(parsed.protocol)) throw new Error('DATABASE_URL must use PostgreSQL');
   const agentProvider = env.AGENT_PROVIDER ?? 'fake';
-  if (!['fake', 'antigravity'].includes(agentProvider)) throw new Error('Unknown agent provider');
+  if (!['fake', 'antigravity', 'meta'].includes(agentProvider)) throw new Error('Unknown agent provider');
   const diskPath = (key: string): string => {
     const value = env[key] ?? '';
-    if (!/^E:[\\/]/i.test(value) || value.includes('..') || /[\r\n]/.test(value)) throw new Error(`${key} must be an absolute E: drive path`);
+    if (!/^[A-Za-z]:[\\/]/i.test(value) || value.includes('..') || /[\r\n]/.test(value)) throw new Error(`${key} must be an absolute Windows drive path`);
     return value;
   };
   const antigravity: AntigravityOptions | undefined = agentProvider === 'antigravity' ? {
@@ -43,6 +45,26 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     workspaceRoot: diskPath('AGENT_WORKSPACE_ROOT'), profile: diskPath('AGENT_PROFILE'),
     timeoutMs: integer(env.AGENT_TIMEOUT_MS, 600000, 30000, 1800000),
   } : undefined;
+  const meta: MetaOptions | undefined = agentProvider === 'meta' ? (() => {
+    const apiKey = env.MODEL_API_KEY ?? '';
+    if (apiKey.length < 8) throw new Error('MODEL_API_KEY is required when AGENT_PROVIDER=meta');
+    const modelId = env.META_MODEL_ID ?? '';
+    if (!modelId) throw new Error('META_MODEL_ID is required when AGENT_PROVIDER=meta');
+    return {
+      apiKey,
+      baseUrl: env.META_MODEL_BASE_URL ?? 'https://api.meta.ai/v1',
+      modelId,
+      timeoutMs:         integer(env.META_MODEL_TIMEOUT_MS, 120000, 10000, 600000),
+      maxRetries:        integer(env.META_MODEL_MAX_RETRIES, 3, 0, 10),
+      maxOutputTokens:   integer(env.META_MODEL_MAX_OUTPUT_TOKENS, 4096, 256, 32768),
+      maxToolIterations: integer(env.META_AGENT_MAX_TOOL_ITERATIONS, 20, 1, 100),
+      maxRepairAttempts: integer(env.META_AGENT_MAX_REPAIR_ATTEMPTS, 3, 0, 10),
+      workspaceRoot: diskPath('META_AGENT_WORKSPACE_ROOT'),
+      gitPath:       diskPath('META_AGENT_GIT_PATH'),
+      nodePath:      diskPath('META_AGENT_NODE_PATH'),
+      sourceRepo:    diskPath('META_AGENT_SOURCE_REPO'),
+    } satisfies MetaOptions;
+  })() : undefined;
   return {
     nodeEnv: env.NODE_ENV,
     databaseUrl,
@@ -53,5 +75,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     fakeStepMs: integer(env.FAKE_AGENT_STEP_MS, 250, 0, 5000),
     agentProvider: agentProvider as Config['agentProvider'],
     ...(antigravity ? { antigravity } : {}),
+    ...(meta ? { meta } : {}),
   };
 }

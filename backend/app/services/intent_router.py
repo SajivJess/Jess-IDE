@@ -42,9 +42,10 @@ _AMBIGUOUS_PATTERNS = [
 
 _CODING_ACTION_PATTERNS = [
     re.compile(r"\b(add|create|implement|write|build|setup|generate)\b\s+(.+)", re.IGNORECASE),
-    re.compile(r"\b(refactor|modify|update|rewrite|migrate|restructure)\b\s+(.+)", re.IGNORECASE),
-    re.compile(r"\b(fix|resolve|patch|debug)\s+(the\s+)?(bug|error|issue|problem|failure|test|retry|timeout|exception)\b", re.IGNORECASE),
-    re.compile(r"\b(run|execute)\s+(the\s+)?(tests?|pytest|build|script|command|migrations?)\b", re.IGNORECASE),
+    re.compile(r"\b(refactor|modify|update|rewrite|migrate|restructure|repair)\b\s+(.+)", re.IGNORECASE),
+    re.compile(r"\b(fix|resolve|patch|debug|diagnose)\b.*?\b(bug|error|issue|problem|failure|test|retry|timeout|exception)\b", re.IGNORECASE),
+    re.compile(r"\b(run|execute|rerun)\b.*?\b(tests?|pytest|unittest|build|script|command|check|migrations?)\b", re.IGNORECASE),
+    re.compile(r"\b(inspect|examine|analyze|check)\b.*?\b([a-zA-Z0-9_\-\./]+\.(py|js|ts|dart|json|ya?ml))\b", re.IGNORECASE),
     re.compile(r"\b(delete|remove)\s+(the\s+)?(.+)", re.IGNORECASE),
 ]
 

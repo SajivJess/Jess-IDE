@@ -8,3 +8,6 @@ coverage/
 *.tsbuildinfo
 .DS_Store
 .local/
+*.db
+*.sqlite
+*.sqlite3

@@ -10,7 +10,8 @@ from app.services.agent_adapter import simulated_agent
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(settings, "AGENT_PROVIDER", "simulated")
     # Set simulated agent step delay to near-zero for instant tests
     simulated_agent.step_delay = 0.02
     with TestClient(app) as test_client:

@@ -3,6 +3,7 @@ import { createPool } from '../db/pool.js';
 import { Store } from '../db/store.js';
 import { FakeAgent } from '../agents/fake.js';
 import { AntigravityAgent } from '../agents/antigravity.js';
+import { MetaAgent } from '../agents/meta.js';
 import { Worker } from './worker.js';
 
 try {
@@ -12,7 +13,11 @@ try {
   const controller = new AbortController();
   process.once('SIGINT', () => controller.abort());
   process.once('SIGTERM', () => controller.abort());
-  const agent = config.antigravity ? new AntigravityAgent(config.antigravity) : new FakeAgent(config.fakeStepMs);
+  const agent = config.meta
+    ? new MetaAgent(config.meta)
+    : config.antigravity
+    ? new AntigravityAgent(config.antigravity)
+    : new FakeAgent(config.fakeStepMs);
   console.log(`Jess Ide Dev worker starting with ${agent.id}`);
   try {
     await new Worker(new Store(pool), agent, config.leaseMs, config.pollMs)

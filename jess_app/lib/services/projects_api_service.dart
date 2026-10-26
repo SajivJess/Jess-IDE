@@ -150,12 +150,6 @@ class ProjectsApiService {
       }
     } catch (e) {
       if (kDebugMode) print('ProjectsApiService.listProjects error: $e');
-      if (AuthApiService.baseUrl.contains('127.0.0.1')) {
-        try {
-          AuthApiService.baseUrl = 'http://172.30.17.207:8000/api/v1';
-          return listProjects(skip: skip, limit: limit, sourceType: sourceType, search: search);
-        } catch (_) {}
-      }
       return ProjectsListResult(
         success: false,
         errorMessage: 'Unable to connect to backend server. Operating offline.',

@@ -161,35 +161,6 @@ class AuthApiService {
       }
     } catch (e) {
       if (kDebugMode) print('AuthApiService.login error: $e');
-      if (baseUrl.contains('127.0.0.1')) {
-        try {
-          const fallbackUrl = 'http://172.30.17.207:8000/api/v1';
-          final fbResponse = await _client
-              .post(
-                Uri.parse('$fallbackUrl/auth/login'),
-                headers: {'Content-Type': 'application/json'},
-                body: jsonEncode({
-                  'email': email.trim(),
-                  'password': password,
-                }),
-              )
-              .timeout(const Duration(seconds: 4));
-          if (fbResponse.statusCode == 200) {
-            final fbData = jsonDecode(fbResponse.body) as Map<String, dynamic>;
-            baseUrl = fallbackUrl;
-            currentAccessToken = fbData['access_token'] as String?;
-            currentRefreshToken = fbData['refresh_token'] as String?;
-            final profile = await getProfile();
-            return AuthResult(
-              success: true,
-              message: 'Signed in successfully via LAN fallback.',
-              accessToken: currentAccessToken,
-              refreshToken: currentRefreshToken,
-              user: profile,
-            );
-          }
-        } catch (_) {}
-      }
       return AuthResult(
         success: false,
         message: 'Unable to connect to backend ($baseUrl). Please check server connection.',

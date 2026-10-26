@@ -67,7 +67,7 @@ Build, migrate and create a project conversation from the portal, then write a r
 ]
 ```
 
-From `E:\cloudaiagent`, with E-drive Node/temp paths configured:
+From `E:\Jess-IDE`, with E-drive Node/temp paths configured:
 
 ```powershell
 node --env-file=.env dist/tools/chat-local.js <conversation-uuid> E:\local-data\jess\messages.json laptop-account-1

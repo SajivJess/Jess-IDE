@@ -17,7 +17,7 @@ The CLI is separate from the IDE's `antigravity-ide` launcher. No unofficial IDE
 Use the prepared launcher from PowerShell:
 
 ```powershell
-E:\cloudaiagent\scripts\antigravity.ps1
+E:\Jess-IDE\scripts\antigravity.ps1
 ```
 
 Complete Google's sign-in flow, then exit the CLI. The launcher directs the CLI's configurable profile, application data and temporary locations to E:. Google may use Windows Credential Manager for sign-in; that OS-managed store cannot be relocated by this wrapper. Do not assume an E: profile relocates Windows' credential database. Under a strict prohibition on OS credential storage on C:, use a supported E:-stored API-key configuration instead of signing into the account flow.
@@ -35,7 +35,7 @@ Rebuild after source changes. The worker chooses the adapter at startup. A proje
 For one local task without starting the API, worker, database or tunnel, save the task text to an E: file and run:
 
 ```powershell
-E:\cloudaiagent\scripts\antigravity-task.ps1 -PromptFile E:\local-data\jess\task.txt
+E:\Jess-IDE\scripts\antigravity-task.ps1 -PromptFile E:\local-data\jess\task.txt
 ```
 
 This uses the laptop paths above for that invocation only and prints the result/diff. It does not enable Antigravity in the persistent `.env`. Build first if the compiled files are missing. The task is executed directly and is not inserted into the database queue.

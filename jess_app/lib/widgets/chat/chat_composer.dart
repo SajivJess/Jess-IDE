@@ -6,6 +6,7 @@ class ChatComposer extends StatefulWidget {
   final Function(String text) onSend;
   final VoidCallback onStop;
   final bool isRunning;
+  final bool isApprovalPending;
   final String statusText;
   final bool isConnected;
 
@@ -14,6 +15,7 @@ class ChatComposer extends StatefulWidget {
     required this.onSend,
     required this.onStop,
     this.isRunning = false,
+    this.isApprovalPending = false,
     this.statusText = 'Ready',
     this.isConnected = true,
   });
@@ -52,6 +54,28 @@ class _ChatComposerState extends State<ChatComposer> {
 
   @override
   Widget build(BuildContext context) {
+    final isActuallyRunning = widget.isRunning && !widget.isApprovalPending;
+
+    Color statusDotColor;
+    if (widget.isApprovalPending) {
+      statusDotColor = AppColors.statusWarning;
+    } else if (isActuallyRunning) {
+      statusDotColor = AppColors.primary;
+    } else if (widget.isConnected) {
+      statusDotColor = AppColors.statusSuccess;
+    } else {
+      statusDotColor = AppColors.statusWarning;
+    }
+
+    String hintText;
+    if (widget.isApprovalPending) {
+      hintText = 'Agent is paused — review changes above, or add a note...';
+    } else if (isActuallyRunning) {
+      hintText = 'Agent is working... (tap stop to interrupt)';
+    } else {
+      hintText = 'Describe what to inspect, edit, or test...';
+    }
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surfaceMain,
@@ -66,7 +90,7 @@ class _ChatComposerState extends State<ChatComposer> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Run / Connection Status Line
+          // Run / Connection / Review Status Line
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: Row(
@@ -78,9 +102,7 @@ class _ChatComposerState extends State<ChatComposer> {
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: widget.isRunning
-                            ? AppColors.primary
-                            : (widget.isConnected ? AppColors.statusSuccess : AppColors.statusWarning),
+                        color: statusDotColor,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -88,13 +110,14 @@ class _ChatComposerState extends State<ChatComposer> {
                     Text(
                       widget.statusText,
                       style: AppTypography.codeSm.copyWith(
-                        color: AppColors.textSecondary,
+                        color: widget.isApprovalPending ? AppColors.statusWarning : AppColors.textSecondary,
                         fontSize: 10,
+                        fontWeight: widget.isApprovalPending ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                   ],
                 ),
-                if (widget.isRunning)
+                if (isActuallyRunning)
                   GestureDetector(
                     onTap: widget.onStop,
                     child: Row(
@@ -111,6 +134,21 @@ class _ChatComposerState extends State<ChatComposer> {
                         ),
                       ],
                     ),
+                  )
+                else if (widget.isApprovalPending)
+                  Row(
+                    children: [
+                      const Icon(Icons.pause_circle_outline, size: 12, color: AppColors.statusWarning),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Paused for review',
+                        style: AppTypography.codeSm.copyWith(
+                          color: AppColors.statusWarning,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
               ],
             ),
@@ -141,7 +179,11 @@ class _ChatComposerState extends State<ChatComposer> {
                   decoration: BoxDecoration(
                     color: AppColors.surfaceElevated,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.borderSubtle),
+                    border: Border.all(
+                      color: widget.isApprovalPending
+                          ? AppColors.statusWarning.withValues(alpha: 0.3)
+                          : AppColors.borderSubtle,
+                    ),
                   ),
                   child: TextField(
                     controller: _controller,
@@ -151,9 +193,7 @@ class _ChatComposerState extends State<ChatComposer> {
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _submit(),
                     decoration: InputDecoration(
-                      hintText: widget.isRunning
-                          ? 'Agent is working... (tap stop to interrupt)'
-                          : 'Describe what to inspect, edit, or test...',
+                      hintText: hintText,
                       hintStyle: AppTypography.bodySm.copyWith(color: AppColors.textMuted),
                       border: InputBorder.none,
                       isDense: true,
@@ -165,12 +205,12 @@ class _ChatComposerState extends State<ChatComposer> {
               const SizedBox(width: 8),
 
               // Action button (Stop while running, Send otherwise)
-              if (widget.isRunning)
+              if (isActuallyRunning)
                 Container(
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: AppColors.statusError.withOpacity(0.2),
+                    color: AppColors.statusError.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: AppColors.statusError),
                   ),

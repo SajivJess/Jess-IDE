@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.logging import logger
 from app.db.models.task import Task
 from app.db.models.workspace import Workspace
@@ -776,5 +777,48 @@ class CLIProcessAgentAdapter(BaseAgentAdapter):
                 pass
 
 
-# Global simulated agent instance (defaults to step_delay=0.3)
-simulated_agent = SimulatedAgentAdapter(step_delay=0.3)
+class DispatchingAgentAdapter(BaseAgentAdapter):
+    """Dynamic dispatcher between MetaAgentAdapter and SimulatedAgentAdapter.
+    
+    Routes execution dynamically based on AGENT_PROVIDER ('meta' vs 'simulated')
+    and MODEL_API_KEY configuration without breaking existing callers.
+    """
+
+    def __init__(self) -> None:
+        self._simulated = SimulatedAgentAdapter(step_delay=0.3)
+        self._meta: Optional[BaseAgentAdapter] = None
+
+    @property
+    def step_delay(self) -> float:
+        return self._simulated.step_delay
+
+    @step_delay.setter
+    def step_delay(self, value: float) -> None:
+        self._simulated.step_delay = value
+
+    def _resolve(self) -> BaseAgentAdapter:
+        if settings.MODEL_API_KEY and getattr(settings, "AGENT_PROVIDER", "simulated").lower() == "meta":
+            if self._meta is None:
+                from app.services.meta_agent import MetaAgentAdapter
+                self._meta = MetaAgentAdapter()
+            return self._meta
+        return self._simulated
+
+    async def run_task(self, task_id: uuid.UUID) -> None:
+        adapter = self._resolve()
+        logger.info(f"[AgentDispatcher] Routing task {task_id} to {adapter.__class__.__name__}")
+        await adapter.run_task(task_id)
+
+    async def handle_approval(
+        self, task_id: uuid.UUID, approved: bool, reason: Optional[str] = None
+    ) -> None:
+        adapter = self._resolve()
+        await adapter.handle_approval(task_id, approved, reason)
+
+    async def cancel_task(self, task_id: uuid.UUID) -> None:
+        adapter = self._resolve()
+        await adapter.cancel_task(task_id)
+
+
+# Global agent instance exposed to endpoints (routes to Meta when AGENT_PROVIDER=meta)
+simulated_agent = DispatchingAgentAdapter()

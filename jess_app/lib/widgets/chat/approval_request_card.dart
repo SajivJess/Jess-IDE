@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
-import '../status_badge.dart';
 
 class ApprovalRequestCard extends StatefulWidget {
   final String prompt;
@@ -29,6 +28,7 @@ class ApprovalRequestCard extends StatefulWidget {
 
 class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
   bool _isSubmitting = false;
+  bool _isDiffExpanded = false;
 
   Future<void> _handle(bool approve) async {
     if (_isSubmitting || widget.isDecided) return;
@@ -42,14 +42,180 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
     }
   }
 
+  void _showRequestChangesSheet(BuildContext context) {
+    final noteController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceMain,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Request Changes',
+                    style: AppTypography.headlineSm.copyWith(color: AppColors.textPrimary),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18, color: AppColors.textSecondary),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Reject the proposed changes and guide the agent on what to fix.',
+                style: AppTypography.bodySm.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: noteController,
+                maxLines: 3,
+                style: AppTypography.bodyMd.copyWith(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  hintText: 'Feedback for the agent (e.g. "Add error handling for division by zero")',
+                  hintStyle: AppTypography.bodySm.copyWith(color: AppColors.textMuted),
+                  filled: true,
+                  fillColor: AppColors.surfaceElevated,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.borderSubtle),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textSecondary,
+                        side: const BorderSide(color: AppColors.borderSubtle),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.statusError,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.close, size: 16),
+                      label: const Text('Confirm Reject'),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _handle(false);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDiffView(String rawDiff) {
+    final lines = rawDiff.split('\n');
+    final isNoChanges = rawDiff.contains('(No file modifications detected)') || rawDiff.trim().isEmpty;
+
+    if (isNoChanges) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceElevated,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppColors.borderSubtle),
+        ),
+        child: Text(
+          'Workspace files updated directly. Review target file contents before approving.',
+          style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxHeight: 260),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F0F17),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: lines.map((line) {
+            Color textColor = AppColors.textSecondary;
+            Color bgColor = Colors.transparent;
+
+            if (line.startsWith('+') && !line.startsWith('+++')) {
+              textColor = const Color(0xFF4ADE80);
+              bgColor = const Color(0xFF14532D).withValues(alpha: 0.25);
+            } else if (line.startsWith('-') && !line.startsWith('---')) {
+              textColor = const Color(0xFFF87171);
+              bgColor = const Color(0xFF7F1D1D).withValues(alpha: 0.25);
+            } else if (line.startsWith('@@')) {
+              textColor = AppColors.lavender;
+            }
+
+            return Container(
+              width: double.infinity,
+              color: bgColor,
+              padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
+              child: Text(
+                line,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 10,
+                  color: textColor,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasDiff = widget.diff != null && widget.diff!.isNotEmpty;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surfaceMain,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: widget.isDecided
               ? (widget.wasApproved == true ? AppColors.statusSuccess : AppColors.statusError)
@@ -60,6 +226,7 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Bar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -68,7 +235,7 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
                   Icon(
                     widget.isDecided
                         ? (widget.wasApproved == true ? Icons.check_circle : Icons.cancel)
-                        : Icons.lock_outline,
+                        : Icons.lock_clock,
                     size: 16,
                     color: widget.isDecided
                         ? (widget.wasApproved == true ? AppColors.statusSuccess : AppColors.statusError)
@@ -84,45 +251,108 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
                       color: widget.isDecided
                           ? (widget.wasApproved == true ? AppColors.statusSuccess : AppColors.statusError)
                           : AppColors.statusWarning,
+                      letterSpacing: 0.5,
                       fontSize: 11,
                     ),
                   ),
                 ],
               ),
-              if (widget.target != null)
-                Text(
-                  widget.target!,
-                  style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
+              if (widget.target != null && widget.target!.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceElevated,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: AppColors.borderSubtle),
+                  ),
+                  child: Text(
+                    widget.target!,
+                    style: AppTypography.codeSm.copyWith(color: AppColors.lavender, fontSize: 10),
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 8),
+
+          // Prompt description
           Text(
             widget.prompt,
-            style: AppTypography.bodySm.copyWith(color: AppColors.textPrimary),
+            style: AppTypography.bodySm.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
 
-          // Code diff snippet
-          if (widget.diff != null && widget.diff!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppColors.borderSubtle),
-              ),
-              child: Text(
-                widget.diff!.trim(),
-                style: AppTypography.codeSm.copyWith(fontSize: 10),
-                maxLines: 8,
-                overflow: TextOverflow.ellipsis,
+          // Expandable Diff Review Button & View
+          if (hasDiff) ...[
+            const SizedBox(height: 10),
+            InkWell(
+              onTap: () => setState(() => _isDiffExpanded = !_isDiffExpanded),
+              borderRadius: BorderRadius.circular(6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.borderSubtle),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.difference_outlined, size: 14, color: AppColors.lavender),
+                    const SizedBox(width: 6),
+                    Text(
+                      _isDiffExpanded ? 'Hide changes' : 'Review changes',
+                      style: AppTypography.codeSm.copyWith(
+                        color: AppColors.lavender,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _isDiffExpanded ? 'Tap to collapse' : 'View diff',
+                      style: AppTypography.bodySm.copyWith(color: AppColors.textMuted, fontSize: 10),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _isDiffExpanded ? Icons.expand_less : Icons.expand_more,
+                      size: 16,
+                      color: AppColors.textMuted,
+                    ),
+                  ],
+                ),
               ),
             ),
+            if (_isDiffExpanded) ...[
+              const SizedBox(height: 8),
+              _buildDiffView(widget.diff!),
+            ],
           ],
 
+          // Paused Notice & Action Buttons
           if (!widget.isDecided) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.statusWarning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.pause_circle_outline, size: 13, color: AppColors.statusWarning),
+                  const SizedBox(width: 6),
+                  Text(
+                    'The agent is paused until you decide.',
+                    style: AppTypography.codeSm.copyWith(
+                      color: AppColors.statusWarning,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -132,7 +362,8 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
                       backgroundColor: AppColors.statusSuccess,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
                     ),
                     icon: _isSubmitting
                         ? const SizedBox(
@@ -141,7 +372,10 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
                         : const Icon(Icons.check, size: 16),
-                    label: const Text('Approve Action', style: TextStyle(fontWeight: FontWeight.w600)),
+                    label: const Text(
+                      'Approve Action',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                    ),
                     onPressed: _isSubmitting ? null : () => _handle(true),
                   ),
                 ),
@@ -152,11 +386,14 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
                       foregroundColor: AppColors.statusError,
                       side: const BorderSide(color: AppColors.statusError),
                       padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     icon: const Icon(Icons.close, size: 16),
-                    label: const Text('Reject', style: TextStyle(fontWeight: FontWeight.w600)),
-                    onPressed: _isSubmitting ? null : () => _handle(false),
+                    label: const Text(
+                      'Reject',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                    ),
+                    onPressed: _isSubmitting ? null : () => _showRequestChangesSheet(context),
                   ),
                 ),
               ],

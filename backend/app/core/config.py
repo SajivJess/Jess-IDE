@@ -51,6 +51,20 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-2.5-flash"
     GEMINI_API_BASE: str = "https://generativelanguage.googleapis.com/v1beta"
 
+    # Meta Model API Orchestration
+    MODEL_API_KEY: Optional[str] = None
+    META_MODEL_ID: str = "muse-spark-1.3"
+    META_MODEL_BASE_URL: str = "https://api.meta.ai/v1"
+    AGENT_PROVIDER: str = "meta"  # "meta" or "simulated"
+    META_MAX_TOOL_ITERATIONS: int = 15
+    META_MAX_REPAIR_ATTEMPTS: int = 3
+    META_REQUEST_TIMEOUT_SECONDS: int = 90
+    REQUIRE_DOCKER_ISOLATION: bool = False
+
+    # GitHub Integration
+    GITHUB_TOKEN: Optional[str] = None
+    GITHUB_API_BASE_URL: str = "https://api.github.com"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:

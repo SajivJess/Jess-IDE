@@ -16,10 +16,11 @@ import '../../widgets/chat/tool_activity_card.dart';
 import '../../widgets/chat/approval_request_card.dart';
 import '../../widgets/chat/file_changed_card.dart';
 import '../../widgets/chat/chat_composer.dart';
+import '../../widgets/chat/agent_progress_card.dart';
 
 // Timeline Item Model hierarchy for Conversational Chat
 abstract class ChatTimelineItem {
-  final String id;
+  String id;
   final DateTime timestamp;
   ChatTimelineItem({required this.id, required this.timestamp});
 }
@@ -32,12 +33,210 @@ class ChatUserMessageItem extends ChatTimelineItem {
 class ChatAssistantMessageItem extends ChatTimelineItem {
   String content;
   bool isStreaming;
+  String? eventId;
+
   ChatAssistantMessageItem({
     required super.id,
     required super.timestamp,
     required this.content,
     this.isStreaming = false,
+    this.eventId,
   });
+}
+
+/// Helper that reconciles assistant messages between WebSocket streaming events
+/// and HTTP POST responses with deduplication and state preservation.
+class ChatTimelineReconciler {
+  /// Handles `message.started` event from WebSocket.
+  /// Deduplicates against existing messages (e.g. if HTTP arrived first or repeated event).
+  static ChatAssistantMessageItem onMessageStarted({
+    required List<ChatTimelineItem> timelineItems,
+    required String eventId,
+    String? messageId,
+    required DateTime createdAt,
+  }) {
+    final rawMsgId = (messageId != null && messageId.trim().isNotEmpty) ? messageId.trim() : null;
+    final effectiveId = rawMsgId ?? eventId;
+
+    // 1. Check if message already exists by canonical ID or event ID
+    final existingIndex = timelineItems.indexWhere(
+      (item) =>
+          item is ChatAssistantMessageItem &&
+          (item.id == effectiveId ||
+              (rawMsgId != null && item.id == rawMsgId) ||
+              (item.eventId != null && item.eventId == eventId)),
+    );
+
+    if (existingIndex != -1) {
+      final existing = timelineItems[existingIndex] as ChatAssistantMessageItem;
+      if (rawMsgId != null && existing.id != rawMsgId) {
+        existing.id = rawMsgId;
+      }
+      existing.eventId ??= eventId;
+      return existing;
+    }
+
+    final newItem = ChatAssistantMessageItem(
+      id: effectiveId,
+      timestamp: createdAt,
+      content: '',
+      isStreaming: true,
+      eventId: eventId,
+    );
+    timelineItems.add(newItem);
+    return newItem;
+  }
+
+  /// Handles `message.delta` event from WebSocket.
+  static ChatAssistantMessageItem onMessageDelta({
+    required List<ChatTimelineItem> timelineItems,
+    ChatAssistantMessageItem? activeMessage,
+    required String eventId,
+    String? messageId,
+    required String text,
+    required DateTime createdAt,
+  }) {
+    final rawMsgId = (messageId != null && messageId.trim().isNotEmpty) ? messageId.trim() : null;
+    final effectiveId = rawMsgId ?? eventId;
+
+    if (activeMessage != null) {
+      activeMessage.content += text;
+      if (rawMsgId != null && activeMessage.id != rawMsgId) {
+        activeMessage.id = rawMsgId;
+      }
+      return activeMessage;
+    }
+
+    final existingIndex = timelineItems.indexWhere(
+      (item) =>
+          item is ChatAssistantMessageItem &&
+          (item.id == effectiveId ||
+              (rawMsgId != null && item.id == rawMsgId) ||
+              (item.eventId != null && item.eventId == eventId)),
+    );
+
+    if (existingIndex != -1) {
+      final existing = timelineItems[existingIndex] as ChatAssistantMessageItem;
+      existing.content += text;
+      if (rawMsgId != null && existing.id != rawMsgId) {
+        existing.id = rawMsgId;
+      }
+      return existing;
+    }
+
+    final newItem = ChatAssistantMessageItem(
+      id: effectiveId,
+      timestamp: createdAt,
+      content: text,
+      isStreaming: true,
+      eventId: eventId,
+    );
+    timelineItems.add(newItem);
+    return newItem;
+  }
+
+  /// Handles `message.completed` event from WebSocket idempotently.
+  static void onMessageCompleted({
+    required List<ChatTimelineItem> timelineItems,
+    ChatAssistantMessageItem? activeMessage,
+    required String eventId,
+    String? messageId,
+    String? text,
+    required DateTime createdAt,
+  }) {
+    final rawMsgId = (messageId != null && messageId.trim().isNotEmpty) ? messageId.trim() : null;
+    final effectiveId = rawMsgId ?? eventId;
+
+    if (activeMessage != null) {
+      activeMessage.isStreaming = false;
+      if (text != null && text.isNotEmpty) {
+        activeMessage.content = text;
+      }
+      if (rawMsgId != null && activeMessage.id != rawMsgId) {
+        activeMessage.id = rawMsgId;
+      }
+      return;
+    }
+
+    final existingIndex = timelineItems.indexWhere(
+      (item) =>
+          item is ChatAssistantMessageItem &&
+          (item.id == effectiveId ||
+              (rawMsgId != null && item.id == rawMsgId) ||
+              (item.eventId != null && item.eventId == eventId)),
+    );
+
+    if (existingIndex != -1) {
+      final existing = timelineItems[existingIndex] as ChatAssistantMessageItem;
+      existing.isStreaming = false;
+      if (text != null && text.isNotEmpty) {
+        existing.content = text;
+      }
+      if (rawMsgId != null && existing.id != rawMsgId) {
+        existing.id = rawMsgId;
+      }
+    } else if (text != null && text.isNotEmpty) {
+      timelineItems.add(
+        ChatAssistantMessageItem(
+          id: effectiveId,
+          timestamp: createdAt,
+          content: text,
+          isStreaming: false,
+          eventId: eventId,
+        ),
+      );
+    }
+  }
+
+  /// Handles assistant reply received via HTTP POST response.
+  /// Reconciles with provisional WebSocket bubble or adds a single new bubble.
+  static void onHttpResponse({
+    required List<ChatTimelineItem> timelineItems,
+    ChatAssistantMessageItem? activeMessage,
+    required ConversationMessageModel assistantMessage,
+  }) {
+    // 1. Primary check: exact match by canonical DB message ID
+    final indexById = timelineItems.indexWhere(
+      (item) => item is ChatAssistantMessageItem && item.id == assistantMessage.id,
+    );
+
+    if (indexById != -1) {
+      // WebSocket arrived first with canonical message ID. Finalize streaming and sync content.
+      final existing = timelineItems[indexById] as ChatAssistantMessageItem;
+      existing.isStreaming = false;
+      if (assistantMessage.content.isNotEmpty) {
+        existing.content = assistantMessage.content;
+      }
+      return;
+    }
+
+    // 2. Secondary check: reconcile provisional bubble if WebSocket arrived first with eventId
+    // Scoped strictly to the most recent in-flight assistant message for this user turn.
+    final provisionalIndex = timelineItems.lastIndexWhere((item) {
+      if (item is! ChatAssistantMessageItem) return false;
+      final isStreamingCandidate = item.isStreaming || item == activeMessage;
+      final isProvisionalEvent = item.eventId != null && item.content.trim() == assistantMessage.content.trim();
+      return isStreamingCandidate || isProvisionalEvent;
+    });
+
+    if (provisionalIndex != -1) {
+      final provisional = timelineItems[provisionalIndex] as ChatAssistantMessageItem;
+      provisional.id = assistantMessage.id;
+      provisional.content = assistantMessage.content;
+      provisional.isStreaming = false;
+      return;
+    }
+
+    // 3. Brand new message (e.g. HTTP arrived before any WebSocket event)
+    timelineItems.add(
+      ChatAssistantMessageItem(
+        id: assistantMessage.id,
+        timestamp: assistantMessage.createdAt,
+        content: assistantMessage.content,
+        isStreaming: false,
+      ),
+    );
+  }
 }
 
 class ChatToolActivityItem extends ChatTimelineItem {
@@ -317,41 +516,42 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
           break;
 
         case 'message.started':
-          _activeAssistantMessage = ChatAssistantMessageItem(
-            id: event.eventId,
-            timestamp: event.createdAt,
-            content: '',
-            isStreaming: true,
+          final msgId = (event.data['message_id'] as String?)?.trim();
+          _activeAssistantMessage = ChatTimelineReconciler.onMessageStarted(
+            timelineItems: _timelineItems,
+            eventId: event.eventId,
+            messageId: msgId,
+            createdAt: event.createdAt,
           );
-          _timelineItems.add(_activeAssistantMessage!);
           _scrollToBottom();
           break;
 
         case 'message.delta':
           final text = event.data['text'] as String? ?? '';
-          if (_activeAssistantMessage != null) {
-            _activeAssistantMessage!.content += text;
-          } else {
-            _activeAssistantMessage = ChatAssistantMessageItem(
-              id: event.eventId,
-              timestamp: event.createdAt,
-              content: text,
-              isStreaming: true,
-            );
-            _timelineItems.add(_activeAssistantMessage!);
-          }
+          final msgId = (event.data['message_id'] as String?)?.trim();
+          _activeAssistantMessage = ChatTimelineReconciler.onMessageDelta(
+            timelineItems: _timelineItems,
+            activeMessage: _activeAssistantMessage,
+            eventId: event.eventId,
+            messageId: msgId,
+            text: text,
+            createdAt: event.createdAt,
+          );
           _scrollToBottom();
           break;
 
         case 'message.completed':
-          if (_activeAssistantMessage != null) {
-            _activeAssistantMessage!.isStreaming = false;
-            final full = event.data['text'] as String?;
-            if (full != null && full.isNotEmpty) {
-              _activeAssistantMessage!.content = full;
-            }
-            _activeAssistantMessage = null;
-          }
+          final msgId = (event.data['message_id'] as String?)?.trim();
+          final full = event.data['text'] as String?;
+          ChatTimelineReconciler.onMessageCompleted(
+            timelineItems: _timelineItems,
+            activeMessage: _activeAssistantMessage,
+            eventId: event.eventId,
+            messageId: msgId,
+            text: full,
+            createdAt: event.createdAt,
+          );
+          _activeAssistantMessage = null;
           break;
 
         case 'tool.started':
@@ -501,19 +701,14 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
           setState(() {
             _isRunActive = false;
             _chatStatusText = 'Idle';
-            // Only add if not already received from WebSocket stream
-            final exists = _timelineItems.any(
-              (item) => item is ChatAssistantMessageItem && item.id == response.assistantMessage!.id,
+            ChatTimelineReconciler.onHttpResponse(
+              timelineItems: _timelineItems,
+              activeMessage: _activeAssistantMessage,
+              assistantMessage: response.assistantMessage!,
             );
-            if (!exists) {
-              _timelineItems.add(
-                ChatAssistantMessageItem(
-                  id: response.assistantMessage!.id,
-                  timestamp: response.assistantMessage!.createdAt,
-                  content: response.assistantMessage!.content,
-                  isStreaming: false,
-                ),
-              );
+            if (_activeAssistantMessage != null &&
+                _activeAssistantMessage!.id == response.assistantMessage!.id) {
+              _activeAssistantMessage = null;
             }
           });
           _scrollToBottom();
@@ -1033,8 +1228,38 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     );
   }
 
+  List<dynamic> _groupTimelineItems(List<ChatTimelineItem> items) {
+    final result = <dynamic>[];
+    List<ChatToolActivityItem>? currentGroup;
+
+    for (final item in items) {
+      if (item is ChatToolActivityItem) {
+        currentGroup ??= [];
+        currentGroup.add(item);
+      } else {
+        if (currentGroup != null) {
+          result.add(currentGroup);
+          currentGroup = null;
+        }
+        result.add(item);
+      }
+    }
+    if (currentGroup != null) {
+      result.add(currentGroup);
+    }
+    return result;
+  }
+
   // TAB 1: Conversational Chat UI (ChatGPT / Gemini style)
   Widget _buildChatSessionTab() {
+    final groupedItems = _groupTimelineItems(_timelineItems);
+    final isApprovalPending = _timelineItems.any((item) => item is ChatApprovalItem && !item.isDecided);
+    final effectiveStatusText = isApprovalPending
+        ? 'Review needed'
+        : (_isRunActive
+            ? 'Working...'
+            : (_chatStatusText.isNotEmpty ? _chatStatusText : 'Ready'));
+
     return Column(
       children: [
         // Top session status bar
@@ -1060,10 +1285,16 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
               Row(
                 children: [
                   StatusBadge(
-                    label: _chatStatusText.toUpperCase(),
-                    type: _isRunActive
-                        ? StatusType.info
-                        : (_chatStatusText == 'Completed' ? StatusType.success : StatusType.neutral),
+                    label: isApprovalPending
+                        ? 'REVIEW NEEDED'
+                        : (_isRunActive
+                            ? 'WORKING...'
+                            : (_chatStatusText == 'Completed' ? 'COMPLETED' : (_chatStatusText.isNotEmpty ? _chatStatusText.toUpperCase() : 'READY'))),
+                    type: isApprovalPending
+                        ? StatusType.warning
+                        : (_isRunActive
+                            ? StatusType.info
+                            : (_chatStatusText == 'Completed' ? StatusType.success : StatusType.neutral)),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
@@ -1087,10 +1318,12 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
               : ListView.builder(
                   controller: _chatScrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  itemCount: _timelineItems.length,
+                  itemCount: groupedItems.length,
                   itemBuilder: (context, idx) {
-                    final item = _timelineItems[idx];
-                    if (item is ChatUserMessageItem) {
+                    final item = groupedItems[idx];
+                    if (item is List<ChatToolActivityItem>) {
+                      return AgentProgressCard(activities: item);
+                    } else if (item is ChatUserMessageItem) {
                       return ChatMessageBubble(
                         role: 'user',
                         content: item.content,
@@ -1139,7 +1372,8 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
         // Bottom Multiline Composer
         ChatComposer(
           isRunning: _isRunActive,
-          statusText: _chatStatusText,
+          isApprovalPending: isApprovalPending,
+          statusText: effectiveStatusText,
           isConnected: _streamStatus == ChatStreamStatus.connected,
           onSend: _onSendMessage,
           onStop: _onStopRun,
