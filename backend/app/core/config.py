@@ -1,5 +1,5 @@
 import json
-from typing import List, Union
+from typing import List, Optional, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     DEFAULT_WORKSPACE_IMAGE: str = "python:3.10-slim"
     WORKSPACE_COMMAND_TIMEOUT_SECONDS: int = 60
     WORKSPACE_MAX_OUTPUT_BYTES: int = 1048576  # 1 MB
+
+    # Gemini & LLM Orchestration
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_API_BASE: str = "https://generativelanguage.googleapis.com/v1beta"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

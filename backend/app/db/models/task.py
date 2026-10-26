@@ -7,6 +7,7 @@ from sqlalchemy.types import Uuid
 from app.db.base import Base, TimestampMixin, UUIDMixin
 
 if TYPE_CHECKING:
+    from app.db.models.conversation import Conversation
     from app.db.models.project import Project
     from app.db.models.task_event import TaskEvent
     from app.db.models.workspace import Workspace
@@ -21,6 +22,12 @@ class Task(Base, UUIDMixin, TimestampMixin):
         Uuid(as_uuid=True),
         ForeignKey("projects.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
+    )
+    conversation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
     workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(
@@ -59,6 +66,10 @@ class Task(Base, UUIDMixin, TimestampMixin):
     # Relationships
     project: Mapped["Project"] = relationship(
         "Project",
+        back_populates="tasks",
+    )
+    conversation: Mapped[Optional["Conversation"]] = relationship(
+        "Conversation",
         back_populates="tasks",
     )
     workspace: Mapped[Optional["Workspace"]] = relationship(

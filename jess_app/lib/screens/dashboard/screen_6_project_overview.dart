@@ -7,8 +7,95 @@ import '../../widgets/app_header.dart';
 import '../../widgets/status_badge.dart';
 import '../../services/projects_api_service.dart';
 import '../../services/tasks_api_service.dart';
-import '../../services/task_stream_service.dart';
 import '../../services/workspaces_api_service.dart';
+import '../../models/agent_event.dart';
+import '../../services/conversations_api_service.dart';
+import '../../services/chat_stream_service.dart';
+import '../../widgets/chat/chat_message_bubble.dart';
+import '../../widgets/chat/tool_activity_card.dart';
+import '../../widgets/chat/approval_request_card.dart';
+import '../../widgets/chat/file_changed_card.dart';
+import '../../widgets/chat/chat_composer.dart';
+
+// Timeline Item Model hierarchy for Conversational Chat
+abstract class ChatTimelineItem {
+  final String id;
+  final DateTime timestamp;
+  ChatTimelineItem({required this.id, required this.timestamp});
+}
+
+class ChatUserMessageItem extends ChatTimelineItem {
+  final String content;
+  ChatUserMessageItem({required super.id, required super.timestamp, required this.content});
+}
+
+class ChatAssistantMessageItem extends ChatTimelineItem {
+  String content;
+  bool isStreaming;
+  ChatAssistantMessageItem({
+    required super.id,
+    required super.timestamp,
+    required this.content,
+    this.isStreaming = false,
+  });
+}
+
+class ChatToolActivityItem extends ChatTimelineItem {
+  final String tool;
+  final String label;
+  String status; // "running", "completed", "failed"
+  String? output;
+  String? command;
+  int? exitCode;
+  ChatToolActivityItem({
+    required super.id,
+    required super.timestamp,
+    required this.tool,
+    required this.label,
+    required this.status,
+    this.output,
+    this.command,
+    this.exitCode,
+  });
+}
+
+class ChatFileChangedItem extends ChatTimelineItem {
+  final String file;
+  final String? action;
+  final String diff;
+  final int additions;
+  final int deletions;
+  ChatFileChangedItem({
+    required super.id,
+    required super.timestamp,
+    required this.file,
+    this.action,
+    required this.diff,
+    this.additions = 0,
+    this.deletions = 0,
+  });
+}
+
+class ChatApprovalItem extends ChatTimelineItem {
+  final String runId;
+  final String prompt;
+  final String? target;
+  final String? action;
+  final String? diff;
+  bool isDecided;
+  bool? wasApproved;
+  ChatApprovalItem({
+    required super.id,
+    required super.timestamp,
+    required this.runId,
+    required this.prompt,
+    this.target,
+    this.action,
+    this.diff,
+    this.isDecided = false,
+    this.wasApproved,
+  });
+}
 
 class Screen6ProjectOverview extends StatefulWidget {
   final String? projectId;
@@ -40,13 +127,22 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   String? _projectId;
   ProjectModel? _project;
   List<TaskModel> _tasks = [];
-  TaskModel? _activeTask;
-  TaskStreamService? _streamService;
-  StreamSubscription? _streamSub;
-  final List<String> _streamLogs = [];
-  String? _proposedDiff;
   bool _isLoadingTasks = false;
-  bool _isActing = false;
+
+  // Conversational Agent State
+  ConversationModel? _currentConversation;
+  ChatStreamService? _chatStreamService;
+  StreamSubscription<AgentEventModel>? _chatStreamSub;
+  StreamSubscription<ChatStreamStatus>? _chatStatusSub;
+  final List<ChatTimelineItem> _timelineItems = [];
+  final Map<String, ChatToolActivityItem> _activeTools = {};
+  ChatAssistantMessageItem? _activeAssistantMessage;
+  final ScrollController _chatScrollController = ScrollController();
+  bool _isRunActive = false;
+  String? _currentRunId;
+  String _chatStatusText = 'Ready';
+  ChatStreamStatus _streamStatus = ChatStreamStatus.disconnected;
+  int _lastSeenSeq = 0;
 
   // Phase 6 Workspace State
   WorkspaceModel? _workspace;
@@ -71,8 +167,10 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
 
   @override
   void dispose() {
-    _streamSub?.cancel();
-    _streamService?.dispose();
+    _chatStreamSub?.cancel();
+    _chatStatusSub?.cancel();
+    _chatStreamService?.dispose();
+    _chatScrollController.dispose();
     _cmdController.dispose();
     super.dispose();
   }
@@ -115,6 +213,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       await Future.wait([
         _loadTasks(_projectId!),
         _loadWorkspace(_projectId!),
+        _loadConversation(_projectId!),
       ]);
     }
 
@@ -129,10 +228,345 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   Future<void> _loadTasks(String projectId) async {
     final taskRes = await TasksApiService.listTasks(projectId: projectId);
     if (taskRes.success) {
-      _tasks = taskRes.items;
-      if (_tasks.isNotEmpty && _activeTask == null) {
-        _selectAndStreamTask(_tasks.first);
+      if (mounted) {
+        setState(() {
+          _tasks = taskRes.items;
+        });
       }
+    }
+  }
+
+  Future<void> _loadConversation(String projectId) async {
+    final convs = await ConversationsApiService.listConversations(projectId);
+    if (!mounted || convs.isEmpty) return;
+
+    _currentConversation = convs.first;
+
+    // Load persistent message history
+    final history = await ConversationsApiService.getMessages(projectId, _currentConversation!.id);
+    if (!mounted) return;
+
+    setState(() {
+      _timelineItems.clear();
+      for (final m in history) {
+        if (m.role == 'user') {
+          _timelineItems.add(
+            ChatUserMessageItem(
+              id: m.id,
+              timestamp: m.createdAt,
+              content: m.content,
+            ),
+          );
+        } else {
+          _timelineItems.add(
+            ChatAssistantMessageItem(
+              id: m.id,
+              timestamp: m.createdAt,
+              content: m.content,
+              isStreaming: false,
+            ),
+          );
+        }
+      }
+    });
+
+    _connectChatStream();
+  }
+
+  void _connectChatStream() {
+    if (_currentConversation == null) return;
+    _chatStreamSub?.cancel();
+    _chatStatusSub?.cancel();
+    _chatStreamService?.dispose();
+
+    _chatStreamService = ChatStreamService(
+      conversationId: _currentConversation!.id,
+      lastSequenceNumber: _lastSeenSeq,
+    );
+
+    _chatStatusSub = _chatStreamService!.status.listen((s) {
+      if (!mounted) return;
+      setState(() {
+        _streamStatus = s;
+        if (s == ChatStreamStatus.connected && !_isRunActive) {
+          _chatStatusText = 'Ready';
+        } else if (s == ChatStreamStatus.reconnecting) {
+          _chatStatusText = 'Reconnecting...';
+        } else if (s == ChatStreamStatus.disconnected) {
+          _chatStatusText = 'Offline';
+        }
+      });
+    });
+
+    _chatStreamSub = _chatStreamService!.events.listen(_onAgentEventReceived);
+    _chatStreamService!.connect();
+  }
+
+  void _onAgentEventReceived(AgentEventModel event) {
+    if (!mounted) return;
+    if (event.sequence > _lastSeenSeq) {
+      _lastSeenSeq = event.sequence;
+    }
+
+    setState(() {
+      switch (event.type) {
+        case 'run.started':
+          _isRunActive = true;
+          _currentRunId = event.runId;
+          _chatStatusText = 'Working...';
+          break;
+
+        case 'message.started':
+          _activeAssistantMessage = ChatAssistantMessageItem(
+            id: event.eventId,
+            timestamp: event.createdAt,
+            content: '',
+            isStreaming: true,
+          );
+          _timelineItems.add(_activeAssistantMessage!);
+          _scrollToBottom();
+          break;
+
+        case 'message.delta':
+          final text = event.data['text'] as String? ?? '';
+          if (_activeAssistantMessage != null) {
+            _activeAssistantMessage!.content += text;
+          } else {
+            _activeAssistantMessage = ChatAssistantMessageItem(
+              id: event.eventId,
+              timestamp: event.createdAt,
+              content: text,
+              isStreaming: true,
+            );
+            _timelineItems.add(_activeAssistantMessage!);
+          }
+          _scrollToBottom();
+          break;
+
+        case 'message.completed':
+          if (_activeAssistantMessage != null) {
+            _activeAssistantMessage!.isStreaming = false;
+            final full = event.data['text'] as String?;
+            if (full != null && full.isNotEmpty) {
+              _activeAssistantMessage!.content = full;
+            }
+            _activeAssistantMessage = null;
+          }
+          break;
+
+        case 'tool.started':
+          final tool = event.data['tool'] as String? ?? 'terminal';
+          final label = event.data['label'] as String? ?? 'Running tool';
+          final cmd = event.data['command'] as String?;
+          final item = ChatToolActivityItem(
+            id: event.eventId,
+            timestamp: event.createdAt,
+            tool: tool,
+            label: label,
+            status: 'running',
+            command: cmd,
+          );
+          _activeTools[tool] = item;
+          _timelineItems.add(item);
+          _scrollToBottom();
+          break;
+
+        case 'tool.output':
+          final tool = event.data['tool'] as String? ?? 'terminal';
+          final out = event.data['output'] as String? ?? '';
+          final item = _activeTools[tool];
+          if (item != null) {
+            item.output = (item.output == null || item.output!.isEmpty)
+                ? out
+                : '${item.output}\n$out';
+          }
+          break;
+
+        case 'tool.completed':
+          final tool = event.data['tool'] as String? ?? 'terminal';
+          final item = _activeTools[tool];
+          if (item != null) {
+            item.status = 'completed';
+            item.exitCode = event.data['exit_code'] as int? ?? 0;
+            if (event.data['summary'] != null) {
+              item.output = event.data['summary'] as String;
+            }
+            _activeTools.remove(tool);
+          }
+          break;
+
+        case 'file.changed':
+          _timelineItems.add(
+            ChatFileChangedItem(
+              id: event.eventId,
+              timestamp: event.createdAt,
+              file: event.data['file'] as String? ?? 'file',
+              action: event.data['action'] as String? ?? 'modified',
+              diff: event.data['diff'] as String? ?? '',
+              additions: event.data['additions'] as int? ?? 0,
+              deletions: event.data['deletions'] as int? ?? 0,
+            ),
+          );
+          _scrollToBottom();
+          break;
+
+        case 'approval.required':
+          _chatStatusText = 'Waiting for approval';
+          _timelineItems.add(
+            ChatApprovalItem(
+              id: event.eventId,
+              timestamp: event.createdAt,
+              runId: event.runId ?? _currentRunId ?? '',
+              prompt: event.data['prompt'] as String? ?? 'Approval required for proposed action',
+              target: event.data['target'] as String?,
+              action: event.data['action'] as String?,
+              diff: event.data['diff'] as String?,
+            ),
+          );
+          _scrollToBottom();
+          break;
+
+        case 'run.completed':
+          _isRunActive = false;
+          _chatStatusText = 'Completed';
+          _currentRunId = null;
+          if (_projectId != null) {
+            _loadTasks(_projectId!);
+            _loadGitStatus();
+          }
+          break;
+
+        case 'run.cancelled':
+          _isRunActive = false;
+          _chatStatusText = 'Cancelled';
+          _currentRunId = null;
+          break;
+
+        case 'run.failed':
+          _isRunActive = false;
+          _chatStatusText = 'Failed';
+          _currentRunId = null;
+          break;
+      }
+    });
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  Future<void> _onSendMessage(String text) async {
+    if (_projectId == null || _currentConversation == null) return;
+
+    setState(() {
+      _timelineItems.add(
+        ChatUserMessageItem(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          timestamp: DateTime.now(),
+          content: text,
+        ),
+      );
+      _isRunActive = false;
+      _chatStatusText = 'Thinking...';
+    });
+    _scrollToBottom();
+
+    final response = await ConversationsApiService.sendMessage(
+      _projectId!,
+      _currentConversation!.id,
+      text,
+    );
+
+    if (response != null) {
+      if (response.run != null) {
+        // Coding instruction intent: Agent run started
+        if (mounted) {
+          setState(() {
+            _isRunActive = true;
+            _currentRunId = response.run!.id;
+            _chatStatusText = 'Working...';
+          });
+        }
+      } else if (response.assistantMessage != null) {
+        // Conversational / Question / Clarification intent: Normal chat bubble
+        if (mounted) {
+          setState(() {
+            _isRunActive = false;
+            _chatStatusText = 'Idle';
+            // Only add if not already received from WebSocket stream
+            final exists = _timelineItems.any(
+              (item) => item is ChatAssistantMessageItem && item.id == response.assistantMessage!.id,
+            );
+            if (!exists) {
+              _timelineItems.add(
+                ChatAssistantMessageItem(
+                  id: response.assistantMessage!.id,
+                  timestamp: response.assistantMessage!.createdAt,
+                  content: response.assistantMessage!.content,
+                  isStreaming: false,
+                ),
+              );
+            }
+          });
+          _scrollToBottom();
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isRunActive = false;
+            _chatStatusText = 'Idle';
+          });
+        }
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isRunActive = false;
+          _chatStatusText = 'Error sending message';
+        });
+      }
+    }
+  }
+
+  Future<void> _onStopRun() async {
+    if (_projectId == null || _currentRunId == null) return;
+    final success = await ConversationsApiService.cancelRun(_projectId!, _currentRunId!);
+    if (mounted && success) {
+      setState(() {
+        _isRunActive = false;
+        _chatStatusText = 'Cancelled';
+      });
+    }
+  }
+
+  Future<void> _handleApprovalDecision(ChatApprovalItem item, bool approve) async {
+    if (_projectId == null) return;
+    final runId = item.runId.isNotEmpty ? item.runId : (_currentRunId ?? '');
+    final success = await ConversationsApiService.submitApproval(
+      _projectId!,
+      runId,
+      approve: approve,
+    );
+
+    if (mounted && success) {
+      setState(() {
+        item.isDecided = true;
+        item.wasApproved = approve;
+        if (approve) {
+          _chatStatusText = 'Working...';
+        } else {
+          _chatStatusText = 'Cancelled';
+          _isRunActive = false;
+        }
+      });
     }
   }
 
@@ -201,132 +635,6 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     }
   }
 
-  Future<void> _stopWorkspace() async {
-    if (_projectId == null || _workspace == null) return;
-    setState(() => _isActingWorkspace = true);
-    final ws = await WorkspacesApiService.stopWorkspace(_projectId!, _workspace!.id);
-    if (mounted) {
-      setState(() {
-        _isActingWorkspace = false;
-        if (ws != null) _workspace = ws;
-      });
-    }
-  }
-
-  Future<void> _restartWorkspace() async {
-    if (_projectId == null || _workspace == null) return;
-    setState(() => _isActingWorkspace = true);
-    final ws = await WorkspacesApiService.restartWorkspace(_projectId!, _workspace!.id);
-    if (mounted) {
-      setState(() {
-        _isActingWorkspace = false;
-        if (ws != null) _workspace = ws;
-      });
-      if (ws != null) {
-        _loadGitStatus();
-        _loadWorkspaceFiles();
-      }
-    }
-  }
-
-  void _selectAndStreamTask(TaskModel task) {
-    _streamSub?.cancel();
-    _streamService?.dispose();
-
-    setState(() {
-      _activeTask = task;
-      _streamLogs.clear();
-      _streamLogs.add('Loaded task: ${task.title} [Status: ${task.status.label}]');
-      _proposedDiff = null;
-    });
-
-    _streamService = TaskStreamService(taskId: task.id);
-    _streamSub = _streamService!.events.listen((event) {
-      if (!mounted) return;
-      setState(() {
-        final payload = event.payload;
-        switch (event.eventType) {
-          case 'task.started':
-            _streamLogs.add('● [Agent] Execution started...');
-            _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.running);
-            break;
-          case 'task.progress':
-            final msg = payload['message'] ?? 'In progress...';
-            _streamLogs.add('→ [Progress] $msg');
-            break;
-          case 'tool.requested':
-            final tool = payload['tool'] ?? 'tool';
-            final params = payload['parameters'] ?? payload['args'] ?? '';
-            _streamLogs.add('⚡ [Tool Request] $tool($params)');
-            break;
-          case 'diff.proposed':
-            _proposedDiff = payload['diff'] as String?;
-            final file = payload['file_path'] ?? 'file';
-            _streamLogs.add('📝 [Diff Proposed] $file');
-            _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.approvalRequired);
-            break;
-          case 'approval.submitted':
-            final approved = payload['approved'] == true;
-            _streamLogs.add(approved ? '✔ [Approved] Changes accepted.' : '✖ [Rejected] Changes declined.');
-            break;
-          case 'approval.rejected':
-            _streamLogs.add('✖ [Approval Rejected] Task aborted.');
-            _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.cancelled);
-            break;
-          case 'task.completed':
-            _streamLogs.add('✔ [Completed] ${payload['summary'] ?? 'Task finished.'}');
-            _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.completed);
-            break;
-          case 'task.cancelled':
-            _streamLogs.add('■ [Cancelled] ${payload['reason'] ?? 'Task cancelled.'}');
-            _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.cancelled);
-            break;
-          case 'task.failed':
-            _streamLogs.add('✖ [Failed] ${payload['error'] ?? 'Task execution error.'}');
-            _activeTask = _copyWithStatus(_activeTask!, TaskStatusEnum.failed);
-            break;
-        }
-      });
-    });
-  }
-
-  TaskModel _copyWithStatus(TaskModel task, TaskStatusEnum newStatus) {
-    return TaskModel(
-      id: task.id,
-      projectId: task.projectId,
-      workspaceId: task.workspaceId,
-      title: task.title,
-      prompt: task.prompt,
-      status: newStatus,
-      activeBranch: task.activeBranch,
-      commitSha: task.commitSha,
-      createdAt: task.createdAt,
-      updatedAt: DateTime.now(),
-      eventsCount: task.eventsCount + 1,
-    );
-  }
-
-  Future<void> _handleApproval(bool approved) async {
-    if (_activeTask == null || _projectId == null) return;
-    setState(() => _isActing = true);
-
-    final success = await TasksApiService.submitApproval(
-      projectId: _projectId!,
-      taskId: _activeTask!.id,
-      approve: approved,
-      reason: approved ? 'Approved via mobile overview' : 'Rejected via mobile overview',
-    );
-
-    if (mounted) {
-      setState(() => _isActing = false);
-      if (!success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to submit approval')),
-        );
-      }
-    }
-  }
-
   Future<void> _runTerminalCommand() async {
     final raw = _cmdController.text.trim();
     if (raw.isEmpty || _projectId == null || _workspace == null) return;
@@ -348,143 +656,33 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     }
   }
 
-  void _showNewTaskDialog() {
-    final titleCtrl = TextEditingController();
-    final promptCtrl = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surfaceMain,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('New Agent Task', style: AppTypography.headlineSm),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text('Task Title', style: AppTypography.labelMd),
-              const SizedBox(height: 6),
-              TextField(
-                controller: titleCtrl,
-                style: AppTypography.bodyMd,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: AppColors.surfaceElevated,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.borderSubtle),
-                  ),
-                  hintText: 'e.g. Implement retry policy',
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text('Task Instructions / Prompt', style: AppTypography.labelMd),
-              const SizedBox(height: 6),
-              TextField(
-                controller: promptCtrl,
-                maxLines: 3,
-                style: AppTypography.bodyMd,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: AppColors.surfaceElevated,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.borderSubtle),
-                  ),
-                  hintText: 'Describe what the agent should investigate or modify...',
-                ),
-              ),
-              const SizedBox(height: 18),
-              AppButton(
-                text: 'Launch Agent Task',
-                icon: const Icon(Icons.play_circle_fill, size: 18, color: Colors.white),
-                onPressed: () async {
-                  final title = titleCtrl.text.trim();
-                  final prompt = promptCtrl.text.trim();
-                  if (title.isEmpty || prompt.isEmpty || _projectId == null) return;
-                  Navigator.pop(ctx);
-
-                  final res = await TasksApiService.createTask(
-                    projectId: _projectId!,
-                    title: title,
-                    prompt: prompt,
-                  );
-
-                  if (res.success && res.task != null) {
-                    setState(() {
-                      _tasks.insert(0, res.task!);
-                      _selectAndStreamTask(res.task!);
-                      _selectedTab = 1; // Switch to Chat/Coding Session
-                    });
-                  } else {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(res.errorMessage ?? 'Failed to create task')),
-                      );
-                    }
-                  }
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   void _showFileContentDialog(String filePath, String fileName) async {
     if (_projectId == null || _workspace == null) return;
-    final content = await WorkspacesApiService.readFile(
-      _projectId!,
-      _workspace!.id,
-      filePath,
-    );
+    final content = await WorkspacesApiService.readFile(_projectId!, _workspace!.id, filePath);
 
-    if (mounted && content != null) {
-      showDialog(
-        context: context,
-        builder: (dCtx) => AlertDialog(
-          backgroundColor: AppColors.surfaceMain,
-          title: Text(fileName, style: AppTypography.labelMd),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 380,
-            child: SingleChildScrollView(
-              child: Text(
-                content,
-                style: AppTypography.codeSm.copyWith(fontSize: 11),
-              ),
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceMain,
+        title: Text(fileName, style: AppTypography.headlineSm),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Text(
+              content ?? 'Empty or binary file',
+              style: AppTypography.codeSm.copyWith(fontSize: 11),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dCtx),
-              child: const Text('Close'),
-            ),
-          ],
         ),
-      );
-    }
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   StatusType _statusType(TaskStatusEnum status) {
@@ -492,12 +690,12 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       case TaskStatusEnum.completed:
         return StatusType.success;
       case TaskStatusEnum.running:
-        return StatusType.primary;
+        return StatusType.info;
       case TaskStatusEnum.approvalRequired:
         return StatusType.warning;
       case TaskStatusEnum.failed:
       case TaskStatusEnum.cancelled:
-      case TaskStatusEnum.queued:
+        return StatusType.error;
       default:
         return StatusType.neutral;
     }
@@ -508,13 +706,14 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       case WorkspaceStatusEnum.running:
         return StatusType.success;
       case WorkspaceStatusEnum.creating:
-      case WorkspaceStatusEnum.pending:
-        return StatusType.primary;
+        return StatusType.info;
       case WorkspaceStatusEnum.stopping:
       case WorkspaceStatusEnum.stopped:
         return StatusType.neutral;
       case WorkspaceStatusEnum.failed:
         return StatusType.error;
+      default:
+        return StatusType.neutral;
     }
   }
 
@@ -522,102 +721,103 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppHeader(
-        showBack: true,
-        onBackPressed: () => Navigator.of(context).maybePop(),
-        title: widget.projectName,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.textSecondary, size: 20),
-            onPressed: _resolveProjectAndLoadData,
-          ),
-        ],
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 620),
-          child: Column(
-            children: [
-              // Contextual Project Navigation Tabs (Overview, Chat, Workspace, Changes)
-              Container(
-                decoration: const BoxDecoration(
-                  color: AppColors.surfaceMain,
-                  border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // App Header
+            AppHeader(
+              title: widget.projectName,
+              version: 'v0.9.4-beta',
+              showBack: true,
+              onBackPressed: () => Navigator.pop(context),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: AppColors.textSecondary, size: 20),
+                  onPressed: _resolveProjectAndLoadData,
                 ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    children: List.generate(_tabs.length, (index) {
-                      final isSelected = _selectedTab == index;
-                      IconData tabIcon;
-                      switch (index) {
-                        case 0:
-                          tabIcon = Icons.info_outline;
-                          break;
-                        case 1:
-                          tabIcon = Icons.chat_bubble_outline;
-                          break;
-                        case 2:
-                          tabIcon = Icons.terminal;
-                          break;
-                        case 3:
-                          tabIcon = Icons.difference_outlined;
-                          break;
-                        default:
-                          tabIcon = Icons.circle;
-                      }
+              ],
+            ),
 
-                      return InkWell(
-                        onTap: () {
-                          setState(() => _selectedTab = index);
-                          if (index == 2 && _workspaceFiles.isEmpty && _workspace != null) {
-                            _loadWorkspaceFiles();
-                          } else if (index == 3) {
-                            _loadGitStatus();
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: isSelected ? AppColors.primary : Colors.transparent,
-                                width: 2,
-                              ),
+            // Tab Bar Row
+            Container(
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceMain,
+                border: Border(
+                  bottom: BorderSide(color: AppColors.borderSubtle),
+                ),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(_tabs.length, (index) {
+                    final isSelected = _selectedTab == index;
+                    IconData tabIcon;
+                    switch (index) {
+                      case 0:
+                        tabIcon = Icons.info_outline;
+                        break;
+                      case 1:
+                        tabIcon = Icons.chat_bubble_outline;
+                        break;
+                      case 2:
+                        tabIcon = Icons.terminal;
+                        break;
+                      case 3:
+                        tabIcon = Icons.difference_outlined;
+                        break;
+                      default:
+                        tabIcon = Icons.circle;
+                    }
+
+                    return InkWell(
+                      onTap: () {
+                        setState(() => _selectedTab = index);
+                        if (index == 2 && _workspaceFiles.isEmpty && _workspace != null) {
+                          _loadWorkspaceFiles();
+                        } else if (index == 3) {
+                          _loadGitStatus();
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: isSelected ? AppColors.primary : Colors.transparent,
+                              width: 2,
                             ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                tabIcon,
-                                size: 14,
-                                color: isSelected ? AppColors.lavender : AppColors.textSecondary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                _tabs[index],
-                                style: AppTypography.labelMd.copyWith(
-                                  color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
-                      );
-                    }),
-                  ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              tabIcon,
+                              size: 14,
+                              color: isSelected ? AppColors.lavender : AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _tabs[index],
+                              style: AppTypography.labelMd.copyWith(
+                                color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
                 ),
               ),
+            ),
 
-              // Tab Body
-              Expanded(
-                child: _buildSelectedTabContent(),
-              ),
-            ],
-          ),
+            // Tab Body (Expanded so Chat timeline can stretch and scroll properly)
+            Expanded(
+              child: _buildSelectedTabContent(),
+            ),
+          ],
         ),
       ),
     );
@@ -638,7 +838,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     }
   }
 
-  // TAB 0: Project Overview (Metadata, Primary Session CTA, Workspace Status, Recent Tasks)
+  // TAB 0: Project Overview
   Widget _buildOverviewTab() {
     final defaultBranch = _project?.defaultBranch ?? _gitStatus?.branch ?? 'main';
     final repoOrPath = _project?.workspacePath ?? _project?.repoUrl ?? 'Local Folder';
@@ -649,51 +849,75 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Project Title & Status Badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  widget.projectName,
-                  style: AppTypography.headlineLg,
-                  overflow: TextOverflow.ellipsis,
+          // Project Meta Card
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceMain,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.borderSubtle),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _project?.name ?? widget.projectName,
+                        style: AppTypography.headlineMd,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    StatusBadge(
+                      label: isDockerRunning ? 'CONNECTED' : 'IDLE',
+                      type: isDockerRunning ? StatusType.success : StatusType.neutral,
+                    ),
+                  ],
                 ),
-              ),
-              StatusBadge(
-                label: isDockerRunning ? 'Docker: Running' : 'Connected',
-                type: StatusType.success,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Metadata Chips
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              _buildMetaPill(Icons.fork_right, defaultBranch),
-              _buildMetaPill(Icons.folder_outlined, repoOrPath),
-              if (_project?.sourceType != null)
-                _buildMetaPill(Icons.tag, _project!.sourceType.toUpperCase()),
-            ],
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _buildMetaPill(Icons.fork_right, defaultBranch),
+                    _buildMetaPill(
+                      _project?.sourceType == 'git' ? Icons.link : Icons.folder_open,
+                      repoOrPath,
+                    ),
+                    if (_workspace != null)
+                      _buildMetaPill(Icons.dns, _workspace!.status.label.toUpperCase()),
+                  ],
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
-          // Primary Actions Row: Open Coding Session + Open Workspace
+          // Action Shortcuts
+          AppButton(
+            text: 'Open Coding Session',
+            icon: const Icon(Icons.forum_outlined, size: 18, color: Colors.white),
+            onPressed: () => setState(() => _selectedTab = 1),
+          ),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
-                child: AppButton(
-                  text: 'Open Coding Session',
-                  icon: const Icon(Icons.play_circle_outline, size: 18, color: Colors.white),
-                  onPressed: () => setState(() => _selectedTab = 1),
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.lavender,
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.difference_outlined, size: 16),
+                  label: const Text('Changes'),
+                  onPressed: () => setState(() => _selectedTab = 3),
                 ),
               ),
-              const SizedBox(width: 8),
-              SizedBox(
-                height: 48,
+              const SizedBox(width: 10),
+              Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.lavender,
@@ -717,11 +941,11 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Project Tasks', style: AppTypography.headlineSm),
+              Text('Project Activity & Tasks', style: AppTypography.headlineSm),
               TextButton.icon(
-                icon: const Icon(Icons.add, size: 14, color: AppColors.lavender),
-                label: Text('New Task', style: AppTypography.labelSm.copyWith(color: AppColors.lavender)),
-                onPressed: _showNewTaskDialog,
+                icon: const Icon(Icons.chat_bubble_outline, size: 14, color: AppColors.lavender),
+                label: Text('Chat', style: AppTypography.labelSm.copyWith(color: AppColors.lavender)),
+                onPressed: () => setState(() => _selectedTab = 1),
               ),
             ],
           ),
@@ -752,7 +976,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'No tasks created yet. Tap "Open Coding Session" to start.',
+                      'No tasks launched yet. Tap "Open Coding Session" to converse with the agent.',
                       style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary),
                     ),
                   ),
@@ -764,10 +988,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: InkWell(
-                  onTap: () {
-                    _selectAndStreamTask(task);
-                    setState(() => _selectedTab = 1);
-                  },
+                  onTap: () => setState(() => _selectedTab = 1),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.all(12),
@@ -812,84 +1033,182 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     );
   }
 
-  // TAB 1: Coding Session (Agent Chat, WebSocket Stream, Approvals, Diff)
+  // TAB 1: Conversational Chat UI (ChatGPT / Gemini style)
   Widget _buildChatSessionTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Row
-          Row(
+    return Column(
+      children: [
+        // Top session status bar
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: AppColors.surfaceMain,
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Agent Coding Session', style: AppTypography.headlineSm),
-              AppButton(
-                text: '+ New Task',
-                width: 105,
-                height: 36,
-                onPressed: _showNewTaskDialog,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Active Task Card
-          if (_activeTask != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceMain,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.borderSubtle),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _activeTask!.title,
-                          style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      StatusBadge(
-                        label: _activeTask!.status.label.toUpperCase(),
-                        type: _statusType(_activeTask!.status),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
+                  const Icon(Icons.forum_outlined, size: 14, color: AppColors.lavender),
+                  const SizedBox(width: 6),
                   Text(
-                    _activeTask!.prompt,
-                    style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                    _currentConversation?.title ?? 'Coding Session',
+                    style: AppTypography.codeSm.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
+              Row(
+                children: [
+                  StatusBadge(
+                    label: _chatStatusText.toUpperCase(),
+                    type: _isRunActive
+                        ? StatusType.info
+                        : (_chatStatusText == 'Completed' ? StatusType.success : StatusType.neutral),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 16, color: AppColors.textSecondary),
+                    tooltip: 'Refresh conversation',
+                    onPressed: _projectId != null ? () => _loadConversation(_projectId!) : null,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const Divider(color: AppColors.borderSubtle, height: 1),
+
+        // Timeline Message List
+        Expanded(
+          child: _timelineItems.isEmpty
+              ? _buildChatEmptyState()
+              : ListView.builder(
+                  controller: _chatScrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  itemCount: _timelineItems.length,
+                  itemBuilder: (context, idx) {
+                    final item = _timelineItems[idx];
+                    if (item is ChatUserMessageItem) {
+                      return ChatMessageBubble(
+                        role: 'user',
+                        content: item.content,
+                        timestamp: item.timestamp,
+                      );
+                    } else if (item is ChatAssistantMessageItem) {
+                      return ChatMessageBubble(
+                        role: 'assistant',
+                        content: item.content,
+                        isStreaming: item.isStreaming,
+                        timestamp: item.timestamp,
+                      );
+                    } else if (item is ChatToolActivityItem) {
+                      return ToolActivityCard(
+                        tool: item.tool,
+                        label: item.label,
+                        status: item.status,
+                        output: item.output,
+                        command: item.command,
+                        exitCode: item.exitCode,
+                      );
+                    } else if (item is ChatFileChangedItem) {
+                      return FileChangedCard(
+                        file: item.file,
+                        diff: item.diff,
+                        action: item.action,
+                        additions: item.additions,
+                        deletions: item.deletions,
+                      );
+                    } else if (item is ChatApprovalItem) {
+                      return ApprovalRequestCard(
+                        prompt: item.prompt,
+                        target: item.target,
+                        action: item.action,
+                        diff: item.diff,
+                        isDecided: item.isDecided,
+                        wasApproved: item.wasApproved,
+                        onDecision: (approve) => _handleApprovalDecision(item, approve),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+        ),
+
+        // Bottom Multiline Composer
+        ChatComposer(
+          isRunning: _isRunActive,
+          statusText: _chatStatusText,
+          isConnected: _streamStatus == ChatStreamStatus.connected,
+          onSend: _onSendMessage,
+          onStop: _onStopRun,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChatEmptyState() {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+              ),
+              child: const Icon(Icons.smart_toy_outlined, size: 28, color: AppColors.lavender),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
+            Text('Jess Coding Assistant', style: AppTypography.headlineSm),
+            const SizedBox(height: 6),
+            Text(
+              'Describe what you want to build or refactor. The remote agent inspects the project, runs tools, proposes changes, and streams progress into this conversation.',
+              style: AppTypography.bodySm.copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                _buildPromptSuggestion('Run tests and verify project'),
+                _buildPromptSuggestion('Add retry policy with exponential backoff'),
+                _buildPromptSuggestion('Inspect project structure & git status'),
+              ],
+            ),
           ],
+        ),
+      ),
+    );
+  }
 
-          // Approval Gate Card
-          if (_activeTask != null && _activeTask!.status == TaskStatusEnum.approvalRequired) ...[
-            _buildApprovalGateCard(),
-            const SizedBox(height: 12),
+  Widget _buildPromptSuggestion(String prompt) {
+    return InkWell(
+      onTap: () => _onSendMessage(prompt),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceMain,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.borderSubtle),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.bolt, size: 12, color: AppColors.lavender),
+            const SizedBox(width: 4),
+            Text(prompt, style: AppTypography.codeSm.copyWith(fontSize: 11, color: AppColors.textPrimary)),
           ],
-
-          // Live WebSocket Agent Event Stream Box
-          _buildLiveAgentStreamCard(),
-          const SizedBox(height: 12),
-
-          // Proposed Diff Preview
-          if (_proposedDiff != null) ...[
-            _buildDiffPreviewCard(),
-            const SizedBox(height: 12),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -1235,142 +1554,6 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
           Text(
             'Image: ${ws.imageName ?? 'python:3.10-slim'} · ID: ${ws.id.substring(0, ws.id.length > 8 ? 8 : ws.id.length)}',
             style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLiveAgentStreamCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceMain,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.stream, size: 14, color: AppColors.primary),
-                  const SizedBox(width: 6),
-                  Text('Agent Live Stream', style: AppTypography.labelMd),
-                ],
-              ),
-              StatusBadge(
-                label: _streamLogs.isNotEmpty ? 'STREAMING' : 'IDLE',
-                type: _streamLogs.isNotEmpty ? StatusType.success : StatusType.neutral,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            height: 150,
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppColors.borderSubtle),
-            ),
-            child: SingleChildScrollView(
-              reverse: true,
-              child: Text(
-                _streamLogs.isEmpty ? 'No events yet. Launch a task to start agent execution.' : _streamLogs.join('\n'),
-                style: AppTypography.codeSm.copyWith(fontSize: 10),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildApprovalGateCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceMain,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.statusWarning),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const StatusBadge(
-            label: 'APPROVAL REQUIRED',
-            type: StatusType.warning,
-            icon: Icons.lock_outline,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'The agent has prepared modifications that require your review and approval.',
-            style: AppTypography.bodySm,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.statusSuccess,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                  icon: const Icon(Icons.check, size: 16, color: Colors.white),
-                  label: const Text('Approve', style: TextStyle(color: Colors.white)),
-                  onPressed: _isActing ? null : () => _handleApproval(true),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.statusError,
-                    side: const BorderSide(color: AppColors.statusError),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                  icon: const Icon(Icons.close, size: 16),
-                  label: const Text('Reject'),
-                  onPressed: _isActing ? null : () => _handleApproval(false),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDiffPreviewCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceMain,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Proposed Changes', style: AppTypography.labelMd),
-          const SizedBox(height: 6),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppColors.borderSubtle),
-            ),
-            child: Text(
-              _proposedDiff ?? '',
-              style: AppTypography.codeSm.copyWith(fontSize: 10),
-            ),
           ),
         ],
       ),

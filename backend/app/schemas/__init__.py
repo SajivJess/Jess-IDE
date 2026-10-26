@@ -24,6 +24,18 @@ from app.schemas.task import (
     TaskRead,
     TaskStatus,
 )
+from app.schemas.conversation import (
+    AgentEvent,
+    ChatMessageCreate,
+    ChatMessageResponse,
+    ConversationCreate,
+    ConversationListResponse,
+    ConversationMessageRead,
+    ConversationRead,
+    EventReplayResponse,
+    RunRead,
+    RunStartRequest,
+)
 
 from app.schemas.workspace import (
     WorkspaceCommandRequest,

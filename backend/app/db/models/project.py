@@ -7,6 +7,7 @@ from sqlalchemy.types import Uuid
 from app.db.base import Base, TimestampMixin, UUIDMixin
 
 if TYPE_CHECKING:
+    from app.db.models.conversation import Conversation
     from app.db.models.user import User
     from app.db.models.task import Task
     from app.db.models.workspace import Workspace
@@ -57,6 +58,11 @@ class Project(Base, UUIDMixin, TimestampMixin):
     )
     tasks: Mapped[List["Task"]] = relationship(
         "Task",
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
+    conversations: Mapped[List["Conversation"]] = relationship(
+        "Conversation",
         back_populates="project",
         cascade="all, delete-orphan",
     )

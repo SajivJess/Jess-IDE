@@ -1,5 +1,13 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, health, projects, tasks, workspaces, ws
+from app.api.v1.endpoints import (
+    auth,
+    conversations,
+    health,
+    projects,
+    tasks,
+    workspaces,
+    ws,
+)
 
 api_router = APIRouter()
 
@@ -12,10 +20,13 @@ api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 # Projects endpoints
 api_router.include_router(projects.router, prefix="/projects", tags=["Projects"])
 
+# Conversations & Runs endpoints
+api_router.include_router(conversations.router, tags=["Conversations"])
+
 # Workspaces endpoints
 api_router.include_router(workspaces.router, tags=["Workspaces"])
 
-# Tasks endpoints
+# Tasks endpoints (legacy)
 api_router.include_router(tasks.router, tags=["Tasks"])
 
 # WebSocket streaming endpoints
