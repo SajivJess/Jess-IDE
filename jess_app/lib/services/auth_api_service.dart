@@ -73,6 +73,9 @@ class AuthApiService {
   static String? currentRefreshToken;
   static AuthUser? currentUser;
 
+  static Future<String?> getToken() async => currentAccessToken;
+  static String? get token => currentAccessToken;
+
   static final http.Client _client = http.Client();
 
   /// Register a new account with the FastAPI backend

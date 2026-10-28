@@ -6,6 +6,8 @@ from app.api.v1.endpoints import (
     health,
     projects,
     tasks,
+    ui_suggestions,
+    voice,
     workspaces,
     ws,
 )
@@ -17,6 +19,12 @@ api_router.include_router(health.router, tags=["Health"])
 
 # Authentication endpoints
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+
+# Voice Transcription endpoints (Muse Voice Transcribe)
+api_router.include_router(voice.router, prefix="/voice", tags=["Voice"])
+
+# UI Design Suggestions endpoints (Muse Image)
+api_router.include_router(ui_suggestions.router, tags=["UI Suggestions"])
 
 # GitHub Integration endpoints
 api_router.include_router(github.router, prefix="/github", tags=["GitHub"])

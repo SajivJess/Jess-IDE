@@ -53,7 +53,9 @@ class Settings(BaseSettings):
 
     # Meta Model API Orchestration
     MODEL_API_KEY: Optional[str] = None
-    META_MODEL_ID: str = "muse-spark-1.3"
+    META_MODEL_ID: str = "muse-spark-1.3"  # Primary coding agent
+    META_VOICE_MODEL_ID: str = "muse-voice-transcribe-1.0"  # Voice transcription
+    META_IMAGE_MODEL_ID: str = "muse-image-1.0"  # UI design suggestions
     META_MODEL_BASE_URL: str = "https://api.meta.ai/v1"
     AGENT_PROVIDER: str = "meta"  # "meta" or "simulated"
     META_MAX_TOOL_ITERATIONS: int = 15

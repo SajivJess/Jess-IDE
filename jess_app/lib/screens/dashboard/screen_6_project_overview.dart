@@ -23,6 +23,8 @@ import '../../services/auth_api_service.dart';
 import '../../widgets/chat/live_preview_card.dart';
 import '../../widgets/chat/agent_progress_card.dart';
 import '../../widgets/workspace/workspace_file_editor_dialog.dart';
+import '../../services/ui_suggestions_api_service.dart';
+import '../../widgets/chat/ui_suggestion_card.dart';
 
 // Timeline Item Model hierarchy for Conversational Chat
 abstract class ChatTimelineItem {
@@ -328,6 +330,16 @@ class ChatPreviewItem extends ChatTimelineItem {
     required this.file,
     this.hostingType = 'temp_tunnel',
     this.title = 'Live Web Application',
+  });
+}
+
+class ChatUiSuggestionItem extends ChatTimelineItem {
+  final UiSuggestionModel suggestion;
+
+  ChatUiSuggestionItem({
+    required super.id,
+    required super.timestamp,
+    required this.suggestion,
   });
 }
 
@@ -1677,6 +1689,34 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
                                     : StatusType.neutral))),
                   ),
                   const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => _openUiSuggestionDialog(),
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFBD93F9).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0xFFBD93F9).withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.auto_awesome, size: 12, color: Color(0xFFBD93F9)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Suggest UI',
+                            style: AppTypography.codeSm.copyWith(
+                              color: const Color(0xFFBD93F9),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                   IconButton(
                     icon: const Icon(Icons.refresh, size: 16, color: AppColors.textSecondary),
                     tooltip: 'Refresh conversation',
@@ -1759,6 +1799,27 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
                             hostingType: item.hostingType,
                             title: item.title,
                           );
+                        } else if (item is ChatUiSuggestionItem) {
+                          return UiSuggestionCard(
+                            suggestion: item.suggestion,
+                            onCodeDesign: (instruction) {
+                              setState(() {
+                                _chatInputController.text = instruction;
+                                _chatInputController.selection = TextSelection.fromPosition(
+                                  TextPosition(offset: _chatInputController.text.length),
+                                );
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Design proposal loaded into prompt. Ready for Muse Spark!'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            onRefineDesign: (sug) {
+                              _openUiSuggestionDialog(initialPrompt: 'Refine: ${sug.prompt}');
+                            },
+                          );
                         }
                         return const SizedBox.shrink();
                       },
@@ -1801,6 +1862,169 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
           onStop: _onStopRun,
         ),
       ],
+    );
+  }
+
+  void _openUiSuggestionDialog({String? initialPrompt}) {
+    final promptController = TextEditingController(text: initialPrompt ?? '');
+    bool isGenerating = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceMain,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (bottomSheetCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFBD93F9).withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFBD93F9).withValues(alpha: 0.5)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.auto_awesome, size: 12, color: Color(0xFFBD93F9)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'MUSE IMAGE 1.0',
+                              style: AppTypography.codeSm.copyWith(
+                                color: const Color(0xFFBD93F9),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'AI UI Design Suggestion',
+                        style: AppTypography.headlineSm.copyWith(fontSize: 15),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 18, color: AppColors.textSecondary),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Describe the UI, screen, or component mockup you want generated. Muse Image will propose visual design ideas before Muse Spark writes the code.',
+                    style: AppTypography.bodySm.copyWith(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: promptController,
+                    maxLines: 3,
+                    style: AppTypography.bodyMd.copyWith(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Modern dark dashboard with statistics cards, activity chart, and sidebar navigation...',
+                      hintStyle: AppTypography.bodySm.copyWith(color: AppColors.textMuted),
+                      filled: true,
+                      fillColor: AppColors.surfaceElevated,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.borderSubtle),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFBD93F9),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: isGenerating
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                            )
+                          : const Icon(Icons.auto_awesome, size: 16),
+                      label: Text(
+                        isGenerating ? 'Generating Mockup...' : 'Generate UI Mockup',
+                        style: AppTypography.codeSm.copyWith(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      onPressed: isGenerating
+                          ? null
+                          : () async {
+                              final text = promptController.text.trim();
+                              if (text.isEmpty) return;
+                              if (_projectId == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Project not loaded yet.')),
+                                );
+                                return;
+                              }
+                              setModalState(() => isGenerating = true);
+                              final suggestion = await UiSuggestionsApiService.generateUiSuggestion(
+                                projectId: _projectId!,
+                                prompt: text,
+                              );
+                              if (!mounted) return;
+                              Navigator.pop(ctx);
+                              if (suggestion != null) {
+                                setState(() {
+                                  _timelineItems.add(
+                                    ChatUiSuggestionItem(
+                                      id: suggestion.id,
+                                      timestamp: DateTime.now(),
+                                      suggestion: suggestion,
+                                    ),
+                                  );
+                                });
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (_chatScrollController.hasClients) {
+                                    _chatScrollController.animateTo(
+                                      _chatScrollController.position.maxScrollExtent,
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.easeOut,
+                                    );
+                                  }
+                                });
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Failed to generate UI suggestion. Please try again.'),
+                                  ),
+                                );
+                              }
+                            },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
