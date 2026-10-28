@@ -18,6 +18,10 @@ from app.schemas.workspace import (
     WorkspaceFileListResponse,
     WorkspaceFileReadResponse,
     WorkspaceFileWriteRequest,
+    WorkspaceGitBranchesResponse,
+    WorkspaceGitCheckoutRequest,
+    WorkspaceGitCommitRequest,
+    WorkspaceGitCommitResponse,
     WorkspaceGitDiffResponse,
     WorkspaceGitStatusResponse,
     WorkspaceListResponse,
@@ -402,3 +406,66 @@ async def get_workspace_git_diff(
     ws = await _get_workspace_with_ownership(workspace_id, current_user.id, project_id, db)
     provider = get_workspace_provider()
     return await provider.get_git_diff(ws)
+
+
+@router.get(
+    "/projects/{project_id}/workspaces/{workspace_id}/git/branches",
+    response_model=WorkspaceGitBranchesResponse,
+    summary="List Git branches in workspace",
+)
+async def get_workspace_git_branches(
+    project_id: uuid.UUID,
+    workspace_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceGitBranchesResponse:
+    ws = await _get_workspace_with_ownership(workspace_id, current_user.id, project_id, db)
+    provider = get_workspace_provider()
+    return await provider.get_git_branches(ws)
+
+
+@router.post(
+    "/projects/{project_id}/workspaces/{workspace_id}/git/branches/checkout",
+    response_model=WorkspaceGitStatusResponse,
+    summary="Switch or create Git branch in workspace",
+)
+async def checkout_workspace_git_branch(
+    project_id: uuid.UUID,
+    workspace_id: uuid.UUID,
+    payload: WorkspaceGitCheckoutRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceGitStatusResponse:
+    ws = await _get_workspace_with_ownership(workspace_id, current_user.id, project_id, db)
+    provider = get_workspace_provider()
+    try:
+        return await provider.checkout_git_branch(ws, payload.branch, create_new=payload.create_new)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post(
+    "/projects/{project_id}/workspaces/{workspace_id}/git/commit",
+    response_model=WorkspaceGitCommitResponse,
+    summary="Stage and commit working tree changes in workspace",
+)
+async def commit_workspace_git_changes(
+    project_id: uuid.UUID,
+    workspace_id: uuid.UUID,
+    payload: WorkspaceGitCommitRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceGitCommitResponse:
+    ws = await _get_workspace_with_ownership(workspace_id, current_user.id, project_id, db)
+    provider = get_workspace_provider()
+    try:
+        author_name = payload.author_name or current_user.full_name or "Jess Developer"
+        author_email = payload.author_email or current_user.email or "developer@jess.local"
+        return await provider.commit_git_changes(
+            ws,
+            message=payload.message,
+            author_name=author_name,
+            author_email=author_email,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

@@ -75,6 +75,9 @@ class RunRead(BaseModel):
     status: TaskStatus
     prompt: str
     title: str
+    active_branch: Optional[str] = None
+    commit_sha: Optional[str] = None
+    execution_log: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

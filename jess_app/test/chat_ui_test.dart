@@ -7,6 +7,7 @@ import 'package:jess_app/widgets/chat/approval_request_card.dart';
 import 'package:jess_app/widgets/chat/file_changed_card.dart';
 import 'package:jess_app/widgets/chat/chat_composer.dart';
 import 'package:jess_app/models/agent_event.dart';
+import 'package:jess_app/services/chat_stream_service.dart';
 
 void main() {
   setUpAll(() {
@@ -80,7 +81,7 @@ void main() {
               prompt: 'Approve modifying auth_service.py?',
               target: 'auth_service.py',
               diff: '--- a/auth_service.py\n+++ b/auth_service.py\n+ # retry logic',
-              onDecision: (approved) async {
+              onDecision: (approved, {reason}) async {
                 decision = approved;
               },
             ),
@@ -99,6 +100,43 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(decision, isTrue);
+    });
+
+    testWidgets('ApprovalRequestCard renders Git branch, baseCommit and handles stale reviews', (tester) async {
+      bool decisionTriggered = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ApprovalRequestCard(
+              prompt: 'Approve modifying math_service.py?',
+              target: 'math_service.py',
+              diff: '--- a/math_service.py\n+++ b/math_service.py\n+ return a / b',
+              branch: 'feature/safe-div',
+              baseCommit: 'a1b2c3d4e5f6',
+              checkCommand: 'pytest tests/test_div.py',
+              checkExitCode: 0,
+              checkPassed: true,
+              isStale: true,
+              onDecision: (approved, {reason}) async {
+                decisionTriggered = true;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('feature/safe-div'), findsOneWidget);
+      expect(find.text('a1b2c3d'), findsOneWidget);
+      expect(find.textContaining('Check: pytest tests/test_div.py (passed)'), findsOneWidget);
+      expect(find.textContaining('Review is stale'), findsOneWidget);
+
+      // Tapping Approve on stale review should be disabled (not trigger decision)
+      await tester.tap(find.text('Approve Action'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(decisionTriggered, isFalse);
     });
 
     testWidgets('FileChangedCard shows additions, deletions and diff lines', (tester) async {
@@ -233,6 +271,36 @@ void main() {
       expect(parsed.assistantMessage, isNull);
       expect(parsed.run, isNotNull);
       expect(parsed.run!.status, equals('QUEUED'));
+    });
+
+    test('AgentRunModel parses executionLog, activeBranch, commitSha', () {
+      final json = {
+        'id': 'run_20',
+        'project_id': 'proj_1',
+        'conversation_id': 'conv_1',
+        'status': 'APPROVAL_REQUIRED',
+        'prompt': 'Refactor user session',
+        'title': 'Refactor session',
+        'active_branch': 'feature/session-recovery',
+        'commit_sha': 'a1b2c3d4',
+        'execution_log': '{"diff": "+ session_cache.clear()", "prompt": "Approve refactor?"}',
+        'created_at': '2026-10-25T11:00:00Z',
+        'updated_at': '2026-10-25T11:05:00Z',
+      };
+
+      final parsed = AgentRunModel.fromJson(json);
+      expect(parsed.activeBranch, equals('feature/session-recovery'));
+      expect(parsed.commitSha, equals('a1b2c3d4'));
+      expect(parsed.executionLog, contains('session_cache.clear()'));
+      expect(parsed.status, equals('APPROVAL_REQUIRED'));
+    });
+
+    test('ChatStreamService initial state is disconnected and retryNow is callable', () {
+      final service = ChatStreamService(conversationId: 'test_conv');
+      expect(service.isClosed, isFalse);
+      service.retryNow();
+      service.dispose();
+      expect(service.isClosed, isTrue);
     });
   });
 }

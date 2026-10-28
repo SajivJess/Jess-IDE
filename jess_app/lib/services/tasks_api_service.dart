@@ -60,6 +60,7 @@ class TaskModel {
   final TaskStatusEnum status;
   final String? activeBranch;
   final String? commitSha;
+  final String? executionLog;
   final DateTime createdAt;
   final DateTime updatedAt;
   final int eventsCount;
@@ -73,6 +74,7 @@ class TaskModel {
     required this.status,
     this.activeBranch,
     this.commitSha,
+    this.executionLog,
     required this.createdAt,
     required this.updatedAt,
     this.eventsCount = 0,
@@ -88,6 +90,7 @@ class TaskModel {
       status: TaskStatusEnum.fromString(json['status'] as String? ?? ''),
       activeBranch: json['active_branch'] as String?,
       commitSha: json['commit_sha'] as String?,
+      executionLog: json['execution_log'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
           : DateTime.now(),
@@ -307,6 +310,14 @@ class TasksApiService {
       return false;
     }
   }
+
+  /// Convenience helper to approve a pending task
+  static Future<bool> approveTask(String projectId, String taskId) =>
+      submitApproval(projectId: projectId, taskId: taskId, approve: true);
+
+  /// Convenience helper to reject a pending task
+  static Future<bool> rejectTask(String projectId, String taskId, {String? reason}) =>
+      submitApproval(projectId: projectId, taskId: taskId, approve: false, reason: reason);
 
   /// Retrieve replayable event history
   static Future<List<TaskEventModel>> getEvents({

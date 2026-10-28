@@ -25,6 +25,7 @@ VALID_TRANSITIONS: Dict[TaskStatus, Set[TaskStatus]] = {
     },
     TaskStatus.APPROVAL_REQUIRED: {
         TaskStatus.RUNNING,
+        TaskStatus.COMPLETED,
         TaskStatus.CANCELLED,
         TaskStatus.FAILED,
     },
@@ -72,6 +73,7 @@ class TaskRead(BaseModel):
     status: TaskStatus
     active_branch: Optional[str] = None
     commit_sha: Optional[str] = None
+    execution_log: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     events_count: int = 0

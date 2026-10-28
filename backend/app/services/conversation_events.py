@@ -132,16 +132,32 @@ async def append_conversation_event(
     # If this marks assistant message completion, also persist message row if text is present
     if event_type == "message.completed":
         text_content = payload.get("text", "")
+        msg_id_str = payload.get("message_id")
         if text_content:
             try:
-                msg = ConversationMessage(
-                    conversation_id=conversation_id,
-                    run_id=run_id,
-                    role="assistant",
-                    content=text_content,
-                )
-                db.add(msg)
-                await db.commit()
+                existing_msg = None
+                if msg_id_str:
+                    try:
+                        existing_msg = await db.get(ConversationMessage, uuid.UUID(msg_id_str))
+                    except Exception:
+                        pass
+
+                if not existing_msg:
+                    msg = ConversationMessage(
+                        id=uuid.UUID(msg_id_str) if msg_id_str else uuid.uuid4(),
+                        conversation_id=conversation_id,
+                        run_id=run_id,
+                        role="assistant",
+                        content=text_content,
+                    )
+                    db.add(msg)
+                    await db.commit()
+                    await db.refresh(msg)
+                    payload["message_id"] = str(msg.id)
+                    agent_event.data["message_id"] = str(msg.id)
+                else:
+                    payload["message_id"] = str(existing_msg.id)
+                    agent_event.data["message_id"] = str(existing_msg.id)
             except Exception as e:
                 logger.warning(f"Could not persist completed assistant message: {e}")
 

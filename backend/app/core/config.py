@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     META_MAX_TOOL_ITERATIONS: int = 15
     META_MAX_REPAIR_ATTEMPTS: int = 3
     META_REQUEST_TIMEOUT_SECONDS: int = 90
+    META_CONTEXT_BUDGET_TOKENS: int = 12000
+    META_MAX_HISTORY_TURNS: int = 8
     REQUIRE_DOCKER_ISOLATION: bool = False
 
     # GitHub Integration

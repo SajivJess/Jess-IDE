@@ -32,8 +32,20 @@ class _Screen8ConfigureProjectState extends State<Screen8ConfigureProject> {
       TextEditingController(text: 'https://github.com/SajivJess/cloudaiagent.git');
   final TextEditingController _branchController =
       TextEditingController(text: 'main');
+  final TextEditingController _hostFolderController =
+      TextEditingController(text: 'D:\\SajivJess\\jess dev ide');
 
   bool _isChecking = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _repoController.dispose();
+    _branchController.dispose();
+    _hostFolderController.dispose();
+    super.dispose();
+  }
 
   void _handleContinue() async {
     final name = _nameController.text.trim();
@@ -45,12 +57,18 @@ class _Screen8ConfigureProjectState extends State<Screen8ConfigureProject> {
     }
 
     setState(() => _isChecking = true);
+    final wsPath = (widget.source == ProjectSource.host) &&
+            _hostFolderController.text.trim().isNotEmpty
+        ? _hostFolderController.text.trim()
+        : null;
+
     final result = await ProjectsApiService.createProject(
       name: name,
       description: _descController.text.trim().isNotEmpty ? _descController.text.trim() : null,
       sourceType: widget.source.name,
       repoUrl: _repoController.text.trim().isNotEmpty ? _repoController.text.trim() : null,
       defaultBranch: _branchController.text.trim().isNotEmpty ? _branchController.text.trim() : 'main',
+      workspacePath: wsPath,
     );
 
     if (mounted) {
@@ -205,7 +223,7 @@ class _Screen8ConfigureProjectState extends State<Screen8ConfigureProject> {
                         AppTextField(
                           label: 'Host folder path',
                           prefixIcon: Icons.computer,
-                          initialValue: 'D:\\SajivJess\\jess dev ide',
+                          controller: _hostFolderController,
                           hintText: 'e.g. D:\\projects\\my-app',
                           helperText: 'Absolute path on the development laptop machine.',
                         ),

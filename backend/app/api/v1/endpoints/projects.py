@@ -1,4 +1,5 @@
 import uuid
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -6,9 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.core.logging import logger
 from app.db.models.project import Project
 from app.db.models.user import User
+from app.db.models.workspace import Workspace
 from app.db.session import get_db
 from app.schemas.project import (
     ProjectCreate,
@@ -16,6 +19,8 @@ from app.schemas.project import (
     ProjectRead,
     ProjectUpdate,
 )
+from app.schemas.workspace import WorkspaceStatus
+from app.services.workspace import get_workspace_provider
 
 router = APIRouter()
 
@@ -101,7 +106,22 @@ async def create_project(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectRead:
-    """Create a project owned by the authenticated user. Ownership is derived strictly from session."""
+    # 1. Resolve & validate workspace_path
+    if payload.workspace_path and payload.workspace_path.strip():
+        resolved_path = Path(payload.workspace_path.strip()).resolve()
+        if resolved_path == resolved_path.parent or str(resolved_path) in ("/", "\\", "C:\\", "D:\\"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workspace path cannot be the filesystem root directory.",
+            )
+        resolved_path.mkdir(parents=True, exist_ok=True)
+    else:
+        base_ws_dir = Path(settings.WORKSPACE_DATA_DIR).resolve()
+        base_ws_dir.mkdir(parents=True, exist_ok=True)
+        clean_name = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in payload.name).strip("_") or "project"
+        resolved_path = base_ws_dir / f"{clean_name}_{uuid.uuid4().hex[:8]}"
+        resolved_path.mkdir(parents=True, exist_ok=True)
+
     project = Project(
         user_id=current_user.id,
         name=payload.name.strip(),
@@ -109,13 +129,34 @@ async def create_project(
         source_type=payload.source_type,
         repo_url=payload.repo_url,
         default_branch=payload.default_branch.strip(),
-        workspace_path=payload.workspace_path.strip() if payload.workspace_path else None,
+        workspace_path=str(resolved_path),
     )
     db.add(project)
     await db.commit()
     await db.refresh(project)
 
-    logger.info(f"Created project: {project.name} (id: {project.id}) for user: {current_user.email}")
+    # 2. Provision dedicated workspace for this project
+    workspace = Workspace(
+        user_id=current_user.id,
+        project_id=project.id,
+        name=f"{project.name} Workspace",
+        host_type="local_sandbox",
+        root_path=str(resolved_path),
+        status=WorkspaceStatus.PENDING.value,
+    )
+    db.add(workspace)
+    await db.commit()
+    await db.refresh(workspace)
+
+    provider = get_workspace_provider()
+    try:
+        await provider.provision(workspace, project)
+        await provider.start(workspace)
+        await db.commit()
+    except Exception as e:
+        logger.warning(f"Initial workspace provisioning for project {project.id} warning: {e}")
+
+    logger.info(f"Created project: {project.name} (id: {project.id}) with dedicated workspace at {resolved_path} for user: {current_user.email}")
 
     return ProjectRead(
         id=project.id,
@@ -208,7 +249,25 @@ async def update_project(
         elif field == "default_branch" and value is not None:
             setattr(project, field, value.strip())
         elif field == "workspace_path" and value is not None:
-            setattr(project, field, value.strip())
+            raw_val = value.strip()
+            if raw_val:
+                resolved_p = Path(raw_val).resolve()
+                if resolved_p == resolved_p.parent or str(resolved_p) in ("/", "\\", "C:\\", "D:\\"):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Workspace path cannot be the filesystem root directory.",
+                    )
+                resolved_p.mkdir(parents=True, exist_ok=True)
+                setattr(project, field, str(resolved_p))
+
+                # Update associated workspace root_path as well
+                ws_stmt = select(Workspace).where(Workspace.project_id == project.id)
+                ws_res = await db.execute(ws_stmt)
+                ws = ws_res.scalars().first()
+                if ws:
+                    ws.root_path = str(resolved_p)
+            else:
+                setattr(project, field, None)
         else:
             setattr(project, field, value)
 

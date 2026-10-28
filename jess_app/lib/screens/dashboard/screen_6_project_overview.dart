@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -281,8 +282,15 @@ class ChatApprovalItem extends ChatTimelineItem {
   final String? target;
   final String? action;
   final String? diff;
+  final String? branch;
+  final String? baseCommit;
+  final String? checkCommand;
+  final int? checkExitCode;
+  final bool? checkPassed;
+  bool isStale;
   bool isDecided;
   bool? wasApproved;
+
   ChatApprovalItem({
     required super.id,
     required super.timestamp,
@@ -291,6 +299,12 @@ class ChatApprovalItem extends ChatTimelineItem {
     this.target,
     this.action,
     this.diff,
+    this.branch,
+    this.baseCommit,
+    this.checkCommand,
+    this.checkExitCode,
+    this.checkPassed,
+    this.isStale = false,
     this.isDecided = false,
     this.wasApproved,
   });
@@ -318,7 +332,8 @@ class Screen6ProjectOverview extends StatefulWidget {
   State<Screen6ProjectOverview> createState() => _Screen6ProjectOverviewState();
 }
 
-class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
+class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
+    with WidgetsBindingObserver {
   int _selectedTab = 0;
   final List<String> _tabs = ['Overview', 'Chat', 'Workspace', 'Changes'];
 
@@ -352,6 +367,12 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   List<WorkspaceFileItem> _workspaceFiles = [];
   bool _isLoadingFiles = false;
 
+  // Batch 4 Git Review & Branch State
+  List<WorkspaceGitBranchItem> _branches = [];
+  bool _isLoadingBranches = false;
+  String? _selectedDiffFile;
+  bool _isCommitting = false;
+
   // Terminal Runner State
   final TextEditingController _cmdController = TextEditingController(text: 'git status');
   bool _isRunningCommand = false;
@@ -360,18 +381,33 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _selectedTab = widget.initialTab;
     _resolveProjectAndLoadData();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _chatStreamSub?.cancel();
     _chatStatusSub?.cancel();
     _chatStreamService?.dispose();
     _chatScrollController.dispose();
     _cmdController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Re-check WebSocket connection and retry with backoff/jitter if dropped
+      _chatStreamService?.retryNow();
+      // Re-fetch project tasks and reconcile timeline status after backgrounding
+      if (_projectId != null) {
+        _loadTasks(_projectId!);
+      }
+    }
   }
 
   Future<void> _resolveProjectAndLoadData() async {
@@ -388,6 +424,12 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
           break;
         }
       }
+      if (_project == null) {
+        final res = await ProjectsApiService.getProject(widget.projectId!);
+        if (res.success && res.project != null) {
+          _project = res.project;
+        }
+      }
     }
 
     if (_projectId == null || _project == null) {
@@ -401,7 +443,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
             break;
           }
         }
-        if (_project == null && listRes.items.isNotEmpty) {
+        if (_project == null && widget.projectId == null && listRes.items.isNotEmpty) {
           _project = listRes.items.first;
           _projectId = _project!.id;
         }
@@ -430,16 +472,98 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
       if (mounted) {
         setState(() {
           _tasks = taskRes.items;
+          _reconcilePendingTaskState();
         });
+      }
+    }
+  }
+
+  void _reconcilePendingTaskState() {
+    if (!mounted) return;
+
+    // 1. Check for pending approval
+    final pendingTask = _tasks.where((t) => t.status == TaskStatusEnum.approvalRequired).firstOrNull;
+    if (pendingTask != null) {
+      final alreadyPresent = _timelineItems.any(
+        (item) => item is ChatApprovalItem && item.runId == pendingTask.id,
+      );
+      if (!alreadyPresent) {
+        Map<String, dynamic>? logData;
+        if (pendingTask.executionLog != null && pendingTask.executionLog!.isNotEmpty) {
+          try {
+            logData = jsonDecode(pendingTask.executionLog!) as Map<String, dynamic>;
+          } catch (_) {}
+        }
+        final diff = logData?['diff'] as String?;
+        final prompt = logData?['prompt'] as String? ??
+            'Approval required for proposed changes in ${pendingTask.title}';
+        final target = logData?['target_file'] as String? ??
+            (logData?['task_owned_files'] is List
+                ? (logData!['task_owned_files'] as List).join(', ')
+                : null);
+        final branch = logData?['baseline_branch'] as String?;
+        final baseCommit = logData?['baseline_sha'] as String?;
+        final checkCommand = logData?['last_check_command'] as String?;
+        final checkExitCode = logData?['last_check_exit_code'] as int?;
+        final checkPassed = logData?['last_check_passed'] as bool?;
+
+        _timelineItems.add(
+          ChatApprovalItem(
+            id: 'approval_${pendingTask.id}',
+            timestamp: pendingTask.updatedAt ?? DateTime.now(),
+            runId: pendingTask.id,
+            prompt: prompt,
+            target: target,
+            action: 'apply_code_diff',
+            diff: diff,
+            branch: branch,
+            baseCommit: baseCommit,
+            checkCommand: checkCommand,
+            checkExitCode: checkExitCode,
+            checkPassed: checkPassed,
+          ),
+        );
+      }
+      _chatStatusText = 'Waiting for approval';
+      return;
+    }
+
+    // 2. Check for running or queued task
+    final activeTask = _tasks.where(
+      (t) => t.status == TaskStatusEnum.running || t.status == TaskStatusEnum.queued,
+    ).firstOrNull;
+    if (activeTask != null) {
+      _isRunActive = true;
+      _currentRunId = activeTask.id;
+      _chatStatusText = 'Working...';
+      return;
+    }
+
+    // 3. Interrupted task check
+    if (_tasks.isNotEmpty) {
+      final latest = _tasks.first;
+      if (latest.status == TaskStatusEnum.failed &&
+          latest.executionLog != null &&
+          latest.executionLog!.contains('"interrupted": true')) {
+        _chatStatusText = 'Interrupted';
+        return;
       }
     }
   }
 
   Future<void> _loadConversation(String projectId) async {
     final convs = await ConversationsApiService.listConversations(projectId);
-    if (!mounted || convs.isEmpty) return;
+    if (!mounted) return;
 
-    _currentConversation = convs.first;
+    ConversationModel? activeConv;
+    if (convs.isNotEmpty) {
+      activeConv = convs.first;
+    } else {
+      activeConv = await ConversationsApiService.createConversation(projectId, title: 'Coding Session');
+    }
+    if (!mounted || activeConv == null) return;
+
+    _currentConversation = activeConv;
 
     // Load persistent message history
     final history = await ConversationsApiService.getMessages(projectId, _currentConversation!.id);
@@ -467,6 +591,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
           );
         }
       }
+      _reconcilePendingTaskState();
     });
 
     _connectChatStream();
@@ -621,9 +746,24 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
               target: event.data['target'] as String?,
               action: event.data['action'] as String?,
               diff: event.data['diff'] as String?,
+              branch: event.data['branch'] as String?,
+              baseCommit: event.data['base_commit'] as String?,
+              checkCommand: event.data['check_command'] as String?,
+              checkExitCode: event.data['check_exit_code'] as int?,
+              checkPassed: event.data['check_passed'] as bool?,
+              isStale: event.data['is_stale'] as bool? ?? false,
             ),
           );
           _scrollToBottom();
+          break;
+
+        case 'approval.stale':
+          _chatStatusText = 'Review stale';
+          for (final item in _timelineItems) {
+            if (item is ChatApprovalItem && !item.isDecided) {
+              item.isStale = true;
+            }
+          }
           break;
 
         case 'run.completed':
@@ -664,7 +804,14 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
   }
 
   Future<void> _onSendMessage(String text) async {
-    if (_projectId == null || _currentConversation == null) return;
+    if (_projectId == null) return;
+    if (_currentConversation == null) {
+      _currentConversation = await ConversationsApiService.createConversation(_projectId!, title: 'Coding Session');
+      if (_currentConversation != null) {
+        _connectChatStream();
+      }
+    }
+    if (_currentConversation == null) return;
 
     setState(() {
       _timelineItems.add(
@@ -686,6 +833,13 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     );
 
     if (response != null) {
+      if (_timelineItems.isNotEmpty && _timelineItems.last is ChatUserMessageItem) {
+        final lastUser = _timelineItems.last as ChatUserMessageItem;
+        if (lastUser.content == response.userMessage.content) {
+          lastUser.id = response.userMessage.id;
+        }
+      }
+
       if (response.run != null) {
         // Coding instruction intent: Agent run started
         if (mounted) {
@@ -742,13 +896,14 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     }
   }
 
-  Future<void> _handleApprovalDecision(ChatApprovalItem item, bool approve) async {
+  Future<void> _handleApprovalDecision(ChatApprovalItem item, bool approve, {String? reason}) async {
     if (_projectId == null) return;
     final runId = item.runId.isNotEmpty ? item.runId : (_currentRunId ?? '');
     final success = await ConversationsApiService.submitApproval(
       _projectId!,
       runId,
       approve: approve,
+      reason: reason,
     );
 
     if (mounted && success) {
@@ -787,7 +942,101 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
         _gitStatus = status;
         _gitDiff = diff;
       });
+      _loadGitBranches();
     }
+  }
+
+  Future<void> _loadGitBranches() async {
+    if (_projectId == null || _workspace == null) return;
+    setState(() => _isLoadingBranches = true);
+    final branchesResp = await WorkspacesApiService.getGitBranches(_projectId!, _workspace!.id);
+    if (mounted) {
+      setState(() {
+        _isLoadingBranches = false;
+        if (branchesResp != null) {
+          _branches = branchesResp.branches;
+        }
+      });
+    }
+  }
+
+  Future<void> _checkoutBranch(String branchName, {bool createNew = false}) async {
+    if (_projectId == null || _workspace == null) return;
+    final cleanBranch = branchName.trim();
+    if (cleanBranch.isEmpty) return;
+
+    final result = await WorkspacesApiService.checkoutBranch(
+      _projectId!,
+      _workspace!.id,
+      cleanBranch,
+      createNew: createNew,
+    );
+
+    if (!mounted) return;
+    if (result != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Switched to branch "${result.branch}"'),
+          backgroundColor: AppColors.statusSuccess,
+        ),
+      );
+      _loadGitStatus();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Branch checkout failed. Check if working tree has conflicting changes.'),
+          backgroundColor: AppColors.statusError,
+        ),
+      );
+    }
+  }
+
+  Future<void> _commitWorkingTreeChanges(String message) async {
+    if (_projectId == null || _workspace == null) return;
+    final cleanMsg = message.trim();
+    if (cleanMsg.isEmpty) return;
+
+    setState(() => _isCommitting = true);
+    final result = await WorkspacesApiService.commitChanges(
+      _projectId!,
+      _workspace!.id,
+      cleanMsg,
+    );
+
+    if (!mounted) return;
+    setState(() => _isCommitting = false);
+
+    if (result != null && result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Committed ${result.commitSha.length > 7 ? result.commitSha.substring(0, 7) : result.commitSha} on ${result.branch}'),
+          backgroundColor: AppColors.statusSuccess,
+        ),
+      );
+      _loadGitStatus();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result?.errorMessage ?? 'Commit failed.'),
+          backgroundColor: AppColors.statusError,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleReviewDecision(ChatApprovalItem? item, TaskModel? task, bool approve) async {
+    if (_projectId == null) return;
+    if (item != null) {
+      await _handleApprovalDecision(item, approve);
+    } else if (task != null) {
+      if (approve) {
+        await TasksApiService.approveTask(_projectId!, task.id);
+      } else {
+        await TasksApiService.rejectTask(_projectId!, task.id);
+      }
+    }
+    _loadTasks(_projectId!);
+    _loadGitStatus();
   }
 
   Future<void> _loadWorkspaceFiles() async {
@@ -1284,17 +1533,81 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
               ),
               Row(
                 children: [
+                  // 1. Connection status pill (LIVE / CONNECTING / OFFLINE)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: _streamStatus == ChatStreamStatus.connected
+                          ? AppColors.statusSuccess.withOpacity(0.12)
+                          : (_streamStatus == ChatStreamStatus.reconnecting
+                              ? AppColors.statusWarning.withOpacity(0.12)
+                              : AppColors.textMuted.withOpacity(0.12)),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: _streamStatus == ChatStreamStatus.connected
+                            ? AppColors.statusSuccess.withOpacity(0.35)
+                            : (_streamStatus == ChatStreamStatus.reconnecting
+                                ? AppColors.statusWarning.withOpacity(0.35)
+                                : AppColors.textMuted.withOpacity(0.25)),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _streamStatus == ChatStreamStatus.connected
+                                ? AppColors.statusSuccess
+                                : (_streamStatus == ChatStreamStatus.reconnecting
+                                    ? AppColors.statusWarning
+                                    : AppColors.textMuted),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _streamStatus == ChatStreamStatus.connected
+                              ? 'LIVE'
+                              : (_streamStatus == ChatStreamStatus.reconnecting
+                                  ? 'CONNECTING'
+                                  : 'OFFLINE'),
+                          style: AppTypography.codeSm.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: _streamStatus == ChatStreamStatus.connected
+                                ? AppColors.statusSuccess
+                                : (_streamStatus == ChatStreamStatus.reconnecting
+                                    ? AppColors.statusWarning
+                                    : AppColors.textMuted),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+
+                  // 2. Task lifecycle status badge
                   StatusBadge(
                     label: isApprovalPending
                         ? 'REVIEW NEEDED'
                         : (_isRunActive
                             ? 'WORKING...'
-                            : (_chatStatusText == 'Completed' ? 'COMPLETED' : (_chatStatusText.isNotEmpty ? _chatStatusText.toUpperCase() : 'READY'))),
+                            : (_chatStatusText == 'Completed'
+                                ? 'COMPLETED'
+                                : (_chatStatusText == 'Interrupted'
+                                    ? 'INTERRUPTED'
+                                    : (_chatStatusText.isNotEmpty ? _chatStatusText.toUpperCase() : 'READY')))),
                     type: isApprovalPending
                         ? StatusType.warning
                         : (_isRunActive
                             ? StatusType.info
-                            : (_chatStatusText == 'Completed' ? StatusType.success : StatusType.neutral)),
+                            : (_chatStatusText == 'Completed'
+                                ? StatusType.success
+                                : (_chatStatusText == 'Interrupted'
+                                    ? StatusType.error
+                                    : StatusType.neutral))),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
@@ -1359,9 +1672,16 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
                         target: item.target,
                         action: item.action,
                         diff: item.diff,
+                        branch: item.branch,
+                        baseCommit: item.baseCommit,
+                        taskId: item.runId,
+                        checkCommand: item.checkCommand,
+                        checkExitCode: item.checkExitCode,
+                        checkPassed: item.checkPassed,
+                        isStale: item.isStale,
                         isDecided: item.isDecided,
                         wasApproved: item.wasApproved,
-                        onDecision: (approve) => _handleApprovalDecision(item, approve),
+                        onDecision: (approve, {reason}) => _handleApprovalDecision(item, approve, reason: reason),
                       );
                     }
                     return const SizedBox.shrink();
@@ -1655,58 +1975,271 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     );
   }
 
-  // TAB 3: Changes (Git Status & Diff Review)
+  // TAB 3: Changes (Git Review, Branch Management & Diff Inspection)
   Widget _buildChangesTab() {
+    final pendingApproval = _timelineItems
+        .whereType<ChatApprovalItem>()
+        .where((i) => !i.isDecided)
+        .firstOrNull;
+    final pendingTask = _tasks
+        .where((t) => t.status == TaskStatusEnum.approvalRequired)
+        .firstOrNull;
+    final interruptedTask = _tasks.where((t) {
+      return t.status == TaskStatusEnum.failed &&
+          t.executionLog != null &&
+          t.executionLog!.contains('"interrupted": true');
+    }).firstOrNull;
+
+    final currentBranch = _gitStatus?.branch ?? 'main';
+    final hasDiff = _gitDiff != null && _gitDiff!.diff.trim().isNotEmpty;
+    final isClean = _gitStatus?.isClean == true && !hasDiff;
+
+    // Filtered diff if specific file selected
+    String displayDiff = _gitDiff?.diff ?? '';
+    if (_selectedDiffFile != null && _gitDiff != null) {
+      final fileDiff = _gitDiff!.files
+          .where((f) => f.path == _selectedDiffFile)
+          .firstOrNull;
+      if (fileDiff != null && fileDiff.patch.isNotEmpty) {
+        displayDiff = fileDiff.patch;
+      }
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Git Changes & Review', style: AppTypography.headlineSm),
-              TextButton.icon(
-                icon: const Icon(Icons.refresh, size: 14, color: AppColors.lavender),
-                label: Text('Refresh', style: AppTypography.labelSm.copyWith(color: AppColors.lavender)),
-                onPressed: _loadGitStatus,
+              Row(
+                children: [
+                  if (_isLoadingBranches)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.lavender),
+                      ),
+                    ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.refresh, size: 14, color: AppColors.lavender),
+                    label: Text('Refresh', style: AppTypography.labelSm.copyWith(color: AppColors.lavender)),
+                    onPressed: _loadGitStatus,
+                  ),
+                ],
               ),
             ],
           ),
           const SizedBox(height: 10),
 
-          // Status Strip
+          // Branch & Working Tree Strip
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: AppColors.surfaceMain,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.borderSubtle),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.fork_right, size: 16, color: AppColors.lavender),
-                    const SizedBox(width: 6),
-                    Text(
-                      _gitStatus?.branch ?? 'main',
-                      style: AppTypography.codeSm.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.fork_right, size: 18, color: AppColors.lavender),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          currentBranch,
+                          style: AppTypography.codeSm.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      StatusBadge(
+                        label: isClean ? 'CLEAN' : 'MODIFIED',
+                        type: isClean ? StatusType.success : StatusType.warning,
+                      ),
+                    ],
+                  ),
                 ),
-                StatusBadge(
-                  label: _gitStatus?.isClean == true ? 'CLEAN' : 'MODIFIED',
-                  type: _gitStatus?.isClean == true ? StatusType.success : StatusType.warning,
+                InkWell(
+                  onTap: _showBranchSwitcherModal,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.swap_horiz, size: 14, color: AppColors.lavender),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Switch Branch',
+                          style: AppTypography.labelSm.copyWith(color: AppColors.lavender),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
-          // Unified Diff Viewer
-          Text('Working Tree Diff', style: AppTypography.labelMd),
+          // Active Task Approval Banner (Safe Approval Workflow)
+          if (pendingTask != null || pendingApproval != null) ...[
+            _buildActiveTaskReviewBanner(pendingApproval, pendingTask),
+            const SizedBox(height: 14),
+          ],
+
+          // Interrupted Uncommitted Changes Recovery Notice
+          if (interruptedTask != null && !isClean) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.lavender.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.lavender.withOpacity(0.25)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.info_outline, size: 18, color: AppColors.lavender),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Uncommitted Changes Preserved',
+                          style: AppTypography.labelMd.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'A previous task was interrupted by a restart or worker disconnection. Your workspace file modifications are preserved on disk below. You can inspect the diff, commit them, or reject them.',
+                          style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // File Navigator Bar
+          if (_gitDiff != null && _gitDiff!.files.isNotEmpty) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Changed Files (${_gitDiff!.files.length})',
+                  style: AppTypography.labelMd.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  '+${_gitDiff!.additions}  -${_gitDiff!.deletions}',
+                  style: AppTypography.codeSm.copyWith(
+                    color: AppColors.statusSuccess,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  // All Files chip
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ChoiceChip(
+                      label: Text('All Files (${_gitDiff!.files.length})'),
+                      selected: _selectedDiffFile == null,
+                      onSelected: (_) => setState(() => _selectedDiffFile = null),
+                      selectedColor: AppColors.primary,
+                      backgroundColor: AppColors.surfaceMain,
+                      labelStyle: AppTypography.codeSm.copyWith(
+                        color: _selectedDiffFile == null ? Colors.white : AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  // Individual file chips
+                  ..._gitDiff!.files.map((file) {
+                    final isSelected = _selectedDiffFile == file.path;
+                    final fileName = file.path.split('/').last;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ChoiceChip(
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              file.status == 'added' ? 'A' : (file.status == 'deleted' ? 'D' : 'M'),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: file.status == 'added'
+                                    ? AppColors.statusSuccess
+                                    : (file.status == 'deleted' ? AppColors.statusError : AppColors.statusWarning),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(fileName),
+                            const SizedBox(width: 4),
+                            Text(
+                              '+${file.additions}',
+                              style: const TextStyle(fontSize: 10, color: AppColors.statusSuccess),
+                            ),
+                          ],
+                        ),
+                        selected: isSelected,
+                        onSelected: (_) => setState(() => _selectedDiffFile = isSelected ? null : file.path),
+                        selectedColor: AppColors.primary,
+                        backgroundColor: AppColors.surfaceMain,
+                        labelStyle: AppTypography.codeSm.copyWith(
+                          color: isSelected ? Colors.white : AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Diff Viewer
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _selectedDiffFile != null ? 'Diff: $_selectedDiffFile' : 'Working Tree Diff',
+                style: AppTypography.labelMd,
+              ),
+              if (_selectedDiffFile != null)
+                TextButton(
+                  onPressed: () => setState(() => _selectedDiffFile = null),
+                  child: Text('Show all', style: AppTypography.labelSm.copyWith(color: AppColors.lavender)),
+                ),
+            ],
+          ),
           const SizedBox(height: 6),
           Container(
             width: double.infinity,
@@ -1716,12 +2249,426 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.borderSubtle),
             ),
-            child: Text(
-              _gitDiff?.diff.isNotEmpty == true
-                  ? _gitDiff!.diff
-                  : (_gitStatus?.isClean == true ? 'Working tree clean. No uncommitted modifications.' : 'No diff detected.'),
-              style: AppTypography.codeSm.copyWith(fontSize: 11),
+            child: displayDiff.trim().isNotEmpty
+                ? _buildSyntaxDiffView(displayDiff)
+                : Text(
+                    isClean
+                        ? 'Working tree clean. No uncommitted modifications.'
+                        : 'No diff detected.',
+                    style: AppTypography.codeSm.copyWith(fontSize: 11, color: AppColors.textSecondary),
+                  ),
+          ),
+          const SizedBox(height: 16),
+
+          // Working Tree Commit Action Card
+          if (!isClean) ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMain,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.borderSubtle),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Commit Working Tree Changes',
+                        style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        '${_gitDiff?.filesChanged ?? 0} files affected',
+                        style: AppTypography.codeSm.copyWith(fontSize: 11, color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Create a local Git commit with these modifications on the "$currentBranch" branch.',
+                    style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: _isCommitting
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.check_circle_outline, size: 16, color: Colors.white),
+                      label: Text(
+                        _isCommitting ? 'Committing...' : 'Commit Changes to $currentBranch',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                      onPressed: _isCommitting ? null : _showCommitDialog,
+                    ),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(height: 20),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveTaskReviewBanner(ChatApprovalItem? item, TaskModel? task) {
+    final prompt = item?.prompt ?? task?.prompt ?? 'Code modifications proposed';
+    final target = item?.target;
+    final checkPassed = item?.checkPassed;
+    final checkCommand = item?.checkCommand;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMain,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.statusWarning.withOpacity(0.5), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.verified_outlined, size: 16, color: AppColors.statusWarning),
+                  const SizedBox(width: 6),
+                  Text(
+                    'APPROVAL REQUIRED',
+                    style: AppTypography.codeSm.copyWith(
+                      color: AppColors.statusWarning,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              if (checkPassed != null)
+                StatusBadge(
+                  label: checkPassed ? 'CHECKS PASSED' : 'CHECKS FAILED',
+                  type: checkPassed ? StatusType.success : StatusType.error,
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            prompt,
+            style: AppTypography.headlineSm.copyWith(fontSize: 13),
+          ),
+          if (target != null && target.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Target: $target',
+              style: AppTypography.codeSm.copyWith(color: AppColors.lavender, fontSize: 11),
+            ),
+          ],
+          if (checkCommand != null && checkCommand.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Verified via: $checkCommand',
+              style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.statusError,
+                    side: const BorderSide(color: AppColors.statusError),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => _handleReviewDecision(item, task, false),
+                  child: const Text('Reject Changes'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.statusSuccess,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => _handleReviewDecision(item, task, true),
+                  child: const Text('Approve & Apply'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSyntaxDiffView(String diff) {
+    final lines = diff.split('\n');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: lines.map((line) {
+        Color? bgColor;
+        Color textColor = AppColors.textPrimary;
+        FontWeight fontWeight = FontWeight.normal;
+
+        if (line.startsWith('+++') || line.startsWith('---')) {
+          textColor = AppColors.textSecondary;
+          fontWeight = FontWeight.w600;
+        } else if (line.startsWith('+')) {
+          bgColor = const Color(0x1F22C55E); // green with opacity
+          textColor = const Color(0xFF4ADE80);
+        } else if (line.startsWith('-')) {
+          bgColor = const Color(0x1FEF4444); // red with opacity
+          textColor = const Color(0xFFF87171);
+        } else if (line.startsWith('@@')) {
+          bgColor = const Color(0x1F818CF8); // lavender with opacity
+          textColor = const Color(0xFFA5B4FC);
+          fontWeight = FontWeight.w600;
+        } else if (line.startsWith('diff --git') || line.startsWith('index ')) {
+          textColor = AppColors.lavender;
+          fontWeight = FontWeight.w600;
+        }
+
+        return Container(
+          width: double.infinity,
+          color: bgColor,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          child: Text(
+            line.isEmpty ? ' ' : line,
+            style: AppTypography.codeSm.copyWith(
+              color: textColor,
+              fontWeight: fontWeight,
+              fontSize: 11,
+              height: 1.4,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  void _showBranchSwitcherModal() {
+    final newBranchCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceMain,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            final currentBranch = _gitStatus?.branch ?? 'main';
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Git Branch Management', style: AppTypography.headlineSm),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 18, color: AppColors.textSecondary),
+                          onPressed: () => Navigator.pop(modalCtx),
+                        ),
+                      ],
+                    ),
+                    const Divider(color: AppColors.borderSubtle),
+                    const SizedBox(height: 8),
+
+                    // Existing Branches List
+                    Text('Local Branches', style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    if (_branches.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text('No other branches found.', style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary)),
+                      )
+                    else
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceElevated,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.borderSubtle),
+                        ),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _branches.length,
+                          separatorBuilder: (_, __) => const Divider(color: AppColors.borderSubtle, height: 1),
+                          itemBuilder: (context, idx) {
+                            final b = _branches[idx];
+                            final isActive = b.name == currentBranch || b.isCurrent;
+                            return ListTile(
+                              dense: true,
+                              leading: Icon(
+                                Icons.fork_right,
+                                size: 18,
+                                color: isActive ? AppColors.statusSuccess : AppColors.lavender,
+                              ),
+                              title: Text(
+                                b.name,
+                                style: AppTypography.codeSm.copyWith(
+                                  fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
+                                  color: isActive ? AppColors.statusSuccess : AppColors.textPrimary,
+                                ),
+                              ),
+                              subtitle: b.commitSha != null
+                                  ? Text(
+                                      '${b.commitSha!.substring(0, b.commitSha!.length > 7 ? 7 : b.commitSha!.length)} ${b.commitMessage ?? ''}',
+                                      style: AppTypography.codeSm.copyWith(fontSize: 10, color: AppColors.textSecondary),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    )
+                                  : null,
+                              trailing: isActive
+                                  ? const StatusBadge(label: 'ACTIVE', type: StatusType.success)
+                                  : OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        side: const BorderSide(color: AppColors.lavender),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.pop(modalCtx);
+                                        _checkoutBranch(b.name, createNew: false);
+                                      },
+                                      child: const Text('Checkout', style: TextStyle(fontSize: 11, color: AppColors.lavender)),
+                                    ),
+                            );
+                          },
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+
+                    // Create & Checkout New Branch
+                    Text('Create New Branch', style: AppTypography.labelMd.copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Branch off current HEAD ($currentBranch)',
+                      style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: newBranchCtrl,
+                            style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. feat/recovery-hardening',
+                              hintStyle: AppTypography.codeSm.copyWith(color: AppColors.textSecondary),
+                              filled: true,
+                              fillColor: AppColors.surfaceElevated,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: AppColors.borderSubtle),
+                              ),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () {
+                            final name = newBranchCtrl.text.trim();
+                            if (name.isEmpty) return;
+                            Navigator.pop(modalCtx);
+                            _checkoutBranch(name, createNew: true);
+                          },
+                          child: const Text('Create', style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showCommitDialog() {
+    final commitMsgCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceMain,
+        title: Text('Commit Changes', style: AppTypography.headlineSm),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Branch: ${_gitStatus?.branch ?? "main"}',
+              style: AppTypography.codeSm.copyWith(color: AppColors.lavender, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${_gitDiff?.filesChanged ?? 0} files affected (+${_gitDiff?.additions ?? 0} -${_gitDiff?.deletions ?? 0})',
+              style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: commitMsgCtrl,
+              maxLines: 3,
+              style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Enter commit message...',
+                hintStyle: AppTypography.codeSm.copyWith(color: AppColors.textSecondary),
+                filled: true,
+                fillColor: AppColors.surfaceElevated,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.borderSubtle),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              final msg = commitMsgCtrl.text.trim();
+              if (msg.isEmpty) return;
+              Navigator.pop(ctx);
+              _commitWorkingTreeChanges(msg);
+            },
+            child: const Text('Commit', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1794,8 +2741,9 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
     );
   }
 
-  Widget _buildMetaPill(IconData icon, String label) {
+  Widget _buildMetaPill(IconData icon, String label, {double? maxWidth}) {
     return Container(
+      constraints: BoxConstraints(maxWidth: maxWidth ?? 260),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: AppColors.surfaceElevated,
@@ -1807,10 +2755,12 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview> {
         children: [
           Icon(icon, size: 12, color: AppColors.lavender),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary, fontSize: 10),
-            overflow: TextOverflow.ellipsis,
+          Flexible(
+            child: Text(
+              label,
+              style: AppTypography.codeSm.copyWith(color: AppColors.textPrimary, fontSize: 10),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

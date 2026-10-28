@@ -31,6 +31,8 @@ class ChatStreamService {
   Stream<AgentEventModel> get events => _eventController.stream;
   Stream<ChatStreamStatus> get status => _statusController.stream;
   ChatStreamStatus currentStatus = ChatStreamStatus.disconnected;
+  bool get isDisposed => _isDisposed;
+  bool get isClosed => _isDisposed;
 
   ChatStreamService({
     required this.conversationId,
@@ -64,7 +66,7 @@ class ChatStreamService {
 
     try {
       final uri = _buildWsUri();
-      debugPrint('[ChatStreamService] Connecting to $uri (after: $lastSequenceNumber)');
+      debugPrint('[ChatStreamService] Connecting to conversation $conversationId (after seq: $lastSequenceNumber, attempt: $_reconnectAttempts)');
       _channel = WebSocketChannel.connect(uri);
 
       _subscription = _channel!.stream.listen(
@@ -81,6 +83,13 @@ class ChatStreamService {
       debugPrint('[ChatStreamService] Connection exception: $e');
       _onError(e);
     }
+  }
+
+  void retryNow() {
+    if (_isDisposed) return;
+    _reconnectTimer?.cancel();
+    _reconnectAttempts = 0;
+    connect();
   }
 
   void _onMessageReceived(dynamic raw) {
@@ -132,8 +141,17 @@ class ChatStreamService {
     _pingTimer?.cancel();
 
     _reconnectAttempts++;
-    final delaySeconds = _reconnectAttempts > 4 ? 8 : _reconnectAttempts * 2;
-    debugPrint('[ChatStreamService] Reconnect in ${delaySeconds}s (attempt $_reconnectAttempts)');
+    if (_reconnectAttempts > 8) {
+      debugPrint('[ChatStreamService] Max reconnect attempts reached. Waiting for manual retry.');
+      _updateStatus(ChatStreamStatus.error);
+      return;
+    }
+
+    // Bounded exponential backoff with randomized jitter
+    final baseDelay = 1 << (_reconnectAttempts > 4 ? 4 : _reconnectAttempts); // 2, 4, 8, 16s
+    final jitter = DateTime.now().millisecond % 3; // 0-2s jitter
+    final delaySeconds = (baseDelay + jitter).clamp(2, 25);
+    debugPrint('[ChatStreamService] Reconnecting in ${delaySeconds}s (attempt $_reconnectAttempts/8)...');
 
     _reconnectTimer = Timer(Duration(seconds: delaySeconds), () {
       if (!_isDisposed) {

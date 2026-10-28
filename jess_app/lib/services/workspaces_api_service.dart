@@ -156,26 +156,138 @@ class WorkspaceGitStatus {
   }
 }
 
+class WorkspaceGitFileDiff {
+  final String path;
+  final String status; // "modified", "added", "deleted"
+  final int additions;
+  final int deletions;
+  final String patch;
+
+  WorkspaceGitFileDiff({
+    required this.path,
+    required this.status,
+    this.additions = 0,
+    this.deletions = 0,
+    this.patch = '',
+  });
+
+  factory WorkspaceGitFileDiff.fromJson(Map<String, dynamic> json) {
+    return WorkspaceGitFileDiff(
+      path: json['path'] as String? ?? 'file',
+      status: json['status'] as String? ?? 'modified',
+      additions: json['additions'] as int? ?? 0,
+      deletions: json['deletions'] as int? ?? 0,
+      patch: json['patch'] as String? ?? '',
+    );
+  }
+}
+
 class WorkspaceGitDiff {
   final String branch;
   final String diff;
   final int filesChanged;
+  final int additions;
+  final int deletions;
+  final List<WorkspaceGitFileDiff> files;
   final List<Map<String, dynamic>> changedFiles;
 
   WorkspaceGitDiff({
     required this.branch,
     required this.diff,
     required this.filesChanged,
-    required this.changedFiles,
+    this.additions = 0,
+    this.deletions = 0,
+    this.files = const [],
+    this.changedFiles = const [],
   });
 
   factory WorkspaceGitDiff.fromJson(Map<String, dynamic> json) {
+    final parsedFiles = (json['files'] as List<dynamic>?)
+            ?.map((e) => WorkspaceGitFileDiff.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
     return WorkspaceGitDiff(
       branch: json['branch'] as String? ?? 'main',
       diff: json['diff'] as String? ?? '',
-      filesChanged: json['files_changed'] as int? ?? 0,
-      changedFiles: (json['changed_files'] as List<dynamic>?)
-              ?.filterMapJson() ??
+      filesChanged: json['files_changed'] as int? ?? parsedFiles.length,
+      additions: json['additions'] as int? ?? 0,
+      deletions: json['deletions'] as int? ?? 0,
+      files: parsedFiles,
+      changedFiles: (json['changed_files'] as List<dynamic>?)?.filterMapJson() ?? [],
+    );
+  }
+}
+
+class WorkspaceGitBranchItem {
+  final String name;
+  final bool isCurrent;
+  final String? commitSha;
+  final String? commitMessage;
+
+  WorkspaceGitBranchItem({
+    required this.name,
+    this.isCurrent = false,
+    this.commitSha,
+    this.commitMessage,
+  });
+
+  factory WorkspaceGitBranchItem.fromJson(Map<String, dynamic> json) {
+    return WorkspaceGitBranchItem(
+      name: json['name'] as String? ?? 'main',
+      isCurrent: json['is_current'] as bool? ?? false,
+      commitSha: json['commit_sha'] as String?,
+      commitMessage: json['commit_message'] as String?,
+    );
+  }
+}
+
+class WorkspaceGitBranchesResponse {
+  final String currentBranch;
+  final List<WorkspaceGitBranchItem> branches;
+
+  WorkspaceGitBranchesResponse({
+    required this.currentBranch,
+    required this.branches,
+  });
+
+  factory WorkspaceGitBranchesResponse.fromJson(Map<String, dynamic> json) {
+    final branchList = (json['branches'] as List<dynamic>?)
+            ?.map((e) => WorkspaceGitBranchItem.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+    return WorkspaceGitBranchesResponse(
+      currentBranch: json['current_branch'] as String? ?? 'main',
+      branches: branchList,
+    );
+  }
+}
+
+class WorkspaceGitCommitResult {
+  final bool success;
+  final String commitSha;
+  final String branch;
+  final String message;
+  final List<String> filesCommitted;
+  final String? errorMessage;
+
+  WorkspaceGitCommitResult({
+    required this.success,
+    required this.commitSha,
+    required this.branch,
+    required this.message,
+    this.filesCommitted = const [],
+    this.errorMessage,
+  });
+
+  factory WorkspaceGitCommitResult.fromJson(Map<String, dynamic> json) {
+    return WorkspaceGitCommitResult(
+      success: true,
+      commitSha: json['commit_sha'] as String? ?? '',
+      branch: json['branch'] as String? ?? 'main',
+      message: json['message'] as String? ?? '',
+      filesCommitted: (json['files_committed'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
           [],
     );
   }
@@ -413,6 +525,83 @@ class WorkspacesApiService {
       return null;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// List Git branches in workspace
+  static Future<WorkspaceGitBranchesResponse?> getGitBranches(
+    String projectId,
+    String workspaceId,
+  ) async {
+    try {
+      final url = Uri.parse('${AuthApiService.baseUrl}/projects/$projectId/workspaces/$workspaceId/git/branches');
+      final res = await _client.get(url, headers: _headers());
+      if (res.statusCode == 200) {
+        return WorkspaceGitBranchesResponse.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Switch or create Git branch in workspace
+  static Future<WorkspaceGitStatus?> checkoutBranch(
+    String projectId,
+    String workspaceId,
+    String branch, {
+    bool createNew = false,
+  }) async {
+    try {
+      final url = Uri.parse('${AuthApiService.baseUrl}/projects/$projectId/workspaces/$workspaceId/git/branches/checkout');
+      final res = await _client.post(
+        url,
+        headers: _headers(),
+        body: jsonEncode({
+          'branch': branch,
+          'create_new': createNew,
+        }),
+      );
+      if (res.statusCode == 200) {
+        return WorkspaceGitStatus.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Stage and commit working tree changes in workspace
+  static Future<WorkspaceGitCommitResult?> commitChanges(
+    String projectId,
+    String workspaceId,
+    String message,
+  ) async {
+    try {
+      final url = Uri.parse('${AuthApiService.baseUrl}/projects/$projectId/workspaces/$workspaceId/git/commit');
+      final res = await _client.post(
+        url,
+        headers: _headers(),
+        body: jsonEncode({'message': message}),
+      );
+      if (res.statusCode == 200) {
+        return WorkspaceGitCommitResult.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+      }
+      return WorkspaceGitCommitResult(
+        success: false,
+        commitSha: '',
+        branch: '',
+        message: message,
+        errorMessage: 'Commit failed with status ${res.statusCode}',
+      );
+    } catch (e) {
+      return WorkspaceGitCommitResult(
+        success: false,
+        commitSha: '',
+        branch: '',
+        message: message,
+        errorMessage: e.toString(),
+      );
     }
   }
 }

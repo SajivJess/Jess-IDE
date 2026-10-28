@@ -141,8 +141,62 @@ class WorkspaceGitStatusResponse(BaseModel):
     staged_files: List[str]
 
 
+class WorkspaceGitFileDiff(BaseModel):
+    """Diff statistics and patch content for a single file."""
+
+    path: str
+    status: str = "modified"  # "modified", "added", "deleted"
+    additions: int = 0
+    deletions: int = 0
+    patch: str = ""
+
+
 class WorkspaceGitDiffResponse(BaseModel):
     """Git diff of current changes."""
 
     diff: str
     files_changed: int
+    additions: int = 0
+    deletions: int = 0
+    files: List[WorkspaceGitFileDiff] = []
+
+
+class WorkspaceGitBranchItem(BaseModel):
+    """A Git branch in the workspace."""
+
+    name: str
+    is_current: bool = False
+    commit_sha: Optional[str] = None
+    commit_message: Optional[str] = None
+
+
+class WorkspaceGitBranchesResponse(BaseModel):
+    """List of branches in the workspace."""
+
+    current_branch: str
+    branches: List[WorkspaceGitBranchItem]
+
+
+class WorkspaceGitCheckoutRequest(BaseModel):
+    """Request to switch or create a branch."""
+
+    branch: str = Field(..., min_length=1, max_length=100, description="Branch name to switch or create")
+    create_new: bool = Field(False, description="If True, creates a new branch via checkout -b")
+
+
+class WorkspaceGitCommitRequest(BaseModel):
+    """Request to stage and commit changes."""
+
+    message: str = Field(..., min_length=1, max_length=500, description="Commit message")
+    author_name: Optional[str] = None
+    author_email: Optional[str] = None
+
+
+class WorkspaceGitCommitResponse(BaseModel):
+    """Result of Git commit."""
+
+    success: bool = True
+    commit_sha: str
+    branch: str
+    message: str
+    files_committed: List[str] = []

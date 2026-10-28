@@ -8,6 +8,8 @@ from app.db.models.workspace import Workspace
 from app.schemas.workspace import (
     WorkspaceCommandResponse,
     WorkspaceFileItem,
+    WorkspaceGitBranchesResponse,
+    WorkspaceGitCommitResponse,
     WorkspaceGitDiffResponse,
     WorkspaceGitStatusResponse,
 )
@@ -106,6 +108,30 @@ class BaseWorkspaceProvider(ABC):
         pass
 
     @abstractmethod
+    async def get_git_branches(self, workspace: Workspace) -> WorkspaceGitBranchesResponse:
+        """Query Git branches and active branch in workspace."""
+        pass
+
+    @abstractmethod
+    async def checkout_git_branch(
+        self, workspace: Workspace, branch: str, create_new: bool = False
+    ) -> WorkspaceGitStatusResponse:
+        """Switch or create branch in workspace."""
+        pass
+
+    @abstractmethod
+    async def commit_git_changes(
+        self, workspace: Workspace, message: str, author_name: Optional[str] = None, author_email: Optional[str] = None
+    ) -> WorkspaceGitCommitResponse:
+        """Stage and commit changes with message in workspace."""
+        pass
+
+    @abstractmethod
     async def get_logs(self, workspace: Workspace) -> str:
         """Retrieve recent logs emitted by the workspace environment."""
+        pass
+
+    @abstractmethod
+    def get_workspace_dir(self, workspace: Workspace) -> Path:
+        """Return the physical directory path for the workspace."""
         pass

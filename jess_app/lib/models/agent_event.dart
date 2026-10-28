@@ -109,6 +109,9 @@ class AgentRunModel {
   final String status;
   final String prompt;
   final String title;
+  final String? activeBranch;
+  final String? commitSha;
+  final String? executionLog;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -119,6 +122,9 @@ class AgentRunModel {
     required this.status,
     required this.prompt,
     required this.title,
+    this.activeBranch,
+    this.commitSha,
+    this.executionLog,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -131,6 +137,9 @@ class AgentRunModel {
       status: json['status'] as String? ?? 'QUEUED',
       prompt: json['prompt'] as String? ?? '',
       title: json['title'] as String? ?? '',
+      activeBranch: json['active_branch'] as String?,
+      commitSha: json['commit_sha'] as String?,
+      executionLog: json['execution_log'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
           : DateTime.now(),

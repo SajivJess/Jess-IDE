@@ -58,6 +58,53 @@ class TestMetaAgent(unittest.IsolatedAsyncioTestCase):
         # Calling handle_approval on non-pending task should not raise error
         await adapter.handle_approval(task_id, approved=True)
 
+    async def test_workspace_command_allowlist_enforcement(self) -> None:
+        from app.db.models.workspace import Workspace
+        from app.schemas.workspace import WorkspaceStatus
+        from app.services.workspace.local_sandbox import LocalSandboxWorkspaceProvider
+
+        provider = LocalSandboxWorkspaceProvider()
+        ws = Workspace(
+            id=uuid.uuid4(),
+            user_id=uuid.uuid4(),
+            name="test-ws",
+            status=WorkspaceStatus.RUNNING.value,
+        )
+
+        # Disallowed command (e.g., powershell, curl, rm) should be rejected immediately
+        disallowed_res = await provider.execute_command(ws, ["powershell", "-c", "echo 1"])
+        self.assertEqual(disallowed_res.exit_code, 1)
+        self.assertIn("not permitted by workspace sandbox allowlist", disallowed_res.stderr)
+
+        # Allowed command (e.g., python) should not be blocked by allowlist
+        allowed_res = await provider.execute_command(ws, ["python", "--version"])
+        self.assertNotIn("not permitted by workspace sandbox allowlist", allowed_res.stderr)
+
+    async def test_workspace_secret_file_protection(self) -> None:
+        from app.db.models.workspace import Workspace
+        from app.schemas.workspace import WorkspaceStatus
+        from app.services.workspace.local_sandbox import LocalSandboxWorkspaceProvider
+
+        provider = LocalSandboxWorkspaceProvider()
+        ws = Workspace(
+            id=uuid.uuid4(),
+            user_id=uuid.uuid4(),
+            name="test-ws",
+            status=WorkspaceStatus.RUNNING.value,
+        )
+
+        # Prohibit reading .env
+        with self.assertRaises(ValueError):
+            await provider.read_file(ws, ".env")
+
+        # Prohibit writing .env
+        with self.assertRaises(ValueError):
+            await provider.write_file(ws, ".env", "SECRET=123")
+
+        # Prohibit writing .git
+        with self.assertRaises(ValueError):
+            await provider.write_file(ws, ".git/config", "evil")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -10,6 +10,7 @@ from app.core.logging import logger
 from app.db.models.project import Project
 from app.db.models.task import Task
 from app.db.models.user import User
+from app.db.models.workspace import Workspace
 from app.db.session import get_db
 from app.schemas.task import (
     TERMINAL_STATUSES,
@@ -86,8 +87,13 @@ async def create_task(
     """Create a new task in QUEUED status for the specified project and launch execution."""
     await _get_project_with_ownership(project_id, current_user.id, db)
 
+    ws_stmt = select(Workspace).where(Workspace.project_id == project_id)
+    ws_res = await db.execute(ws_stmt)
+    ws = ws_res.scalars().first()
+
     task = Task(
         project_id=project_id,
+        workspace_id=ws.id if ws else None,
         title=payload.title.strip(),
         prompt=payload.prompt.strip(),
         status=TaskStatus.QUEUED.value,
@@ -291,7 +297,31 @@ async def approve_task(
     """Respond to an APPROVAL_REQUIRED gate."""
     task = await _get_task_with_ownership(task_id, current_user.id, project_id, db)
 
-    if TaskStatus(task.status) != TaskStatus.APPROVAL_REQUIRED:
+    current_status = TaskStatus(task.status)
+    if current_status == TaskStatus.COMPLETED and payload.action.lower() == "approve":
+        return {
+            "status": "ok",
+            "task_id": str(task.id),
+            "action": payload.action,
+            "approved": True,
+            "idempotent": True,
+            "message": "Task already approved and completed.",
+        }
+    if current_status == TaskStatus.CANCELLED and payload.action.lower() == "reject":
+        return {
+            "status": "ok",
+            "task_id": str(task.id),
+            "action": payload.action,
+            "approved": False,
+            "idempotent": True,
+            "message": "Task already rejected.",
+        }
+    if current_status in TERMINAL_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Task is in terminal state {current_status.value} and cannot be modified.",
+        )
+    if current_status != TaskStatus.APPROVAL_REQUIRED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Task is in {task.status} status and is not waiting for approval.",

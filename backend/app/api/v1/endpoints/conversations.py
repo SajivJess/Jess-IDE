@@ -12,6 +12,7 @@ from app.db.models.conversation_message import ConversationMessage
 from app.db.models.project import Project
 from app.db.models.task import Task
 from app.db.models.user import User
+from app.db.models.workspace import Workspace
 from app.db.session import get_db
 from app.schemas.conversation import (
     ChatMessageCreate,
@@ -351,10 +352,15 @@ async def post_conversation_message(
         )
 
     # 3. Intent is CODING_INSTRUCTION -> Start agent run
+    ws_stmt = select(Workspace).where(Workspace.project_id == project_id)
+    ws_res = await db.execute(ws_stmt)
+    ws = ws_res.scalars().first()
+
     title = raw_text.split("\n")[0][:60]
     task = Task(
         project_id=project_id,
         conversation_id=conv.id,
+        workspace_id=ws.id if ws else None,
         title=title,
         prompt=raw_text,
         status=TaskStatus.QUEUED.value,
@@ -396,6 +402,9 @@ async def post_conversation_message(
             status=TaskStatus(task.status),
             prompt=task.prompt,
             title=task.title,
+            active_branch=task.active_branch,
+            commit_sha=task.commit_sha,
+            execution_log=task.execution_log,
             created_at=task.created_at,
             updated_at=task.updated_at,
         ),
@@ -423,9 +432,14 @@ async def start_run(
     title = payload.title.strip() if payload.title else prompt_text.split("\n")[0][:60]
 
     # 2. Create run (Task)
+    ws_stmt = select(Workspace).where(Workspace.project_id == project_id)
+    ws_res = await db.execute(ws_stmt)
+    ws = ws_res.scalars().first()
+
     task = Task(
         project_id=project_id,
         conversation_id=conv.id,
+        workspace_id=ws.id if ws else None,
         title=title,
         prompt=prompt_text,
         status=TaskStatus.QUEUED.value,
@@ -458,6 +472,9 @@ async def start_run(
         status=TaskStatus(task.status),
         prompt=task.prompt,
         title=task.title,
+        active_branch=task.active_branch,
+        commit_sha=task.commit_sha,
+        execution_log=task.execution_log,
         created_at=task.created_at,
         updated_at=task.updated_at,
     )
@@ -504,7 +521,29 @@ async def submit_run_approval(
     if not task or task.project_id != project_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
 
-    if TaskStatus(task.status) != TaskStatus.APPROVAL_REQUIRED:
+    current_status = TaskStatus(task.status)
+    if current_status == TaskStatus.COMPLETED and payload.action.lower() == "approve":
+        return {
+            "status": "ok",
+            "run_id": str(task.id),
+            "approved": True,
+            "idempotent": True,
+            "message": "Run already approved and completed.",
+        }
+    if current_status == TaskStatus.CANCELLED and payload.action.lower() == "reject":
+        return {
+            "status": "ok",
+            "run_id": str(task.id),
+            "approved": False,
+            "idempotent": True,
+            "message": "Run already rejected.",
+        }
+    if current_status in TERMINAL_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Run is in terminal state {current_status.value} and cannot be modified.",
+        )
+    if current_status != TaskStatus.APPROVAL_REQUIRED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Run is in {task.status} status and not waiting for approval.",
@@ -586,6 +625,9 @@ async def get_run_status(
         status=TaskStatus(task.status),
         prompt=task.prompt,
         title=task.title,
+        active_branch=task.active_branch,
+        commit_sha=task.commit_sha,
+        execution_log=task.execution_log,
         created_at=task.created_at,
         updated_at=task.updated_at,
     )

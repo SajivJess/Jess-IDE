@@ -13,7 +13,7 @@ from app.core.logging import logger
 from app.db.models.task import Task
 from app.db.models.workspace import Workspace
 from app.db.session import async_session_factory
-from app.schemas.task import TaskStatus, can_transition
+from app.schemas.task import TERMINAL_STATUSES, TaskStatus, can_transition
 from app.schemas.workspace import WorkspaceStatus
 from app.services.conversation_events import append_conversation_event
 from app.services.task_events import append_task_event
@@ -69,18 +69,33 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
 
     async def _transition(
         self, db: AsyncSession, task: Task, target_status: TaskStatus
-    ) -> None:
-        """Validate and apply a task state machine transition."""
-        current_status = TaskStatus(task.status)
-        if not can_transition(current_status, target_status):
-            err_msg = f"Invalid task state transition from {current_status.value} to {target_status.value}"
+    ) -> bool:
+        """Validate and apply a task state machine transition with fresh DB status verification."""
+        stmt = select(Task.status).where(Task.id == task.id)
+        res = await db.execute(stmt)
+        fresh_status_str = res.scalar_one_or_none()
+        if not fresh_status_str:
+            raise ValueError(f"Task {task.id} not found in database during transition")
+
+        fresh_status = TaskStatus(fresh_status_str)
+        if fresh_status in TERMINAL_STATUSES:
+            logger.warning(
+                f"Task {task.id} is already in terminal status {fresh_status.value}. "
+                f"Refusing transition to {target_status.value}."
+            )
+            task.status = fresh_status.value
+            return False
+
+        if not can_transition(fresh_status, target_status):
+            err_msg = f"Invalid task state transition from {fresh_status.value} to {target_status.value}"
             logger.error(err_msg)
             raise ValueError(err_msg)
 
         task.status = target_status.value
         await db.commit()
         await db.refresh(task)
-        logger.info(f"Task {task.id} transitioned {current_status.value} -> {target_status.value}")
+        logger.info(f"Task {task.id} transitioned {fresh_status.value} -> {target_status.value}")
+        return True
 
     async def _emit_task_event(
         self,
@@ -818,6 +833,11 @@ class DispatchingAgentAdapter(BaseAgentAdapter):
     async def cancel_task(self, task_id: uuid.UUID) -> None:
         adapter = self._resolve()
         await adapter.cancel_task(task_id)
+
+    def is_task_running(self, task_id: uuid.UUID) -> bool:
+        if self._meta is not None and self._meta.is_task_running(task_id):
+            return True
+        return self._simulated.is_task_running(task_id)
 
 
 # Global agent instance exposed to endpoints (routes to Meta when AGENT_PROVIDER=meta)

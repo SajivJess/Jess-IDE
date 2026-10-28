@@ -37,6 +37,21 @@ class ProjectCreate(BaseModel):
             raise ValueError("repo_url must be a valid HTTP, HTTPS, or SSH git URL.")
         return v_clean
 
+    @field_validator("workspace_path")
+    @classmethod
+    def validate_workspace_path(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return None
+        v_clean = v.strip().replace("\\", "/")
+        if "\x00" in v_clean:
+            raise ValueError("workspace_path cannot contain null bytes.")
+        parts = [p for p in v_clean.split("/") if p]
+        if ".." in parts:
+            raise ValueError("Path traversal ('..') is not permitted in workspace_path.")
+        if v_clean in ("/", "\\") or not parts or re.match(r"^[a-zA-Z]:/?$", v_clean):
+            raise ValueError("Root filesystem or drive root cannot be used as a workspace path.")
+        return v_clean
+
 
 class ProjectUpdate(BaseModel):
     """Payload to update an existing project."""
@@ -68,6 +83,19 @@ class ProjectUpdate(BaseModel):
         v_clean = v.strip()
         if not (v_clean.startswith("http://") or v_clean.startswith("https://") or v_clean.startswith("git@")):
             raise ValueError("repo_url must be a valid HTTP, HTTPS, or SSH git URL.")
+        return v_clean
+
+    @field_validator("workspace_path")
+    @classmethod
+    def validate_workspace_path(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return None
+        v_clean = v.strip().replace("\\", "/")
+        if "\x00" in v_clean:
+            raise ValueError("workspace_path cannot contain null bytes.")
+        parts = v_clean.split("/")
+        if ".." in parts:
+            raise ValueError("Path traversal ('..') is not permitted in workspace_path.")
         return v_clean
 
 

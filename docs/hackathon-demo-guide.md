@@ -41,7 +41,7 @@
 
 #### Step 1: Ensure credentials in `backend/.env`
 ```bash
-MODEL_API_KEY="LLM_2578595229279251_8bnK0Oa6aobTHC4MY9kxQZ6CSbo"
+MODEL_API_KEY="REPLACE_WITH_YOUR_META_API_KEY"
 AGENT_PROVIDER="meta"
 META_MODEL_ID="muse-spark-1.3"
 META_MODEL_BASE_URL="https://api.meta.ai/v1"

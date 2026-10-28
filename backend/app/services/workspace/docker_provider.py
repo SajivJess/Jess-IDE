@@ -9,6 +9,8 @@ from app.db.models.workspace import Workspace
 from app.schemas.workspace import (
     WorkspaceCommandResponse,
     WorkspaceFileItem,
+    WorkspaceGitBranchesResponse,
+    WorkspaceGitCommitResponse,
     WorkspaceGitDiffResponse,
     WorkspaceGitStatusResponse,
     WorkspaceStatus,
@@ -225,6 +227,23 @@ class DockerWorkspaceProvider(BaseWorkspaceProvider):
     async def get_git_diff(self, workspace: Workspace) -> WorkspaceGitDiffResponse:
         return await self.fallback.get_git_diff(workspace)
 
+    async def get_git_branches(self, workspace: Workspace) -> WorkspaceGitBranchesResponse:
+        return await self.fallback.get_git_branches(workspace)
+
+    async def checkout_git_branch(
+        self, workspace: Workspace, branch: str, create_new: bool = False
+    ) -> WorkspaceGitStatusResponse:
+        return await self.fallback.checkout_git_branch(workspace, branch, create_new)
+
+    async def commit_git_changes(
+        self,
+        workspace: Workspace,
+        message: str,
+        author_name: Optional[str] = None,
+        author_email: Optional[str] = None,
+    ) -> WorkspaceGitCommitResponse:
+        return await self.fallback.commit_git_changes(workspace, message, author_name, author_email)
+
     async def get_logs(self, workspace: Workspace) -> str:
         if workspace.container_id and await self.check_docker_available():
             proc = await asyncio.create_subprocess_exec(
@@ -239,3 +258,6 @@ class DockerWorkspaceProvider(BaseWorkspaceProvider):
             stdout, stderr = await proc.communicate()
             return stdout.decode() or stderr.decode() or "No container logs."
         return await self.fallback.get_logs(workspace)
+
+    def get_workspace_dir(self, workspace: Workspace) -> Path:
+        return self.fallback.get_workspace_dir(workspace)

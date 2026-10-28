@@ -7,9 +7,16 @@ class ApprovalRequestCard extends StatefulWidget {
   final String? target;
   final String? action;
   final String? diff;
-  final Future<void> Function(bool approved) onDecision;
+  final Future<void> Function(bool approved, {String? reason}) onDecision;
   final bool isDecided;
   final bool? wasApproved;
+  final String? branch;
+  final String? baseCommit;
+  final String? taskId;
+  final String? checkCommand;
+  final int? checkExitCode;
+  final bool? checkPassed;
+  final bool isStale;
 
   const ApprovalRequestCard({
     super.key,
@@ -20,6 +27,13 @@ class ApprovalRequestCard extends StatefulWidget {
     required this.onDecision,
     this.isDecided = false,
     this.wasApproved,
+    this.branch,
+    this.baseCommit,
+    this.taskId,
+    this.checkCommand,
+    this.checkExitCode,
+    this.checkPassed,
+    this.isStale = false,
   });
 
   @override
@@ -30,11 +44,11 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
   bool _isSubmitting = false;
   bool _isDiffExpanded = false;
 
-  Future<void> _handle(bool approve) async {
+  Future<void> _handle(bool approve, {String? reason}) async {
     if (_isSubmitting || widget.isDecided) return;
     setState(() => _isSubmitting = true);
     try {
-      await widget.onDecision(approve);
+      await widget.onDecision(approve, reason: reason);
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -127,8 +141,9 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
                       icon: const Icon(Icons.close, size: 16),
                       label: const Text('Confirm Reject'),
                       onPressed: () {
+                        final note = noteController.text.trim();
                         Navigator.pop(ctx);
-                        _handle(false);
+                        _handle(false, reason: note.isNotEmpty ? note : null);
                       },
                     ),
                   ),
@@ -272,6 +287,132 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
                 ),
             ],
           ),
+          if (widget.isStale) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.statusError.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.statusError.withValues(alpha: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.statusError),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Review is stale. Branch or working tree changed since diff generation. Stale approvals are rejected.',
+                      style: AppTypography.codeSm.copyWith(
+                        color: AppColors.statusError,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (widget.branch != null || widget.baseCommit != null || widget.taskId != null) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                if (widget.branch != null && widget.branch!.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceElevated,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppColors.borderSubtle),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.fork_right, size: 12, color: AppColors.statusInfo),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.branch!,
+                          style: AppTypography.codeSm.copyWith(color: AppColors.statusInfo, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (widget.baseCommit != null && widget.baseCommit!.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceElevated,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppColors.borderSubtle),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.commit, size: 12, color: AppColors.lavender),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.baseCommit!.length > 7 ? widget.baseCommit!.substring(0, 7) : widget.baseCommit!,
+                          style: AppTypography.codeSm.copyWith(color: AppColors.lavender, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (widget.taskId != null && widget.taskId!.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceElevated,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppColors.borderSubtle),
+                    ),
+                    child: Text(
+                      'Task #${widget.taskId!.length > 8 ? widget.taskId!.substring(0, 8) : widget.taskId!}',
+                      style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          if (widget.checkCommand != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: widget.checkPassed == true
+                    ? AppColors.statusSuccess.withValues(alpha: 0.1)
+                    : AppColors.statusError.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: widget.checkPassed == true
+                      ? AppColors.statusSuccess.withValues(alpha: 0.3)
+                      : AppColors.statusError.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    widget.checkPassed == true ? Icons.check_circle_outline : Icons.highlight_off,
+                    size: 13,
+                    color: widget.checkPassed == true ? AppColors.statusSuccess : AppColors.statusError,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Check: ${widget.checkCommand!} (${widget.checkPassed == true ? "passed" : "exit code ${widget.checkExitCode ?? 1}"})',
+                      style: AppTypography.codeSm.copyWith(
+                        color: widget.checkPassed == true ? AppColors.statusSuccess : AppColors.statusError,
+                        fontSize: 10,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
 
           // Prompt description
@@ -376,7 +517,7 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
                       'Approve Action',
                       style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                     ),
-                    onPressed: _isSubmitting ? null : () => _handle(true),
+                    onPressed: (_isSubmitting || widget.isStale) ? null : () => _handle(true),
                   ),
                 ),
                 const SizedBox(width: 8),

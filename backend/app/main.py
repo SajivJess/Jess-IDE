@@ -12,6 +12,15 @@ from app.api.v1.api import api_router
 from app.api.v1.endpoints.health import health_check, readiness_check
 
 
+from sqlalchemy import select
+from app.db.models.task import Task
+from app.db.session import async_session_factory
+from app.schemas.task import TaskStatus
+
+
+from app.services.task_recovery import reconcile_interrupted_tasks
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan context manager for startup and shutdown events."""
@@ -19,6 +28,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         f"Starting {settings.PROJECT_NAME} v{settings.VERSION} "
         f"[env: {settings.ENVIRONMENT}, debug: {settings.DEBUG}]"
     )
+    try:
+        await reconcile_interrupted_tasks()
+    except Exception as e:
+        logger.warning(f"[Recovery] Could not reconcile interrupted tasks at startup: {e}")
     yield
     logger.info(f"Shutting down {settings.PROJECT_NAME}")
 
