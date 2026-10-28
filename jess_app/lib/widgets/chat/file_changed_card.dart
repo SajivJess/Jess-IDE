@@ -8,6 +8,7 @@ class FileChangedCard extends StatefulWidget {
   final String diff;
   final int additions;
   final int deletions;
+  final bool initiallyExpanded;
 
   const FileChangedCard({
     super.key,
@@ -16,6 +17,7 @@ class FileChangedCard extends StatefulWidget {
     required this.diff,
     this.additions = 0,
     this.deletions = 0,
+    this.initiallyExpanded = false,
   });
 
   @override
@@ -23,7 +25,13 @@ class FileChangedCard extends StatefulWidget {
 }
 
 class _FileChangedCardState extends State<FileChangedCard> {
-  bool _isExpanded = true;
+  late bool _isExpanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.initiallyExpanded;
+  }
 
   @override
   Widget build(BuildContext context) {

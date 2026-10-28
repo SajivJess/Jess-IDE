@@ -157,6 +157,10 @@ void main() {
 
       expect(find.text('lib/services/api_client.dart'), findsOneWidget);
       expect(find.text('+3'), findsOneWidget);
+
+      // Verify collapsed by default, then tap to expand
+      await tester.tap(find.text('lib/services/api_client.dart'));
+      await tester.pumpAndSettle();
       expect(find.textContaining('final int retries = 3;'), findsOneWidget);
     });
 

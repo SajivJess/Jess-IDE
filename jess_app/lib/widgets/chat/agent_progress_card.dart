@@ -25,15 +25,17 @@ class _AgentProgressCardState extends State<AgentProgressCard> {
   @override
   void initState() {
     super.initState();
-    // Expand by default if any activity is actively running
-    _isExpanded = widget.activities.any((a) => a.status.toLowerCase() == 'running');
+    _isExpanded = false;
   }
 
   @override
   void didUpdateWidget(covariant AgentProgressCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.activities.any((a) => a.status.toLowerCase() == 'running')) {
-      _isExpanded = true;
+    final wasRunning = oldWidget.activities.any((a) => a.status.toLowerCase() == 'running');
+    final isRunning = widget.activities.any((a) => a.status.toLowerCase() == 'running');
+    if (wasRunning && !isRunning) {
+      // Auto-collapse when agent completes its intermediate tool actions
+      setState(() => _isExpanded = false);
     }
   }
 

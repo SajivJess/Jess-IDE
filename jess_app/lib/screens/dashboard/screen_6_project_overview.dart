@@ -22,6 +22,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_api_service.dart';
 import '../../widgets/chat/live_preview_card.dart';
 import '../../widgets/chat/agent_progress_card.dart';
+import '../../widgets/workspace/workspace_file_editor_dialog.dart';
 
 // Timeline Item Model hierarchy for Conversational Chat
 abstract class ChatTimelineItem {
@@ -395,6 +396,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
 
   // Terminal Runner State
   final TextEditingController _cmdController = TextEditingController(text: 'git status');
+  final TextEditingController _chatInputController = TextEditingController();
   bool _isRunningCommand = false;
   WorkspaceCommandResult? _lastCommandResult;
 
@@ -414,6 +416,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
     _chatStreamService?.dispose();
     _chatScrollController.dispose();
     _cmdController.dispose();
+    _chatInputController.dispose();
     super.dispose();
   }
 
@@ -1141,24 +1144,19 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
     if (!mounted) return;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceMain,
-        title: Text(fileName, style: AppTypography.headlineSm),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Text(
-              content ?? 'Empty or binary file',
-              style: AppTypography.codeSm.copyWith(fontSize: 11),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
-          ),
-        ],
+      barrierDismissible: true,
+      builder: (ctx) => WorkspaceFileEditorDialog(
+        filePath: filePath,
+        fileName: fileName,
+        initialContent: content ?? '',
+        onSave: (newContent) async {
+          final ok = await WorkspacesApiService.writeFile(_projectId!, _workspace!.id, filePath, newContent);
+          if (ok) {
+            _loadWorkspaceFiles();
+            _loadGitStatus();
+          }
+          return ok;
+        },
       ),
     );
   }
@@ -1205,7 +1203,7 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
             // App Header
             AppHeader(
               title: widget.projectName,
-              version: 'v0.9.4-beta',
+              version: 'v0.9.6',
               showBack: true,
               onBackPressed: () => Navigator.pop(context),
               actions: [
@@ -1695,78 +1693,106 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
 
         // Timeline Message List
         Expanded(
-          child: _timelineItems.isEmpty
-              ? _buildChatEmptyState()
-              : ListView.builder(
-                  controller: _chatScrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  itemCount: groupedItems.length,
-                  itemBuilder: (context, idx) {
-                    final item = groupedItems[idx];
-                    if (item is List<ChatToolActivityItem>) {
-                      return AgentProgressCard(activities: item);
-                    } else if (item is ChatUserMessageItem) {
-                      return ChatMessageBubble(
-                        role: 'user',
-                        content: item.content,
-                        timestamp: item.timestamp,
-                      );
-                    } else if (item is ChatAssistantMessageItem) {
-                      return ChatMessageBubble(
-                        role: 'assistant',
-                        content: item.content,
-                        isStreaming: item.isStreaming,
-                        timestamp: item.timestamp,
-                      );
-                    } else if (item is ChatToolActivityItem) {
-                      return ToolActivityCard(
-                        tool: item.tool,
-                        label: item.label,
-                        status: item.status,
-                        output: item.output,
-                        command: item.command,
-                        exitCode: item.exitCode,
-                      );
-                    } else if (item is ChatFileChangedItem) {
-                      return FileChangedCard(
-                        file: item.file,
-                        diff: item.diff,
-                        action: item.action,
-                        additions: item.additions,
-                        deletions: item.deletions,
-                      );
-                    } else if (item is ChatApprovalItem) {
-                      return ApprovalRequestCard(
-                        prompt: item.prompt,
-                        target: item.target,
-                        action: item.action,
-                        diff: item.diff,
-                        branch: item.branch,
-                        baseCommit: item.baseCommit,
-                        taskId: item.runId,
-                        checkCommand: item.checkCommand,
-                        checkExitCode: item.checkExitCode,
-                        checkPassed: item.checkPassed,
-                        isStale: item.isStale,
-                        isDecided: item.isDecided,
-                        wasApproved: item.wasApproved,
-                        onDecision: (approve, {reason}) => _handleApprovalDecision(item, approve, reason: reason),
-                      );
-                    } else if (item is ChatPreviewItem) {
-                      return LivePreviewCard(
-                        previewUrl: item.previewUrl,
-                        file: item.file,
-                        hostingType: item.hostingType,
-                        title: item.title,
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
+          child: Stack(
+            children: [
+              _timelineItems.isEmpty
+                  ? _buildChatEmptyState()
+                  : ListView.builder(
+                      controller: _chatScrollController,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      itemCount: groupedItems.length,
+                      itemBuilder: (context, idx) {
+                        final item = groupedItems[idx];
+                        if (item is List<ChatToolActivityItem>) {
+                          return AgentProgressCard(activities: item);
+                        } else if (item is ChatUserMessageItem) {
+                          return ChatMessageBubble(
+                            role: 'user',
+                            content: item.content,
+                            timestamp: item.timestamp,
+                          );
+                        } else if (item is ChatAssistantMessageItem) {
+                          return ChatMessageBubble(
+                            role: 'assistant',
+                            content: item.content,
+                            isStreaming: item.isStreaming,
+                            timestamp: item.timestamp,
+                          );
+                        } else if (item is ChatToolActivityItem) {
+                          return ToolActivityCard(
+                            tool: item.tool,
+                            label: item.label,
+                            status: item.status,
+                            output: item.output,
+                            command: item.command,
+                            exitCode: item.exitCode,
+                          );
+                        } else if (item is ChatFileChangedItem) {
+                          return FileChangedCard(
+                            file: item.file,
+                            diff: item.diff,
+                            action: item.action,
+                            additions: item.additions,
+                            deletions: item.deletions,
+                          );
+                        } else if (item is ChatApprovalItem) {
+                          return ApprovalRequestCard(
+                            prompt: item.prompt,
+                            target: item.target,
+                            action: item.action,
+                            diff: item.diff,
+                            branch: item.branch,
+                            baseCommit: item.baseCommit,
+                            taskId: item.runId,
+                            checkCommand: item.checkCommand,
+                            checkExitCode: item.checkExitCode,
+                            checkPassed: item.checkPassed,
+                            isStale: item.isStale,
+                            isDecided: item.isDecided,
+                            wasApproved: item.wasApproved,
+                            onDecision: (approve, {reason}) => _handleApprovalDecision(item, approve, reason: reason),
+                          );
+                        } else if (item is ChatPreviewItem) {
+                          return LivePreviewCard(
+                            previewUrl: item.previewUrl,
+                            file: item.file,
+                            hostingType: item.hostingType,
+                            title: item.title,
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+              if (_timelineItems.isNotEmpty)
+                Positioned(
+                  right: 14,
+                  bottom: 12,
+                  child: FloatingActionButton.small(
+                    heroTag: 'scroll_to_bottom',
+                    backgroundColor: AppColors.surfaceElevated,
+                    foregroundColor: AppColors.lavender,
+                    elevation: 3,
+                    shape: const CircleBorder(side: BorderSide(color: AppColors.borderSubtle)),
+                    onPressed: () {
+                      if (_chatScrollController.hasClients) {
+                        _chatScrollController.animateTo(
+                          _chatScrollController.position.maxScrollExtent,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                        );
+                      }
+                    },
+                    child: const Icon(Icons.keyboard_arrow_down, size: 20),
+                  ),
                 ),
+            ],
+          ),
         ),
 
         // Bottom Multiline Composer
         ChatComposer(
+          controller: _chatInputController,
+          onAttach: _openAttachDialog,
           isRunning: _isRunActive,
           isApprovalPending: isApprovalPending,
           statusText: effectiveStatusText,
@@ -1775,6 +1801,102 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
           onStop: _onStopRun,
         ),
       ],
+    );
+  }
+
+  void _openAttachDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceMain,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final nonDirFiles = _workspaceFiles.where((f) => !f.isDirectory).toList();
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.attach_file, color: AppColors.lavender, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Attach to Prompt', style: AppTypography.headlineSm.copyWith(fontSize: 15)),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18, color: AppColors.textSecondary),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Select a workspace file to reference in your agent prompt:',
+                style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 11),
+              ),
+              const SizedBox(height: 12),
+              if (nonDirFiles.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: Text(
+                      'No workspace files found. Open the Workspace tab to refresh files.',
+                      style: AppTypography.codeSm.copyWith(color: AppColors.textMuted, fontSize: 11),
+                    ),
+                  ),
+                )
+              else
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: nonDirFiles.length,
+                    separatorBuilder: (_, __) => const Divider(color: AppColors.borderSubtle, height: 1),
+                    itemBuilder: (context, idx) {
+                      final item = nonDirFiles[idx];
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.insert_drive_file_outlined, size: 16, color: AppColors.lavender),
+                        title: Text(item.name, style: AppTypography.codeSm.copyWith(fontSize: 12)),
+                        subtitle: Text(item.path, style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10)),
+                        trailing: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.surfaceElevated,
+                            foregroundColor: AppColors.lavender,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _attachFileToPrompt(item.path);
+                          },
+                          child: const Text('Attach', style: TextStyle(fontSize: 11)),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _attachFileToPrompt(String filePath) {
+    final current = _chatInputController.text;
+    final prefix = current.isEmpty ? '' : '$current ';
+    _chatInputController.text = '$prefix@$filePath ';
+    _chatInputController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _chatInputController.text.length),
     );
   }
 

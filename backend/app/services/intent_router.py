@@ -47,6 +47,10 @@ _CODING_ACTION_PATTERNS = [
     re.compile(r"\b(run|execute|rerun)\b.*?\b(tests?|pytest|unittest|build|script|command|check|migrations?)\b", re.IGNORECASE),
     re.compile(r"\b(inspect|examine|analyze|check)\b.*?\b([a-zA-Z0-9_\-\./]+\.(py|js|ts|dart|json|ya?ml))\b", re.IGNORECASE),
     re.compile(r"\b(delete|remove)\s+(the\s+)?(.+)", re.IGNORECASE),
+    re.compile(r"\b(host|preview|serve|deploy|live|tunnel|launch)\b", re.IGNORECASE),
+    re.compile(r"\b(prod|temp|public|preview)\s+(link|url|site|app|page)\b", re.IGNORECASE),
+    re.compile(r"\b(waiting|waiting\s+for|give\s+me)\b.*?\b(link|preview|url|host|hosted)\b", re.IGNORECASE),
+    re.compile(r"\b(export|download|save)\b.*?\b(chat|conversation|transcript|history|txt)\b", re.IGNORECASE),
 ]
 
 

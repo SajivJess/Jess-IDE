@@ -5,6 +5,8 @@ import '../../theme/app_typography.dart';
 class ChatComposer extends StatefulWidget {
   final Function(String text) onSend;
   final VoidCallback onStop;
+  final VoidCallback? onAttach;
+  final TextEditingController? controller;
   final bool isRunning;
   final bool isApprovalPending;
   final String statusText;
@@ -14,6 +16,8 @@ class ChatComposer extends StatefulWidget {
     super.key,
     required this.onSend,
     required this.onStop,
+    this.onAttach,
+    this.controller,
     this.isRunning = false,
     this.isApprovalPending = false,
     this.statusText = 'Ready',
@@ -25,23 +29,29 @@ class ChatComposer extends StatefulWidget {
 }
 
 class _ChatComposerState extends State<ChatComposer> {
-  final TextEditingController _controller = TextEditingController();
+  late final TextEditingController _internalController;
+  TextEditingController get _controller => widget.controller ?? _internalController;
   bool _canSend = false;
 
   @override
   void initState() {
     super.initState();
-    _controller.addListener(() {
-      final hasText = _controller.text.trim().isNotEmpty;
-      if (hasText != _canSend) {
-        setState(() => _canSend = hasText);
-      }
-    });
+    _internalController = TextEditingController();
+    _controller.addListener(_onTextChanged);
+    _canSend = _controller.text.trim().isNotEmpty;
+  }
+
+  void _onTextChanged() {
+    final hasText = _controller.text.trim().isNotEmpty;
+    if (hasText != _canSend && mounted) {
+      setState(() => _canSend = hasText);
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller.removeListener(_onTextChanged);
+    _internalController.dispose();
     super.dispose();
   }
 
@@ -161,11 +171,12 @@ class _ChatComposerState extends State<ChatComposer> {
               // Attachment icon
               IconButton(
                 icon: const Icon(Icons.attach_file, color: AppColors.textSecondary, size: 20),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Attach project file or diff snippet')),
-                  );
-                },
+                onPressed: widget.onAttach ??
+                    () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Attach project file or snippet')),
+                      );
+                    },
                 padding: const EdgeInsets.all(8),
                 constraints: const BoxConstraints(),
               ),
