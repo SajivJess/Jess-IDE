@@ -108,6 +108,28 @@ META_TOOLS = [
             "parameters": {"type": "object", "properties": {}, "required": []},
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "host_preview",
+            "description": "Host and generate a live web preview link for any HTML/web file in the workspace (e.g. 'calculator.html', 'index.html'). Generates an instant public HTTPS tunnel or local IP link for mobile and browser testing.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "File path relative to workspace root to host and preview (e.g. 'calculator.html' or 'index.html').",
+                    },
+                    "hosting_type": {
+                        "type": "string",
+                        "enum": ["temp_tunnel", "local_ip"],
+                        "description": "Hosting type: 'temp_tunnel' (temporary Cloudflare/ngrok public HTTPS link accessible remotely on phone) or 'local_ip' (for same Wi-Fi LAN). Default is 'temp_tunnel'.",
+                    },
+                },
+                "required": ["file_path"],
+            },
+        },
+    },
 ]
 
 # ─── Safe Task-Scoped Git Baseline & Reversion Helpers ──────────────────────────
@@ -654,16 +676,25 @@ class MetaAgentAdapter(BaseAgentAdapter):
                 model_id = settings.META_MODEL_ID
 
                 system_prompt = (
-                    "You are an autonomous AI software engineer in Jess IDE.\n"
+                    "You are an autonomous AI software engineer and system assistant in Jess IDE.\n"
+                    "You have direct control over the project workspace and server tools.\n"
                     "Your mission is to inspect the project workspace, implement the requested code changes, "
-                    "run tests to verify your changes, diagnose and repair any failures, and produce a clean diff.\n\n"
-                    "Rules:\n"
-                    "- Always use the approved tools: list_files, read_file, write_file, run_check, get_git_diff.\n"
+                    "run tests to verify your changes, diagnose and repair any failures, and produce clean results.\n\n"
+                    "Rules & Capabilities:\n"
+                    "- Always use the approved tools: list_files, read_file, write_file, run_check, get_git_diff, host_preview.\n"
                     "- Always inspect existing files using list_files and read_file before making changes.\n"
                     "- Write clean, working code using write_file.\n"
                     "- Always execute project checks using run_check (e.g. 'pytest', 'python -m unittest', 'python -m pytest', etc.).\n"
                     "- If a check fails, carefully analyze stdout and stderr, diagnose the root cause, apply a repair with write_file, and re-run run_check.\n"
-                    "- When tests pass and you are done, summarize what you accomplished."
+                    "- When tests pass and you are done, summarize what you accomplished.\n\n"
+                    "Hosting & Web Preview Instructions:\n"
+                    "- When the user asks to host, run, or preview an application (e.g. 'host the py file and html file', 'give me a temp link', 'preview the app'):\n"
+                    "  * If the user specifies hosting or asks for a temp link, immediately call `host_preview` with `hosting_type='temp_tunnel'`.\n"
+                    "  * If the user asks for hosting options, offer both: (1) Temporary Public Tunnel (Cloudflare/ngrok HTTPS link accessible on their phone anywhere) or (2) Local Wi-Fi / Static IP.\n"
+                    "  * Never attempt to launch background servers via `run_check` (which is reserved for non-blocking test runners).\n\n"
+                    "Chat & Artifact Export Instructions:\n"
+                    "- When the user asks to export the chat, conversation history, or results to a text file (e.g. 'export this entire chat and give me as txt file'):\n"
+                    "  * Summarize the full conversation (prompts given, agent tool actions, code created/fixed, test results), and save it into the workspace as `chat_export.txt` using `write_file`."
                 )
 
                 initial_user_prompt = (
@@ -974,6 +1005,59 @@ class MetaAgentAdapter(BaseAgentAdapter):
                                     diff_res = await ws_provider.get_git_diff(workspace)
                                     tool_output = diff_res.diff
 
+                                elif fn_name == "host_preview":
+                                    file_path = args.get("file_path", "")
+                                    hosting_type = args.get("hosting_type", "temp_tunnel")
+                                    clean_rel = file_path.strip().replace("\\", "/").lstrip("/")
+                                    wdir_p = ws_provider.get_workspace_dir(workspace)
+                                    target_p = wdir_p / clean_rel if clean_rel else wdir_p
+
+                                    # Fallback to search for html files if not found
+                                    if not target_p.exists() or target_p.is_dir():
+                                        for cand in ("calculator.html", "index.html", "app.html", "main.html"):
+                                            if (wdir_p / cand).exists():
+                                                clean_rel = cand
+                                                target_p = wdir_p / cand
+                                                break
+                                        else:
+                                            html_list = list(wdir_p.glob("*.html"))
+                                            if html_list:
+                                                clean_rel = html_list[0].name
+                                                target_p = html_list[0]
+
+                                    tunnel_base = (settings.PUBLIC_TUNNEL_URL or "https://household-modeling-studio-carry.trycloudflare.com").rstrip("/")
+                                    local_base = f"http://{settings.HOST}:{settings.PORT}"
+
+                                    chosen_base = local_base if hosting_type == "local_ip" else tunnel_base
+                                    preview_url = f"{chosen_base}/api/v1/workspaces/{workspace_id_str}/preview/{clean_rel}"
+                                    tunnel_url = f"{tunnel_base}/api/v1/workspaces/{workspace_id_str}/preview/{clean_rel}"
+                                    local_url = f"{local_base}/api/v1/workspaces/{workspace_id_str}/preview/{clean_rel}"
+
+                                    # Emit preview.launched event to Flutter client
+                                    await self._emit_conv_event(
+                                        db,
+                                        task,
+                                        "preview.launched",
+                                        {
+                                            "preview_url": preview_url,
+                                            "tunnel_url": tunnel_url,
+                                            "local_url": local_url,
+                                            "file": clean_rel,
+                                            "hosting_type": hosting_type,
+                                            "title": f"Live Preview: {clean_rel}",
+                                        },
+                                    )
+
+                                    tool_output = json.dumps({
+                                        "status": "hosted",
+                                        "preview_url": preview_url,
+                                        "tunnel_url": tunnel_url,
+                                        "local_url": local_url,
+                                        "file": clean_rel,
+                                        "hosting_type": hosting_type,
+                                        "message": f"Application is live! Tell the user they can preview and run it at: {preview_url}",
+                                    })
+
                                 else:
                                     tool_output = f"Unknown tool: {fn_name}"
                                     exit_code = 1
@@ -1003,6 +1087,30 @@ class MetaAgentAdapter(BaseAgentAdapter):
                             })
 
                 # 5. Extract task-scoped real diff & record revision hash
+                if not task_owned_files:
+                    # Pure informational or read-only task: no code changes to approve
+                    logger.info(f"[MetaAgent] Task {task_id} produced no file modifications; completing cleanly.")
+                    task.execution_log = json.dumps({
+                        "task_owned_files": [],
+                        "diff": "",
+                        "prompt": "Exploration completed",
+                        "status": "completed",
+                    })
+                    await self._transition(db, task, TaskStatus.COMPLETED)
+                    await self._emit_task_event(
+                        db,
+                        task,
+                        "task.completed",
+                        {"status": TaskStatus.COMPLETED.value, "title": task_title, "files_changed": 0},
+                    )
+                    await self._emit_conv_event(
+                        db,
+                        task,
+                        "run.completed",
+                        {"status": TaskStatus.COMPLETED.value, "title": task_title, "files_changed": 0},
+                    )
+                    return
+
                 final_diff = await _get_task_scoped_diff(ws_provider, workspace, task_owned_files, baseline)
                 if not final_diff:
                     final_diff = "(No file modifications detected)"

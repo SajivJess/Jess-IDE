@@ -12,3 +12,4 @@ coverage/
 *.sqlite
 *.sqlite3
 *.zip
+workspaces_data/

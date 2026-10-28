@@ -67,6 +67,9 @@ class Settings(BaseSettings):
     GITHUB_TOKEN: Optional[str] = None
     GITHUB_API_BASE_URL: str = "https://api.github.com"
 
+    # Public Preview & Tunnel Configuration
+    PUBLIC_TUNNEL_URL: Optional[str] = "https://household-modeling-studio-carry.trycloudflare.com"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:

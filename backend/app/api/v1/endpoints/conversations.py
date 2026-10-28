@@ -1,6 +1,7 @@
+from datetime import datetime, timezone
 import uuid
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -631,3 +632,63 @@ async def get_run_status(
         created_at=task.created_at,
         updated_at=task.updated_at,
     )
+
+
+@router.get(
+    "/projects/{project_id}/conversations/{conversation_id}/export",
+    summary="Export conversation history as formatted text",
+)
+@router.get(
+    "/conversations/{conversation_id}/export",
+    summary="Export conversation history as formatted text",
+)
+async def export_conversation(
+    conversation_id: uuid.UUID,
+    project_id: Optional[uuid.UUID] = None,
+    format: str = Query("txt", description="Export format: 'txt' or 'md'"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    conv = await _get_conversation_with_ownership(conversation_id, current_user.id, project_id, db)
+
+    stmt = (
+        select(ConversationMessage)
+        .where(ConversationMessage.conversation_id == conversation_id)
+        .order_by(ConversationMessage.created_at.asc())
+    )
+    res = await db.execute(stmt)
+    messages = res.scalars().all()
+
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    lines = [
+        "=" * 60,
+        "JESS IDE — CONVERSATION EXPORT",
+        f"Project ID: {conv.project_id}",
+        f"Conversation: {conv.title} ({conv.id})",
+        f"Exported At: {now_str}",
+        f"Total Messages: {len(messages)}",
+        "=" * 60,
+        "",
+    ]
+
+    for m in messages:
+        sender = "USER" if m.role == "user" else "ASSISTANT (Jess Meta Agent)"
+        m_time = m.created_at.strftime("%Y-%m-%d %H:%M:%S") if m.created_at else "Unknown Time"
+        lines.append(f"[{m_time}] {sender}:")
+        lines.append(m.content.strip() if m.content else "(empty)")
+        lines.append("-" * 40)
+        lines.append("")
+
+    export_content = "\n".join(lines)
+    ext = "md" if format == "md" else "txt"
+    media_type = "text/markdown; charset=utf-8" if format == "md" else "text/plain; charset=utf-8"
+
+    return Response(
+        content=export_content,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="chat_{str(conv.id)[:8]}.{ext}"',
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
+

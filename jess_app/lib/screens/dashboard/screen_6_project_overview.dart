@@ -17,6 +17,10 @@ import '../../widgets/chat/tool_activity_card.dart';
 import '../../widgets/chat/approval_request_card.dart';
 import '../../widgets/chat/file_changed_card.dart';
 import '../../widgets/chat/chat_composer.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../services/auth_api_service.dart';
+import '../../widgets/chat/live_preview_card.dart';
 import '../../widgets/chat/agent_progress_card.dart';
 
 // Timeline Item Model hierarchy for Conversational Chat
@@ -307,6 +311,22 @@ class ChatApprovalItem extends ChatTimelineItem {
     this.isStale = false,
     this.isDecided = false,
     this.wasApproved,
+  });
+}
+
+class ChatPreviewItem extends ChatTimelineItem {
+  final String previewUrl;
+  final String file;
+  final String hostingType;
+  final String title;
+
+  ChatPreviewItem({
+    required super.id,
+    required super.timestamp,
+    required this.previewUrl,
+    required this.file,
+    this.hostingType = 'temp_tunnel',
+    this.title = 'Live Web Application',
   });
 }
 
@@ -730,6 +750,20 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
               diff: event.data['diff'] as String? ?? '',
               additions: event.data['additions'] as int? ?? 0,
               deletions: event.data['deletions'] as int? ?? 0,
+            ),
+          );
+          _scrollToBottom();
+          break;
+
+        case 'preview.launched':
+          _timelineItems.add(
+            ChatPreviewItem(
+              id: event.eventId,
+              timestamp: event.createdAt,
+              previewUrl: event.data['preview_url'] as String? ?? '',
+              file: event.data['file'] as String? ?? 'app',
+              hostingType: event.data['hosting_type'] as String? ?? 'temp_tunnel',
+              title: event.data['title'] as String? ?? 'Live Web Application',
             ),
           );
           _scrollToBottom();
@@ -1502,7 +1536,14 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
   // TAB 1: Conversational Chat UI (ChatGPT / Gemini style)
   Widget _buildChatSessionTab() {
     final groupedItems = _groupTimelineItems(_timelineItems);
-    final isApprovalPending = _timelineItems.any((item) => item is ChatApprovalItem && !item.isDecided);
+    final isApprovalPending = _timelineItems.any(
+      (item) =>
+          item is ChatApprovalItem &&
+          !item.isDecided &&
+          item.diff != null &&
+          item.diff!.isNotEmpty &&
+          item.diff != '(No file modifications detected)',
+    );
     final effectiveStatusText = isApprovalPending
         ? 'Review needed'
         : (_isRunActive
@@ -1527,6 +1568,34 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
                     style: AppTypography.codeSm.copyWith(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: _exportChatSession,
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.lavender.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppColors.lavender.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.file_download_outlined, size: 12, color: AppColors.lavender),
+                          const SizedBox(width: 4),
+                          Text(
+                            'EXPORT',
+                            style: AppTypography.codeSm.copyWith(
+                              color: AppColors.lavender,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -1683,6 +1752,13 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
                         wasApproved: item.wasApproved,
                         onDecision: (approve, {reason}) => _handleApprovalDecision(item, approve, reason: reason),
                       );
+                    } else if (item is ChatPreviewItem) {
+                      return LivePreviewCard(
+                        previewUrl: item.previewUrl,
+                        file: item.file,
+                        hostingType: item.hostingType,
+                        title: item.title,
+                      );
                     }
                     return const SizedBox.shrink();
                   },
@@ -1699,6 +1775,118 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
           onStop: _onStopRun,
         ),
       ],
+    );
+  }
+
+  void _exportChatSession() {
+    final buffer = StringBuffer();
+    final nowStr = DateTime.now().toUtc().toIso8601String();
+    buffer.writeln('==============================================================');
+    buffer.writeln('JESS IDE — CHAT CONVERSATION EXPORT');
+    buffer.writeln('Project: ${widget.projectName} (${_projectId ?? "default"})');
+    buffer.writeln('Export Date: $nowStr');
+    buffer.writeln('==============================================================\n');
+
+    for (final item in _timelineItems) {
+      final timeStr = item.timestamp.toLocal().toString().split('.')[0];
+      if (item is ChatUserMessageItem) {
+        buffer.writeln('[$timeStr] USER:');
+        buffer.writeln(item.content);
+        buffer.writeln('--------------------------------------------------------------\n');
+      } else if (item is ChatAssistantMessageItem) {
+        buffer.writeln('[$timeStr] ASSISTANT (Jess Meta Agent):');
+        buffer.writeln(item.content);
+        buffer.writeln('--------------------------------------------------------------\n');
+      } else if (item is ChatToolActivityItem) {
+        buffer.writeln('[$timeStr] TOOL: ${item.tool} (Status: ${item.status}, Exit: ${item.exitCode})');
+        if (item.output != null && item.output!.isNotEmpty) {
+          buffer.writeln('Output: ${item.output}');
+        }
+        buffer.writeln('--------------------------------------------------------------\n');
+      } else if (item is ChatFileChangedItem) {
+        buffer.writeln('[$timeStr] FILE MODIFIED: ${item.file} (+${item.additions} / -${item.deletions})');
+        buffer.writeln(item.diff);
+        buffer.writeln('--------------------------------------------------------------\n');
+      } else if (item is ChatApprovalItem) {
+        final status = item.isDecided ? (item.wasApproved == true ? 'APPROVED' : 'REJECTED') : 'PENDING';
+        buffer.writeln('[$timeStr] APPROVAL: $status (${item.target ?? "workspace"})');
+        buffer.writeln(item.prompt);
+        buffer.writeln('--------------------------------------------------------------\n');
+      } else if (item is ChatPreviewItem) {
+        buffer.writeln('[$timeStr] LIVE HOSTED PREVIEW:');
+        buffer.writeln('URL: ${item.previewUrl} (${item.hostingType})');
+        buffer.writeln('--------------------------------------------------------------\n');
+      }
+    }
+
+    final exportText = buffer.toString();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceMain,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.borderSubtle),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.file_download_outlined, color: AppColors.lavender, size: 20),
+            const SizedBox(width: 8),
+            Text('Export Chat History', style: AppTypography.headlineSm),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Complete chat transcript with all user instructions, tool activities, code diffs, and verification results.',
+                style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 220,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.borderSubtle),
+                ),
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    exportText,
+                    style: AppTypography.codeSm.copyWith(fontSize: 10, color: AppColors.textPrimary),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Close', style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.copy, size: 14),
+            label: const Text('Copy Transcript'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.lavender,
+              foregroundColor: Colors.black,
+            ),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: exportText));
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Chat transcript copied to clipboard!')),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -1961,9 +2149,48 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
                       size: 16,
                     ),
                     title: Text(item.name, style: AppTypography.codeSm),
-                    trailing: Text(
-                      item.isDirectory ? 'dir' : '${item.sizeBytes} B',
-                      style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (item.name.toLowerCase().endsWith('.html') || item.name.toLowerCase().endsWith('.htm')) ...[
+                          InkWell(
+                            onTap: () {
+                              final base = AuthApiService.baseUrl.replaceAll('/api/v1', '');
+                              final previewUrl = '$base/api/v1/workspaces/${_workspace?.id}/preview/${item.path}';
+                              final uri = Uri.parse(previewUrl);
+                              launchUrl(uri, mode: LaunchMode.externalApplication);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF00E5FF).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.open_in_browser, size: 12, color: Color(0xFF00E5FF)),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    'PREVIEW',
+                                    style: AppTypography.codeSm.copyWith(
+                                      color: const Color(0xFF00E5FF),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          item.isDirectory ? 'dir' : '${item.sizeBytes} B',
+                          style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                        ),
+                      ],
                     ),
                     onTap: item.isDirectory ? null : () => _showFileContentDialog(item.path, item.name),
                   );

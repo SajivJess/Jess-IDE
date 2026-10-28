@@ -1,10 +1,12 @@
+import mimetypes
 import uuid
 from typing import Any, Dict, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.core.logging import logger
 from app.db.models.project import Project
 from app.db.models.user import User
@@ -469,3 +471,141 @@ async def commit_workspace_git_changes(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get(
+    "/workspaces/{workspace_id}/preview/{file_path:path}",
+    summary="Live web preview and hosting endpoint for workspace web applications",
+)
+@router.get(
+    "/projects/{project_id}/workspaces/{workspace_id}/preview/{file_path:path}",
+    summary="Live web preview and hosting endpoint for workspace web applications (project-scoped)",
+)
+async def preview_workspace_file(
+    workspace_id: uuid.UUID,
+    file_path: str = "",
+    project_id: Optional[uuid.UUID] = None,
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Serve any workspace web application file (HTML, CSS, JS, images) with live hot preview.
+    
+    Accessible across local Wi-Fi, static IPs, and public tunnels (Cloudflare / ngrok).
+    """
+    stmt = select(Workspace).where(Workspace.id == workspace_id)
+    if project_id:
+        stmt = stmt.where(Workspace.project_id == project_id)
+    res = await db.execute(stmt)
+    ws = res.scalar_one_or_none()
+    if not ws:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+
+    provider = get_workspace_provider()
+    wdir = provider.get_workspace_dir(ws)
+    if not wdir.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace directory not found")
+
+    clean_rel = file_path.strip().replace("\\", "/").lstrip("/")
+
+    # If path is empty or a directory, look for default entrypoints
+    target = wdir / clean_rel if clean_rel else wdir
+    if target.is_dir() or not clean_rel:
+        for default_file in ("calculator.html", "index.html", "app.html", "main.html"):
+            cand = target / default_file
+            if cand.exists() and cand.is_file():
+                target = cand
+                clean_rel = str(cand.relative_to(wdir)).replace("\\", "/")
+                break
+        else:
+            html_cand = list(target.glob("*.html"))
+            if html_cand:
+                target = html_cand[0]
+                clean_rel = str(target.relative_to(wdir)).replace("\\", "/")
+
+    # Directory traversal safety check
+    try:
+        resolved_target = target.resolve()
+        resolved_root = wdir.resolve()
+        resolved_target.relative_to(resolved_root)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied: outside workspace root")
+
+    if not target.exists() or not target.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"File '{clean_rel}' not found in workspace",
+        )
+
+    # Guess MIME type
+    mime_type, _ = mimetypes.guess_type(target.name)
+    if not mime_type:
+        if target.suffix in (".html", ".htm"):
+            mime_type = "text/html"
+        elif target.suffix in (".js", ".mjs"):
+            mime_type = "application/javascript"
+        elif target.suffix == ".css":
+            mime_type = "text/css"
+        elif target.suffix == ".json":
+            mime_type = "application/json"
+        elif target.suffix == ".py":
+            mime_type = "text/plain"
+        else:
+            mime_type = "application/octet-stream"
+
+    if mime_type.startswith("text/") or mime_type in ("application/javascript", "application/json"):
+        mime_type = f"{mime_type}; charset=utf-8"
+
+    content = target.read_bytes()
+    return Response(
+        content=content,
+        media_type=mime_type,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Access-Control-Allow-Origin": "*",
+            "X-Jess-Workspace-Preview": "true",
+            "X-Jess-File": clean_rel,
+        },
+    )
+
+
+@router.get(
+    "/projects/{project_id}/workspaces/{workspace_id}/preview-info",
+    summary="Get public tunnel and local preview URLs for workspace files",
+)
+async def get_workspace_preview_info(
+    project_id: uuid.UUID,
+    workspace_id: uuid.UUID,
+    file: str = Query("", description="Entrypoint file to preview, e.g. calculator.html"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    ws = await _get_workspace_with_ownership(workspace_id, current_user.id, project_id, db)
+    provider = get_workspace_provider()
+    wdir = provider.get_workspace_dir(ws)
+
+    target_file = file.strip().replace("\\", "/").lstrip("/")
+    if not target_file:
+        for cand in ("calculator.html", "index.html", "app.html"):
+            if (wdir / cand).exists():
+                target_file = cand
+                break
+        else:
+            htmls = list(wdir.glob("*.html"))
+            target_file = htmls[0].name if htmls else "index.html"
+
+    exists = (wdir / target_file).exists() and (wdir / target_file).is_file()
+
+    tunnel_base = (settings.PUBLIC_TUNNEL_URL or "https://household-modeling-studio-carry.trycloudflare.com").rstrip("/")
+    local_base = f"http://{settings.HOST}:{settings.PORT}"
+
+    tunnel_url = f"{tunnel_base}/api/v1/workspaces/{workspace_id}/preview/{target_file}"
+    local_url = f"{local_base}/api/v1/workspaces/{workspace_id}/preview/{target_file}"
+
+    return {
+        "workspace_id": str(workspace_id),
+        "file": target_file,
+        "exists": exists,
+        "tunnel_url": tunnel_url,
+        "local_url": local_url,
+        "default_preview_url": tunnel_url,
+    }
+
