@@ -82,8 +82,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppHeader(
+      appBar: AppHeader(
         title: 'Settings',
+        showBack: Navigator.of(context).canPop(),
+        onBackPressed: () => Navigator.of(context).maybePop(),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -118,12 +120,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         runSpacing: 8,
                         children: [
                           _buildPresetChip(
-                            label: 'USB ADB (127.0.0.1:8000)',
-                            url: 'http://127.0.0.1:8000/api/v1',
+                            label: 'Public Tunnel (Chennai / Remote)',
+                            url: 'https://household-modeling-studio-carry.trycloudflare.com/api/v1',
                           ),
                           _buildPresetChip(
-                            label: 'LAN Wi-Fi (172.30.17.207:8000)',
-                            url: 'http://172.30.17.207:8000/api/v1',
+                            label: 'LAN Wi-Fi (192.168.16.10:8000)',
+                            url: 'http://192.168.16.10:8000/api/v1',
+                          ),
+                          _buildPresetChip(
+                            label: 'USB ADB (127.0.0.1:8000)',
+                            url: 'http://127.0.0.1:8000/api/v1',
                           ),
                         ],
                       ),

@@ -65,9 +65,9 @@ class VerificationStatus {
 
 class AuthApiService {
   // Base URL configuration:
-  // - Default: http://127.0.0.1:8000 (standard for Web, Desktop, and physical Android via `adb reverse tcp:8000 tcp:8000`)
-  // - Android emulator fallback: http://10.0.2.2:8000
-  static String baseUrl = 'http://127.0.0.1:8000/api/v1';
+  // - Public Tunnel (Remote/Chennai): https://household-modeling-studio-carry.trycloudflare.com/api/v1
+  // - Local USB/Desktop: http://127.0.0.1:8000/api/v1
+  static String baseUrl = 'https://household-modeling-studio-carry.trycloudflare.com/api/v1';
 
   static String? currentAccessToken;
   static String? currentRefreshToken;

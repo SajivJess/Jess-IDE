@@ -5,6 +5,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/app_text_field.dart';
 import '../../services/auth_api_service.dart';
+import '../settings/settings_screen.dart';
 
 class Screen1LoginRegister extends StatefulWidget {
   final VoidCallback? onLoginSuccess;
@@ -147,6 +148,17 @@ class _Screen1LoginRegisterState extends State<Screen1LoginRegister> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppHeader(
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: AppColors.textSecondary, size: 20),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (ctx) => const SettingsScreen()),
+              ).then((_) => setState(() {}));
+            },
+            tooltip: 'Server Settings',
+          ),
+        ],
         onHelpPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Documentation & Support')),
@@ -161,32 +173,69 @@ class _Screen1LoginRegisterState extends State<Screen1LoginRegister> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                      // Kicker Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceMain,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: AppColors.borderSubtle),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
+                      // Badges Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceMain,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: AppColors.borderSubtle),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'orchestration node',
+                                  style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (ctx) => const SettingsScreen()),
+                              ).then((_) => setState(() {}));
+                            },
+                            borderRadius: BorderRadius.circular(4),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceElevated,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: AppColors.borderSubtle),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.dns_outlined, size: 12, color: AppColors.textSecondary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    Uri.tryParse(AuthApiService.baseUrl)?.host ?? 'Host Config',
+                                    style: AppTypography.codeSm.copyWith(
+                                      color: AppColors.primary,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  const Icon(Icons.edit, size: 10, color: AppColors.textSecondary),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'orchestration node',
-                              style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       Text(
@@ -297,10 +346,41 @@ class _Screen1LoginRegisterState extends State<Screen1LoginRegister> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            'AUTH_ERR_401: Invalid credentials for user profile',
+                                            errorMessage ?? 'Connection or credentials error',
                                             style: AppTypography.codeSm.copyWith(
-                                              color: AppColors.statusError.withOpacity(0.8),
+                                              color: AppColors.statusError.withOpacity(0.9),
                                               fontSize: 11,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          GestureDetector(
+                                            onTap: () {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(builder: (ctx) => const SettingsScreen()),
+                                              ).then((_) => setState(() {}));
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.surfaceMain,
+                                                borderRadius: BorderRadius.circular(4),
+                                                border: Border.all(color: AppColors.statusError.withOpacity(0.4)),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.settings, size: 12, color: AppColors.statusError),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Change Server URL',
+                                                    style: AppTypography.labelSm.copyWith(
+                                                      color: AppColors.statusError,
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ],
