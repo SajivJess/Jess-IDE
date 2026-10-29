@@ -16,7 +16,7 @@ void main() {
   });
 
   testWidgets('Three-tab main navigation shell displays Dashboard, Projects, Settings without global Workspace tab', (WidgetTester tester) async {
-    await tester.pumpWidget(const JessIdeApp());
+    await tester.pumpWidget(const MuseFlowApp());
     await tester.pumpAndSettle();
 
     // Verify exactly three main navigation destinations
@@ -64,7 +64,7 @@ void main() {
   });
 
   testWidgets('Navigating to project overview and popping back returns cleanly to main three-tab shell', (WidgetTester tester) async {
-    await tester.pumpWidget(const JessIdeApp());
+    await tester.pumpWidget(const MuseFlowApp());
     await tester.pumpAndSettle();
 
     // Verify main destinations

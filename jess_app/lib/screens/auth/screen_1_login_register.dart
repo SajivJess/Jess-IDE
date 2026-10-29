@@ -173,6 +173,37 @@ class _Screen1LoginRegisterState extends State<Screen1LoginRegister> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                      // App Logo
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 24, top: 8),
+                          child: Container(
+                            width: 88,
+                            height: 88,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
+                                  blurRadius: 24,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.terminal,
+                                color: AppColors.primary,
+                                size: 48,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
                       // Badges Row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,

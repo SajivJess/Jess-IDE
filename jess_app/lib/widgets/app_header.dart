@@ -65,10 +65,15 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: AppColors.borderSubtle),
             ),
-            child: const Icon(
-              Icons.terminal,
-              color: AppColors.primary,
-              size: 16,
+            clipBehavior: Clip.antiAlias,
+            child: Image.asset(
+              'assets/images/app_icon.png',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.terminal,
+                color: AppColors.primary,
+                size: 16,
+              ),
             ),
           ),
           const SizedBox(width: 8),
