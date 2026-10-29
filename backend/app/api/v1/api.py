@@ -14,6 +14,24 @@ from app.api.v1.endpoints import (
 
 api_router = APIRouter()
 
+@api_router.get("", summary="API v1 Info", tags=["General"])
+@api_router.get("/", summary="API v1 Info", tags=["General"])
+async def api_v1_index():
+    return {
+        "brand": "MuseFlow",
+        "api_version": "v1",
+        "tagline": "AI engineering. Beyond your desk.",
+        "status": "online",
+        "endpoints": {
+            "health": "/health",
+            "docs": "/docs",
+            "auth": "/api/v1/auth",
+            "projects": "/api/v1/projects",
+            "voice": "/api/v1/voice",
+            "ws": "/ws",
+        },
+    }
+
 # Health endpoints
 api_router.include_router(health.router, tags=["Health"])
 

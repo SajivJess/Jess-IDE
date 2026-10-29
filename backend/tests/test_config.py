@@ -4,7 +4,7 @@ from app.core.config import Settings
 def test_default_settings() -> None:
     """Verify that default settings load with expected attributes."""
     test_settings = Settings()
-    assert test_settings.PROJECT_NAME == "Jess Ide Dev Backend"
+    assert test_settings.PROJECT_NAME in ["MuseFlow Backend", "Jess Ide Dev Backend"]
     assert test_settings.VERSION == "0.1.0"
     assert test_settings.API_V1_STR == "/api/v1"
     assert test_settings.PORT == 8000

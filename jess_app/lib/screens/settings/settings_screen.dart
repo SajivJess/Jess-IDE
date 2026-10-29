@@ -268,7 +268,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 24),
                 Center(
                   child: Text(
-                    'Jess IDE Dev · v1.0.0 Production Mobile Control Plane',
+                    'MuseFlow · AI engineering. Beyond your desk.',
                     style: AppTypography.codeSm.copyWith(color: AppColors.textSecondary, fontSize: 10),
                   ),
                 ),

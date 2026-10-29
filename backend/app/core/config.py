@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application Settings managed through environment variables."""
 
-    PROJECT_NAME: str = "Jess Ide Dev Backend"
+    PROJECT_NAME: str = "MuseFlow Backend"
     VERSION: str = "0.1.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True

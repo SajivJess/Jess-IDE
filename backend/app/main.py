@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="Jess Ide Dev — Agentic Coding Environment Backend API",
+    description="MuseFlow — AI engineering. Beyond your desk.",
     openapi_url=f"{settings.API_V1_STR}/openapi.json" if settings.DEBUG else None,
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
@@ -55,6 +55,22 @@ if settings.CORS_ORIGINS:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# Root Index route
+@app.get("/", summary="MuseFlow Service Info", tags=["General"])
+async def root_service_info():
+    """Welcome endpoint providing human and machine-readable service status."""
+    return {
+        "brand": "MuseFlow",
+        "name": settings.PROJECT_NAME,
+        "tagline": "AI engineering. Beyond your desk.",
+        "status": "online",
+        "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT,
+        "docs": "/docs",
+        "health": "/health",
+        "api_v1": settings.API_V1_STR,
+    }
 
 # Root-level health check (for simple load balancers & container probes)
 app.add_api_route(

@@ -18,16 +18,16 @@ import 'services/auth_api_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const JessIdeApp());
+  runApp(const MuseFlowApp());
 }
 
-class JessIdeApp extends StatelessWidget {
-  const JessIdeApp({super.key});
+class MuseFlowApp extends StatelessWidget {
+  const MuseFlowApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Jess IDE Dev',
+      title: 'MuseFlow',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const MainShell(),

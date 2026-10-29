@@ -239,7 +239,7 @@ class _Screen1LoginRegisterState extends State<Screen1LoginRegister> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        isSignUp ? 'Create your account' : 'Your workspace. Your agent. Your code.',
+                        isSignUp ? 'Create your account' : 'AI engineering. Beyond your desk.',
                         style: AppTypography.headlineLg,
                       ),
                       const SizedBox(height: 8),

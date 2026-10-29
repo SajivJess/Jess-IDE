@@ -13,7 +13,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
 
   const AppHeader({
     super.key,
-    this.title = 'Jess IDE',
+    this.title = 'MuseFlow',
     this.version = 'v0.9.4-beta',
     this.onHelpPressed,
     this.onMenuPressed,
