@@ -337,14 +337,15 @@ def test_task_workspace_integration(client: TestClient):
     _, token, proj_id = create_user_and_project(client, "task_ws_user")
     headers = {"Authorization": f"Bearer {token}"}
 
-    # 1. Provision a workspace for this project
-    prov_res = client.post(
+    # 1. Get the workspace automatically provisioned for this project
+    ws_list_res = client.get(
         f"{settings.API_V1_STR}/projects/{proj_id}/workspaces",
-        json={"name": "Integrated Task Workspace"},
         headers=headers,
     )
-    assert prov_res.status_code == 201
-    ws_id = prov_res.json()["id"]
+    assert ws_list_res.status_code == 200
+    workspaces = ws_list_res.json()["items"]
+    assert len(workspaces) >= 1
+    ws_id = workspaces[0]["id"]
 
     # 2. Create a task in the project
     task_res = client.post(

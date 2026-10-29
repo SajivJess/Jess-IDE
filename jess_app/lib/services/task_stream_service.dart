@@ -68,7 +68,7 @@ class TaskStreamService {
 
     try {
       final uri = _buildWsUri();
-      debugPrint('[TaskStreamService] Connecting to $uri (after: $lastSequenceNumber)');
+      debugPrint('[TaskStreamService] Connecting to task stream for taskId: $taskId (after: $lastSequenceNumber)');
       _channel = WebSocketChannel.connect(uri);
 
       _subscription = _channel!.stream.listen(

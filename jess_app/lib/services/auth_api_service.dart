@@ -65,9 +65,12 @@ class VerificationStatus {
 
 class AuthApiService {
   // Base URL configuration:
-  // - Public Tunnel (Remote/Chennai): https://household-modeling-studio-carry.trycloudflare.com/api/v1
-  // - Local USB/Desktop: http://127.0.0.1:8000/api/v1
-  static String baseUrl = 'https://household-modeling-studio-carry.trycloudflare.com/api/v1';
+  // Can be overridden at build time via --dart-define=MUSEFLOW_API_URL=https://your-domain.com/api/v1
+  // Defaults to standard Android emulator loopback for local development.
+  static String baseUrl = const String.fromEnvironment(
+    'MUSEFLOW_API_URL',
+    defaultValue: 'http://10.0.2.2:8000/api/v1',
+  );
 
   static String? currentAccessToken;
   static String? currentRefreshToken;

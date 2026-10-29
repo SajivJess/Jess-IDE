@@ -67,7 +67,7 @@ async def root_service_info():
         "status": "online",
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
-        "docs": "/docs",
+        "docs": "/docs" if settings.DEBUG else None,
         "health": "/health",
         "api_v1": settings.API_V1_STR,
     }

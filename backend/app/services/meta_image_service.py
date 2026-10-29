@@ -62,16 +62,22 @@ class MetaImageService:
         # Safe fallback if API key is not configured or in offline mode
         if not api_key:
             logger.info("[MetaImage] MODEL_API_KEY not set. Generating mock UI suggestion preview.")
-            png_bytes = base64.b64decode(_SIMULATED_PNG_BASE64)
+            mockup_asset = Path(__file__).resolve().parent.parent / "assets" / "simulated_ui_mockup.png"
+            if mockup_asset.exists():
+                png_bytes = mockup_asset.read_bytes()
+                b64_str = base64.b64encode(png_bytes).decode("ascii")
+            else:
+                png_bytes = base64.b64decode(_SIMULATED_PNG_BASE64)
+                b64_str = _SIMULATED_PNG_BASE64
             image_path.write_bytes(png_bytes)
             return {
                 "id": image_id,
-                "prompt": clean_prompt,
+                "prompt": f"[Simulated Mockup] {clean_prompt}",
                 "model": model_id,
-                "status": "generated",
+                "status": "simulated",
                 "image_filename": image_filename,
-                "image_data_uri": f"data:image/png;base64,{_SIMULATED_PNG_BASE64}",
-                "note": "Design suggestion preview generated via Muse Image 1.0 (Simulation).",
+                "image_data_uri": f"data:image/png;base64,{b64_str}",
+                "note": "Design preview in Simulation Mode. Configure MODEL_API_KEY for live Meta Model API generation.",
             }
 
         url = f"{base_url}/images/generations"

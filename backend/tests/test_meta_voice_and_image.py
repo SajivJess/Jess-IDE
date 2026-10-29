@@ -37,7 +37,7 @@ class TestMetaVoiceAndImage(unittest.IsolatedAsyncioTestCase):
         with patch.object(settings, "MODEL_API_KEY", None):
             result = await meta_voice_service.transcribe_audio(b"dummy_audio_bytes", "audio.m4a", "audio/m4a")
             self.assertIsInstance(result, str)
-            self.assertTrue(len(result) > 0)
+            self.assertTrue(result.startswith("[Simulated Voice Note]"))
 
     @pytest.mark.asyncio
     async def test_voice_transcription_mock_api_call(self) -> None:
@@ -76,7 +76,8 @@ class TestMetaVoiceAndImage(unittest.IsolatedAsyncioTestCase):
         with patch.object(settings, "MODEL_API_KEY", None):
             res = await meta_image_service.generate_ui_suggestion("Modern calculator interface")
             self.assertEqual(res["model"], "muse-image-1.0")
-            self.assertEqual(res["status"], "generated")
+            self.assertEqual(res["status"], "simulated")
+            self.assertTrue(res["prompt"].startswith("[Simulated Mockup]"))
             self.assertTrue(res["image_data_uri"].startswith("data:image/png;base64,"))
 
     @pytest.mark.asyncio
@@ -127,6 +128,19 @@ class TestMetaVoiceAndImage(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(body["text"], "Run tests on calculator component.")
                 self.assertEqual(body["model"], "muse-voice-transcribe-1.0")
                 mock_transcribe.assert_called_once()
+
+            # Test invalid extension rejected
+            bad_ext_files = {"file": ("malicious_script.sh", b"echo hello", "text/x-shellscript")}
+            bad_res = client.post("/api/v1/voice/transcribe", files=bad_ext_files)
+            self.assertEqual(bad_res.status_code, 400)
+            self.assertIn("Unsupported audio format", bad_res.json()["detail"])
+
+            # Test oversized file rejected (> 15MB)
+            oversized_data = b"x" * (16 * 1024 * 1024)
+            oversized_files = {"file": ("huge_recording.m4a", oversized_data, "audio/m4a")}
+            large_res = client.post("/api/v1/voice/transcribe", files=oversized_files)
+            self.assertEqual(large_res.status_code, 413)
+            self.assertIn("exceeds maximum size limit", large_res.json()["detail"])
         finally:
             app.dependency_overrides.pop(get_current_user, None)
 

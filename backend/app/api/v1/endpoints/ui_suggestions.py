@@ -73,10 +73,10 @@ async def generate_ui_suggestion(
     except TimeoutError as e:
         raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(e))
     except Exception as e:
-        logger.error(f"[UiSuggestions] Error generating mockup: {e}")
+        logger.error(f"[UiSuggestions] Error generating mockup: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"UI suggestion service error: {e}",
+            detail="UI design suggestion service temporarily unavailable. Please try again.",
         )
 
 

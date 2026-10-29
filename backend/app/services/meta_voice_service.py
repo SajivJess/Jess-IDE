@@ -43,7 +43,7 @@ class MetaVoiceService:
         # Safe fallback if API key is not configured or in offline simulation mode
         if not api_key:
             logger.info("[MetaVoice] MODEL_API_KEY not set. Returning simulated transcription.")
-            return "Create a responsive calculator app with HTML and CSS."
+            return "[Simulated Voice Note] Create a responsive calculator app with HTML and CSS."
 
         url = f"{base_url}/audio/transcriptions"
         headers = {

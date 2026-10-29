@@ -12,6 +12,10 @@ logger = logging.getLogger("jess_backend")
 router = APIRouter()
 
 
+MAX_AUDIO_SIZE_BYTES = 15 * 1024 * 1024  # 15 MB
+ALLOWED_AUDIO_EXTENSIONS = {".m4a", ".wav", ".mp3", ".webm", ".ogg", ".aac"}
+
+
 @router.post(
     "/transcribe",
     summary="Transcribe conversational voice input using Muse Voice Transcribe",
@@ -33,6 +37,14 @@ async def transcribe_voice(
             detail="No audio file provided.",
         )
 
+    filename = file.filename or "recording.m4a"
+    ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext and ext not in ALLOWED_AUDIO_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported audio format '{ext}'. Allowed formats: {', '.join(sorted(ALLOWED_AUDIO_EXTENSIONS))}",
+        )
+
     try:
         audio_bytes = await file.read()
         if not audio_bytes:
@@ -41,7 +53,12 @@ async def transcribe_voice(
                 detail="Uploaded audio file is empty.",
             )
 
-        filename = file.filename or "recording.m4a"
+        if len(audio_bytes) > MAX_AUDIO_SIZE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Audio file exceeds maximum size limit of {MAX_AUDIO_SIZE_BYTES // (1024 * 1024)} MB.",
+            )
+
         content_type = file.content_type or "audio/m4a"
 
         transcript = await meta_voice_service.transcribe_audio(
@@ -57,13 +74,18 @@ async def transcribe_voice(
             "bytes_received": len(audio_bytes),
         }
 
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except TimeoutError as e:
-        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(e))
+    except TimeoutError:
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Voice transcription request timed out. Please try again with a shorter recording.",
+        )
     except Exception as e:
-        logger.error(f"[VoiceEndpoint] Transcription error: {e}")
+        logger.error(f"[VoiceEndpoint] Transcription error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Voice transcription service error: {e}",
+            detail="Voice transcription service temporarily unavailable. Please try again.",
         )

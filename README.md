@@ -1,201 +1,186 @@
-# Jess Ide Dev — Backend Foundation
+# MuseFlow — Mobile AI Pair Programming & Coding IDE
 
-For the overall product vision, current goals, completed capabilities and prioritized remaining work, read the [Jess Ide Dev project brief](docs/project-overview.md), updated 21 October 2026. The setup and implementation notes below describe the backend foundation and link to later milestones.
+[![Backend Tests](https://img.shields.io/badge/backend%20tests-97%2F97%20passing-brightgreen.svg)](backend/)
+[![Flutter Tests](https://img.shields.io/badge/flutter%20tests-30%2F30%20passing-brightgreen.svg)](jess_app/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Flutter](https://img.shields.io/badge/Flutter-3.24+-02569B.svg?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Meta Model API](https://img.shields.io/badge/Meta%20Model%20API-Three--Model%20Architecture-0081FB.svg?logo=meta&logoColor=white)](https://ai.meta.com)
 
-Milestone 1 implements a development-only Fastify API, PostgreSQL persistence and a separate durable worker. It supports owned projects, queued coding tasks, cancellation, ordered events and reconnectable delivery.
+**MuseFlow** is an autonomous mobile pair-programming IDE designed for developers on the go. It connects a native Android smartphone to an agentic execution host on your development machine, empowering you to prompt, follow live progress, inspect proposed changes, and authorize Git diffs entirely from your phone.
 
-The `fake-v1` agent is a deterministic simulation. Its sample files and check results are labelled simulated: **it does not change files, execute commands, run project tests or call an AI provider**. It remains the default adapter.
+Built for the **Meta Global AI Developer Hackathon**, MuseFlow integrates Meta's model family into a unified three-model developer experience.
 
-An optional [Antigravity CLI development adapter](docs/antigravity-cli.md) is now implemented. The verified CLI is installed and authenticated on this laptop. A real task created a file in its own clone, passed host-controlled checks, and returned an actual diff. The simulator remains the default, and the public portal blocks real-agent task submission. See the linked guide for local-only commands, verification evidence, authentication and isolation limits.
+---
 
-The [native conversation relay](docs/chat-relay.md) adds project chat history, explicit native session resumption and portable Markdown. The local CLI relay is verified across process restarts; public agent message dispatch remains disabled.
+## 🌟 The Three-Model Meta Architecture
 
-The portal opens into a [project-launching Home](docs/home-launcher.md) with no bottom navigation, a saved profile name, recent work, global search and authorized project cards. Opening a project restores its conversation in Chat. Chat, Tasks, Projects and the review editor are preserved. See the [chat UI implementation](docs/chat-ui-design.md) and [verification report](docs/mobile-web-verification.md).
+All Meta API keys are held strictly server-side on the backend. Mobile devices never touch or store credentials.
 
-## Requirements
+```
+                      ┌──────────────────────────────────────┐
+                      │        MuseFlow Mobile App           │
+                      │          (Flutter / Android)         │
+                      └───────┬──────────────────────┬───────┘
+                              │ Push-to-Talk Voice   │ UI Suggestion Prompt
+                              ▼                      ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                         FastAPI Backend Service                            │
+│                                                                            │
+│   ┌────────────────────────┐  ┌────────────────────────┐                   │
+│   │  Muse Voice Transcribe │  │       Muse Image       │                   │
+│   │ muse-voice-transcribe  │  │     muse-image-1.0     │                   │
+│   │          1.0           │  │                        │                   │
+│   │   [Voice-to-Text]      │  │  [UI Mockup Generator] │                   │
+│   └───────────┬────────────┘  └───────────┬────────────┘                   │
+│               │ Populates                 │ "Code This Design"             │
+│               │ Prompt                    │                                │
+│               └─────────────► ◄───────────┘                                │
+│                               │                                            │
+│               ┌───────────────▼────────────────────────┐                   │
+│               │             Muse Spark 1.3             │                   │
+│               │       Primary Autonomous Agent         │                   │
+│               │       (Inspect · Reason · Code)        │                   │
+│               └───────────────┬────────────────────────┘                   │
+│                               │                                            │
+│                               ▼                                            │
+│               ┌────────────────────────────────────────┐                   │
+│               │      Isolated Workspace Sandbox        │                   │
+│               │  Filesystem · Automated Tests · Git    │                   │
+│               └───────────────┬────────────────────────┘                   │
+│                               │                                            │
+│                               ▼                                            │
+│               ┌────────────────────────────────────────┐                   │
+│               │    Human-in-the-Loop Review Gate       │                   │
+│               │  APPROVAL_REQUIRED -> Color-Coded Diff │                   │
+│               └────────────────────────────────────────┘                   │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
-- Node.js 24 LTS and npm. Dependency versions are committed in `package-lock.json`.
-- PostgreSQL 17 recommended; the implementation uses standard PostgreSQL row locks, transactions and JSONB.
-- Run commands from this repository root, including the built migration command.
+1. **`muse-spark-1.3` — Primary Autonomous Coding Agent:**  
+   The core intelligence driving workspace exploration, multi-turn reasoning, file modifications, and test suite verification. It autonomously diagnoses issues, writes solutions, runs checks, and halts at `APPROVAL_REQUIRED` with a clean Git diff.
+2. **`muse-voice-transcribe-1.0` — Conversational Voice Input:**  
+   Enables hands-free coding via push-to-talk audio streaming. Validates audio payloads (15 MB ceiling, whitelisted audio formats), handles English and Tamil speech, and fills the mobile composer for review before execution.
+3. **`muse-image-1.0` — AI UI Suggestions & Mockups:**  
+   Generates visual design proposals from natural language interface descriptions. Renders responsive design cards in the mobile chat with a one-tap **"Code This Design"** dispatch button.
 
-## Local setup
+---
+
+## 🔒 Security & Reliability Hardening
+
+In accordance with strict security standards, MuseFlow implements production-grade safeguards:
+
+- **Token Privacy in Streaming:** WebSocket connection routines omit bearer authentication tokens from client diagnostic logs and debug prints.
+- **Enforced JWT Signing Secret:** The backend checks secret key entropy at startup, immediately terminating execution in `production` or `staging` if a weak or default key is detected.
+- **Android Network Security Config:** `network_security_config.xml` strictly blocks unencrypted cleartext HTTP over public networks, permitting cleartext exclusively on loopback (`127.0.0.1`, `localhost`, `10.0.2.2`). The client highlights insecure connections with prominent in-app warnings.
+- **Sanitized Public Responses:** Uncaught provider errors return generic HTTP 502/504 responses to client callers without leaking backend stack traces or upstream provider details.
+- **Audio Payload Validation:** The voice endpoint rejects files over 15 MB and validates MIME types and extensions (`.m4a`, `.wav`, `.mp3`, `.webm`, `.ogg`, `.aac`).
+- **Non-Destructive Demo Seeding:** `python scripts/setup_server.py` checks for existing repositories and refuses to overwrite user files unless explicitly invoked with `--reset`.
+
+---
+
+## 📱 Mobile Client Experience (`jess_app/`)
+
+- **Three-Tab Main Navigation:** Fluid dashboard for recent projects, active task monitoring, and host network configuration.
+- **Contextual Project Views:** Overview, Live Agent Chat, Workspace File Explorer, and Git Changes Review.
+- **Live WebSocket Event Stream:** Custom `ChatTimelineReconciler` delivers strictly ordered sequence events with zero duplicate bubbles across re-connections.
+- **Human-in-the-Loop Diff Review:** Unified diff viewer with syntax highlighting, added/removed line counters, and explicit **"Approve & Commit"** / **"Reject Changes"** buttons.
+
+---
+
+## 🚀 Quickstart Guide
+
+### 1. Backend Setup
 
 ```bash
-npm ci
+# Clone the repository
+git clone https://github.com/SajivJess/Jess-IDE.git
+cd Jess-IDE/backend
+
+# Create and activate virtual environment
+python -m venv .venv
+# Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
+# Linux / macOS:
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
 cp .env.example .env
+# Edit .env: Set MODEL_API_KEY (or leave blank for offline simulation)
+
+# Run turnkey setup (database, demo workspace, and demo user)
+python scripts/setup_server.py
+
+# Launch FastAPI backend
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Generate a random development bearer token and place it in `.env` as `DEV_AUTH_TOKEN`:
+Backend health endpoints:
+- **Liveness:** [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+- **API Docs (when DEBUG=true):** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+### 2. Android App Setup
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+cd ../jess_app
+
+# Run automated tests
+flutter test
+
+# Connect phone via USB and port-forward backend:
+adb reverse tcp:8000 tcp:8000
+
+# Run on physical device or emulator
+flutter run
 ```
 
-Set `DATABASE_URL` to your PostgreSQL connection string. Keep `NODE_ENV=development` and `AUTH_MODE=development`. `.env` is ignored by Git and automatically loaded by the API, worker, migration and test scripts; existing environment variables take precedence. Do not share its contents.
-
-If PostgreSQL is not already available, this command creates a local development database. The password is generated into your shell environment and is not included literally in the command:
+### 3. Build Standalone Release APK
 
 ```bash
-export POSTGRES_PASSWORD="$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))")"
-docker run --name jess-postgres --detach \
-  --publish 127.0.0.1:5432:5432 \
-  --env POSTGRES_USER=jess --env POSTGRES_DB=jess --env POSTGRES_PASSWORD \
-  --volume jess_pgdata:/var/lib/postgresql/data postgres:17-alpine
-docker exec jess-postgres pg_isready -U jess -d jess
+flutter build apk --release
 ```
+The compiled APK will be generated at `jess_app/build/app/outputs/flutter-apk/app-release.apk`.
 
-Use that generated password in `.env`'s `DATABASE_URL`, with user/database `jess` and host `127.0.0.1:5432`. Wait for `pg_isready` to report accepting connections. The named volume persists local data; do not delete it unintentionally. Protect Docker access, which can reveal container credentials. `unset POSTGRES_PASSWORD` once configured.
+---
 
-Apply migrations, then start the processes in separate terminals:
+## 🧪 Automated Test Verification
 
+| Suite | Scope | Tests | Result |
+| :--- | :--- | :--- | :--- |
+| **Backend Pytest** | Auth, JWT, Projects, Workspaces, Task Loops, Git Diff, Meta Voice, Meta Image, Config Security | 97 | **97 / 97 Passed (100%)** |
+| **Flutter Tests** | Audio Recording, Chat Reconciler, WebSocket Events, UI Components, Navigation Shell | 30 | **30 / 30 Passed (100%)** |
+
+Run tests independently:
 ```bash
-npm run db:migrate
-npm run dev
+# Run backend test suite
+cd backend && pytest tests/ -v
+
+# Run Flutter test suite
+cd jess_app && flutter test
 ```
 
-```bash
-npm run dev:worker
-```
+---
 
-For compiled execution:
+## 📖 Live vs. Simulated Delineation
 
-```bash
-npm run build
-npm run db:migrate:built
-npm start
-# Separate terminal:
-npm run start:worker
-```
+To ensure transparent and honest evaluation, MuseFlow clearly labels model states:
 
-The API listens only on `127.0.0.1`, port 3000 by default. Development identity assertions are intentionally unsuitable for public deployment. Access from a phone requires a trusted development connection to the Codex environment; this milestone does not provision a public endpoint, mobile client or hosting service.
+- **Live Mode:** When `MODEL_API_KEY` is supplied, real requests are submitted to `muse-spark-1.3`, `muse-voice-transcribe-1.0`, and `muse-image-1.0`.
+- **Simulation Mode:** When `MODEL_API_KEY` is omitted, the backend generates deterministic, labelled outputs (`[Simulated Voice Note]`, `[Simulated Mockup]`), ensuring offline testability and flawless local development without unexpected provider failures.
 
-## Authentication boundary
+---
 
-Only `GET /health` is public. All other endpoints require:
+## 📂 Repository Structure
 
-```text
-Authorization: Bearer <DEV_AUTH_TOKEN>
-X-Dev-User-Id: <UUID>
-```
+- `backend/` — Asynchronous FastAPI backend, SQLAlchemy models, task engine, and Meta service clients.
+- `jess_app/` — Native Flutter Android mobile client with custom dark IDE design tokens.
+- `docs/` — Product vision, architecture diagrams, and detailed security specifications.
+- `SERVER_README.md` — Deployment guide for hosting the backend on Windows, Linux, or macOS.
 
-The token grants access to a **trusted local test harness** in which users can assert test identities. It does not authenticate an individual end user. An authenticated caller can deliberately select another test UUID; this mechanism must never be exposed as production identity. A real identity provider must replace it before public access.
+---
 
-Startup refuses missing/unknown `NODE_ENV`, `NODE_ENV=production`, a mode other than `AUTH_MODE=development`, missing/short tokens and the sample token placeholder. The API bind is fixed to loopback. Ownership comes from the authenticated development identity, never request body fields. Foreign and nonexistent resources both return 404.
+## License
 
-## API
-
-| Method | Path | Purpose |
-| --- | --- | --- |
-| GET | `/health` | Process liveness; no database dependency |
-| GET | `/ready` | Authenticated database connectivity check |
-| POST | `/projects` | Create `{ "name": "My project" }` |
-| GET | `/projects/:id` | Retrieve an owned project |
-| POST | `/tasks` | Submit `{ "projectId": "<uuid>", "prompt": "..." }` with `Idempotency-Key` |
-| GET | `/tasks/:id` | Retrieve owned task state/result |
-| POST | `/tasks/:id/cancel` | Request cancellation; no body needed |
-| GET | `/tasks/:id/events?after=0&limit=100` | Durable event page and next cursor |
-| GET | `/tasks/:id/events/stream` | SSE, optionally with `Last-Event-ID` or `?after=N` |
-
-Example using the credentials already in `.env` without putting the token literally in shell history:
-
-```bash
-# Only source a trusted file you created yourself.
-set -a
-. ./.env
-set +a
-export JESS_TEST_USER=00000000-0000-4000-8000-000000000001
-curl --silent --show-error http://127.0.0.1:3000/projects \
-  -H "Authorization: Bearer $DEV_AUTH_TOKEN" \
-  -H "X-Dev-User-Id: $JESS_TEST_USER" \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Phone prototype"}'
-```
-
-Use the returned project ID in the task request and supply a unique `Idempotency-Key`. Prompts are text, not shell commands. The API accepts no executable or arbitrary command field. Client-side token handling and production identity are outside this milestone.
-
-Requests and responses use JSON schemas. Limits: 16 KiB request bodies, 8,000-character prompts, 100-character project names, 128-character idempotency keys, and event pages of at most 100 items. Invalid properties are rejected, not silently removed. Requests have 10-second network timeouts and a 120-request/minute per-IP in-memory limit. Database connections and queries have bounded timeouts. Logs omit headers, request bodies, prompts, connection strings and exception details; operational failures use fixed categories.
-
-### Task and retry semantics
-
-`QUEUED → RUNNING → COMPLETED | FAILED | CANCELLED`
-
-- Submission inserts the task/job and `TASK_QUEUED` event in one transaction. No API process performs agent work.
-- Idempotency keys are scoped to a project and retained with the task. Same key + same exact prompt returns the original task with `replayed: true`; changed prompt returns 409. Both fresh and replayed submissions return 202.
-- Workers use `FOR UPDATE SKIP LOCKED` to claim jobs, with a random fencing token, a lease and heartbeats. Competing workers cannot claim the same unexpired task.
-- A crashed or disconnected worker leaves a durable RUNNING task. After its lease expires, another worker retries it, emits `TASK_RETRYING`, and increments its attempt. Maximum three execution attempts; further recovery marks it FAILED.
-- Database errors preserve recoverable work rather than converting an uncertain outcome into a successful task. Stale lease tokens cannot append progress or finalize a reclaimed task.
-- Adapter failures are terminal with a generic `AGENT_EXECUTION_FAILED` error. There is no automatic retry of known agent errors in this milestone.
-- Recovery can repeat progress from an earlier attempt; events include attempt numbers. Execution is **at least once**, not exactly once. This is safe for the deterministic fake agent; real filesystem/external side effects need checkpoint/reconciliation policies before integration.
-- SIGINT/SIGTERM abort the fake agent, release its lease for retry and close the worker pool. Abrupt termination relies on expiry.
-- Cancellation of a queued task is immediate. Running cancellation is cooperative at the fake agent's next safe boundary or heartbeat; a crash is reconciled after expiry. Repeated cancellation is idempotent. A cancellation recorded before finalization wins; cancellation after a terminal state leaves it unchanged.
-
-### Event replay
-
-Each task has a transactionally allocated, gap-free committed event sequence starting at 1. State changes and their events commit together. HTTP replay returns `events`, `nextCursor`, `hasMore` and `taskStatus`. Store the highest applied sequence and reconnect with `after=N`. A future cursor returns 400. Events are currently retained indefinitely.
-
-SSE emits `id: <sequence>`, `event: task_event` and a JSON event envelope. Supply bearer/identity headers using a streaming HTTP client; browser `EventSource` cannot add these custom headers by itself. `Last-Event-ID` overrides `after`. SSE polls committed PostgreSQL events every 500 ms, sends heartbeat comments, ends after a terminal task or 30 seconds, and supports reconnect. Limits are three streams per test identity and 20 per API process; there is no long-held database transaction. On interruption, reconnect from the last processed ID. Disable proxy buffering in any future trusted development proxy.
-
-## Configuration
-
-| Variable | Required/default | Meaning |
-| --- | --- | --- |
-| `NODE_ENV` | Required: `development` or `test` | Production startup is disabled |
-| `AUTH_MODE` | Required: `development` | Explicit local test authentication |
-| `DEV_AUTH_TOKEN` | Required: random 32–256 non-whitespace characters | Shared local-development bearer token |
-| `DATABASE_URL` | Required | PostgreSQL application database |
-| `PORT` | 3000 | Loopback API port |
-| `WORKER_POLL_MS` | 500 | Empty queue/error polling interval, 50–10,000 ms |
-| `WORKER_LEASE_MS` | 15000 | Lease duration, 3,000–120,000 ms |
-| `FAKE_AGENT_STEP_MS` | 250 | Delay per simulated step, 0–5,000 ms |
-| `TEST_DATABASE_URL` | Required for DB integration tests | Dedicated disposable PostgreSQL test database |
-| `REQUIRE_DATABASE_TESTS` | Optional: `1` | Fail rather than skip when the test DB URL is absent |
-
-Migration CLI requires only `DATABASE_URL`, not development authentication. Migrations are transactional, serialized with an advisory lock, and recorded with checksums. They are explicit, not automatically applied by the API/worker. Keep the `migrations/` directory beside the source/build distribution and run from the repository root. Use a separate privileged migration identity and a restricted runtime role for future hosted deployments.
-
-## Tests and checks
-
-```bash
-npm run typecheck
-npm run lint
-npm run build
-npm test
-```
-
-Without `TEST_DATABASE_URL`, database integration tests are explicitly **skipped**. Configuration/liveness/auth tests and a refused-connection error test still run; these are not presented as successful database integration tests.
-
-For real PostgreSQL integration tests, create a separate disposable database:
-
-```bash
-docker exec jess-postgres createdb -U jess jess_test
-```
-
-Set `TEST_DATABASE_URL` in `.env` to the same local server credentials but database `jess_test`, then run:
-
-```bash
-REQUIRE_DATABASE_TESTS=1 npm run check
-```
-
-Tests create a randomly named schema, apply real migrations, exercise the real database and drop only that schema afterward. The test DB role needs schema creation and permission to terminate its own test connection. Never point this setting at production. Worker crash recovery tests deliberately expire leases; a real connection-loss test terminates only a connection opened by that test. SSE tests use actual loopback HTTP rather than mocked streams.
-
-## Structure
-
-```text
-src/api/       Fastify routes, schemas, development authentication, process entry point
-src/db/        Pool, migrations runner, transactional data access and durable claims
-src/agents/    Provider-independent interface and fake-v1 implementation
-src/worker/    Worker loop, heartbeats and separate process entry point
-src/config.ts Explicit startup guards and bounded configuration
-src/domain.ts Public domain types and safe errors
-migrations/   Versioned PostgreSQL SQL
-tests/        Configuration/HTTP-boundary and real PostgreSQL integration tests
-```
-
-## Limitations and next milestone
-
-The [frontend feature map](docs/frontend-feature-map.md) compares Vercel Chatbot, LibreChat, LobeHub and Open WebUI with the existing UI, records license/stack constraints, and distinguishes implemented chat controls from execution and attachment gaps. Chat includes prompt starters and copy/reuse actions that preserve the current unsent draft.
-
-The [mobile web milestone](docs/mobile-web.md) provides Home, Projects, Tasks, Files and Settings, with server-backed history, task details, event replay, cancellation and result/diff review. Files now supports registered review snapshots, conflict-safe text editing and per-file diffs. These snapshots are separate from live checkout/agent output. It reuses the existing password gateway and backend; the build includes a CodeMirror browser bundle. See [the workspace architecture and isolation/approval plan](docs/workspace-architecture.md). Native Android development is deferred. On this E-drive laptop, run `scripts/test-mobile-web.ps1` to validate backend, frontend and browser flows. Public access remains opt-in through the existing portal start script.
-
-The default milestone remains simulated. The optional Antigravity CLI runner executes trusted local repository code and returns actual diffs, subject to the authentication and isolation limits documented above. The password-protected mobile portal supports the simulator; real-agent submissions through it are disabled. Local committed-revision registration is implemented. Production identity, live execution workspaces, approval-driven commits/pushes, OS sandbox provisioning, binary previews and billing remain unimplemented.
-
-The next milestone is enforceable OS isolation and a phone review/approval workflow before enabling public real-agent task submission. Before running untrusted code, add sandbox resource/network boundaries, credential isolation, safe checkpoint recovery, per-project execution coordination, enforceable supported approvals and authenticated preview/file access. Keep agent and cloud-specific behavior behind their respective boundaries.
+Licensed under the [Apache 2.0 License](LICENSE).

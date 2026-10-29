@@ -54,7 +54,7 @@ async def seed_demo_user():
         return user.id
 
 
-def setup_demo_workspace():
+def setup_demo_workspace(reset: bool = False):
     print("[3/4] Initializing demo workspace (verification_test_repo)...")
     ws_dir = (backend_dir / "workspaces_data" / "verification_test_repo").resolve()
     ws_dir.mkdir(parents=True, exist_ok=True)
@@ -62,21 +62,24 @@ def setup_demo_workspace():
     calc_file = ws_dir / "calculator.py"
     test_file = ws_dir / "test_calculator.py"
 
-    # Always ensure clean baseline with intentional bug for demo
-    calc_file.write_text(
-        "def add(a, b):\n    return a - b  # BUG: subtraction instead of addition\n",
-        encoding="utf-8",
-    )
-    test_file.write_text(
-        "import unittest\n"
-        "from calculator import add\n\n"
-        "class TestCalc(unittest.TestCase):\n"
-        "    def test_add(self):\n"
-        "        self.assertEqual(add(2, 3), 5)\n\n"
-        "if __name__ == '__main__':\n"
-        "    unittest.main()\n",
-        encoding="utf-8",
-    )
+    if calc_file.exists() and test_file.exists() and not reset:
+        print(f"      Preserving existing workspace files at {ws_dir} (pass --reset to re-seed).")
+    else:
+        calc_file.write_text(
+            "def add(a, b):\n    return a - b  # BUG: subtraction instead of addition\n",
+            encoding="utf-8",
+        )
+        test_file.write_text(
+            "import unittest\n"
+            "from calculator import add\n\n"
+            "class TestCalc(unittest.TestCase):\n"
+            "    def test_add(self):\n"
+            "        self.assertEqual(add(2, 3), 5)\n\n"
+            "if __name__ == '__main__':\n"
+            "    unittest.main()\n",
+            encoding="utf-8",
+        )
+        print(f"      Seeded demo files at {ws_dir}")
 
     # Initialize git repo if not already initialized
     git_dir = ws_dir / ".git"
@@ -133,12 +136,17 @@ async def link_project(user_id, ws_path: str):
 
 
 async def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="MuseFlow Server Turnkey Setup")
+    parser.add_argument("--reset", action="store_true", help="Force overwrite/reset demo workspace files")
+    args = parser.parse_args()
+
     print("=" * 60)
-    print("Jess IDE Server Setup")
+    print("MuseFlow Server Setup")
     print("=" * 60)
     await init_database()
     user_id = await seed_demo_user()
-    ws_path = setup_demo_workspace()
+    ws_path = setup_demo_workspace(reset=args.reset)
     await link_project(user_id, ws_path)
     print("=" * 60)
     print("Setup completed successfully!")

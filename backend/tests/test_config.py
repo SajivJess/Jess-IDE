@@ -24,3 +24,31 @@ def test_cors_origins_parsing() -> None:
     # Test native list
     parsed_list = Settings.assemble_cors_origins(["http://localhost:3000"])
     assert parsed_list == ["http://localhost:3000"]
+
+
+def test_public_tunnel_url_defaults_to_none() -> None:
+    """Verify that temporary quick tunnel URLs are not hardcoded by default."""
+    test_settings = Settings()
+    assert test_settings.PUBLIC_TUNNEL_URL is None
+
+
+def test_production_secret_key_validation() -> None:
+    """Verify that insecure or default SECRET_KEY is rejected in production/staging."""
+    import pytest
+
+    # Default secret in production should raise ValueError
+    with pytest.raises(ValueError, match="Insecure or weak default SECRET_KEY detected"):
+        Settings(ENVIRONMENT="production")
+
+    # Short secret in production should raise ValueError
+    with pytest.raises(ValueError, match="Insecure or weak default SECRET_KEY detected"):
+        Settings(ENVIRONMENT="production", SECRET_KEY="too_short_secret")
+
+    # Strong 32+ character secret should pass
+    prod_settings = Settings(
+        ENVIRONMENT="production",
+        SECRET_KEY="a_very_long_secure_production_secret_key_32_bytes_plus",
+    )
+    assert prod_settings.ENVIRONMENT == "production"
+    assert prod_settings.SECRET_KEY == "a_very_long_secure_production_secret_key_32_bytes_plus"
+

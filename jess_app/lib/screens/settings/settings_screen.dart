@@ -30,6 +30,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _urlController.text = AuthApiService.baseUrl;
+    _urlController.addListener(_onUrlChanged);
+  }
+
+  @override
+  void dispose() {
+    _urlController.removeListener(_onUrlChanged);
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  void _onUrlChanged() {
+    setState(() {});
+  }
+
+  Widget _buildSecurityNotice() {
+    final url = _urlController.text.trim().toLowerCase();
+    if (url.isEmpty) return const SizedBox.shrink();
+
+    if (url.startsWith('https://')) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.lock_outline, size: 14, color: AppColors.statusSuccess),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Encrypted HTTPS connection active.',
+                style: AppTypography.codeSm.copyWith(color: AppColors.statusSuccess, fontSize: 11),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (url.startsWith('http://')) {
+      final isLocal = url.contains('127.0.0.1') || url.contains('localhost') || url.contains('10.0.2.2');
+      if (isLocal) {
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.developer_mode, size: 14, color: AppColors.lavender),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Local Development: Allowed by Android network security config (USB ADB/Emulator).',
+                  style: AppTypography.codeSm.copyWith(color: AppColors.lavender, fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.amber.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.amber.withOpacity(0.4)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.amberAccent),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Insecure HTTP Connection: Bearer tokens and task payloads are unencrypted over the network. Android blocks non-local cleartext by default. Use HTTPS for public or shared networks.',
+                    style: AppTypography.codeSm.copyWith(color: Colors.amberAccent, fontSize: 11),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+    return const SizedBox.shrink();
   }
 
   Future<void> _testConnection() async {
@@ -120,16 +200,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         runSpacing: 8,
                         children: [
                           _buildPresetChip(
-                            label: 'Public Tunnel (Chennai / Remote)',
-                            url: 'https://household-modeling-studio-carry.trycloudflare.com/api/v1',
-                          ),
-                          _buildPresetChip(
-                            label: 'LAN Wi-Fi (192.168.16.10:8000)',
-                            url: 'http://192.168.16.10:8000/api/v1',
-                          ),
-                          _buildPresetChip(
                             label: 'USB ADB (127.0.0.1:8000)',
                             url: 'http://127.0.0.1:8000/api/v1',
+                          ),
+                          _buildPresetChip(
+                            label: 'Android Emulator (10.0.2.2:8000)',
+                            url: 'http://10.0.2.2:8000/api/v1',
+                          ),
+                          _buildPresetChip(
+                            label: 'LAN Host (192.168.1.100:8000)',
+                            url: 'http://192.168.1.100:8000/api/v1',
                           ),
                         ],
                       ),
@@ -149,6 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ),
+                      _buildSecurityNotice(),
                       const SizedBox(height: 10),
 
                       Row(

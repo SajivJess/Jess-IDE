@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     GITHUB_API_BASE_URL: str = "https://api.github.com"
 
     # Public Preview & Tunnel Configuration
-    PUBLIC_TUNNEL_URL: Optional[str] = "https://household-modeling-studio-carry.trycloudflare.com"
+    PUBLIC_TUNNEL_URL: Optional[str] = None
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
@@ -86,6 +86,19 @@ class Settings(BaseSettings):
         elif isinstance(v, list):
             return v
         return []
+
+    def model_post_init(self, __context: Any) -> None:
+        """Validate security settings post-initialization."""
+        env_lower = self.ENVIRONMENT.lower()
+        if env_lower in ("production", "staging"):
+            if (
+                self.SECRET_KEY == "jess_dev_super_secret_jwt_signing_key_min_32_bytes_long_123456"
+                or len(self.SECRET_KEY) < 32
+            ):
+                raise ValueError(
+                    "Insecure or weak default SECRET_KEY detected in production/staging. "
+                    "You must configure a strong, random SECRET_KEY (minimum 32 characters) via environment variable or .env."
+                )
 
     model_config = SettingsConfigDict(
         env_file=".env",
