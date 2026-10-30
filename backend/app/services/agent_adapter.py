@@ -36,6 +36,13 @@ class BaseAgentAdapter(ABC):
         pass
 
     @abstractmethod
+    async def handle_contract_approval(
+        self, task_id: uuid.UUID, approved: bool, reason: Optional[str] = None
+    ) -> None:
+        """Submit Gate 1 contract approval decision."""
+        pass
+
+    @abstractmethod
     async def cancel_task(self, task_id: uuid.UUID) -> None:
         """Request immediate cancellation of a running or queued task."""
         pass
@@ -59,6 +66,7 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
     def __init__(self, step_delay: float = 0.3) -> None:
         self.step_delay = step_delay
         self._pending_approvals: Dict[uuid.UUID, asyncio.Future] = {}
+        self._pending_contract_approvals: Dict[uuid.UUID, asyncio.Future] = {}
         self._running_tasks: Dict[uuid.UUID, asyncio.Task] = {}
         self._cancellation_events: Dict[uuid.UUID, asyncio.Event] = {}
 
@@ -140,6 +148,7 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
         def _cleanup(_: Any) -> None:
             self._running_tasks.pop(task_id, None)
             self._pending_approvals.pop(task_id, None)
+            self._pending_contract_approvals.pop(task_id, None)
             self._cancellation_events.pop(task_id, None)
 
         bg_task.add_done_callback(_cleanup)
@@ -157,7 +166,40 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
                     logger.error(f"Task {task_id} not found in database for execution.")
                     return
 
-                # 1. QUEUED -> RUNNING
+                # Gate 1 Contract Check
+                if getattr(task, "require_contract", False) and (
+                    not task.contract_data or not task.contract_data.get("is_approved_by_user")
+                ):
+                    from app.services.contract_service import contract_service
+                    if not task.contract_data:
+                        contract = await contract_service.generate_contract_proposal(task, [])
+                        task.contract_data = contract.model_dump(mode="json")
+                        db.add(task)
+                        await db.commit()
+                        await self._emit_task_event(
+                            db,
+                            task,
+                            "contract.proposed",
+                            task.contract_data,
+                        )
+
+                    await self._transition(db, task, TaskStatus.CONTRACT_PROPOSED)
+                    loop = asyncio.get_running_loop()
+                    contract_fut: asyncio.Future = loop.create_future()
+                    self._pending_contract_approvals[task_id] = contract_fut
+
+                    try:
+                        is_contract_approved = await contract_fut
+                    finally:
+                        self._pending_contract_approvals.pop(task_id, None)
+
+                    if not is_contract_approved:
+                        await self._transition(db, task, TaskStatus.CANCELLED)
+                        return
+
+                    await self._transition(db, task, TaskStatus.CONTRACT_APPROVED)
+
+                # 1. QUEUED / CONTRACT_APPROVED -> RUNNING
                 await self._transition(db, task, TaskStatus.RUNNING)
                 await self._emit_task_event(
                     db,
@@ -365,27 +407,37 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
                     await self._handle_cancellation(db, task)
                     return
 
+                if workspace and ws_ready:
+                    from app.services.verification_runner import verification_runner
+                    await verification_runner.run_verification(
+                        task=task,
+                        workspace=workspace,
+                        task_owned_files={target_file},
+                        diff_stat={"additions": len(diff_text.splitlines()), "deletions": 0},
+                    )
+                    db.add(task)
+                    await db.commit()
+
                 await self._transition(db, task, TaskStatus.APPROVAL_REQUIRED)
+                approval_payload = {
+                    "action": "apply_code_diff",
+                    "target_file": target_file,
+                    "target": target_file,
+                    "prompt": f"Approve applying proposed modifications to `{target_file}`?",
+                    "diff": diff_text,
+                    "verification": task.verification_data,
+                }
                 await self._emit_task_event(
                     db,
                     task,
                     "approval.required",
-                    {
-                        "action": "apply_code_diff",
-                        "target_file": target_file,
-                        "prompt": f"Approve modifying {target_file} to apply changes?",
-                    },
+                    approval_payload,
                 )
                 await self._emit_conv_event(
                     db,
                     task,
                     "approval.required",
-                    {
-                        "action": "apply_code_diff",
-                        "target": target_file,
-                        "prompt": f"Approve applying proposed modifications to `{target_file}`?",
-                        "diff": diff_text,
-                    },
+                    approval_payload,
                 )
 
                 # 6. Await approval or cancellation
@@ -607,6 +659,16 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
         else:
             logger.warning(f"No pending approval future found for task {task_id}.")
 
+    async def handle_contract_approval(
+        self, task_id: uuid.UUID, approved: bool, reason: Optional[str] = None
+    ) -> None:
+        """Fulfill the pending Gate 1 contract approval future for task_id."""
+        fut = self._pending_contract_approvals.get(task_id)
+        if fut and not fut.done():
+            fut.set_result(approved)
+        else:
+            logger.warning(f"No pending contract approval future found for task {task_id}.")
+
     async def cancel_task(self, task_id: uuid.UUID) -> None:
         """Signal cancellation for task_id."""
         cancel_event = self._cancellation_events.get(task_id)
@@ -616,6 +678,10 @@ class SimulatedAgentAdapter(BaseAgentAdapter):
         fut = self._pending_approvals.get(task_id)
         if fut and not fut.done():
             fut.cancel()
+
+        cfut = self._pending_contract_approvals.get(task_id)
+        if cfut and not cfut.done():
+            cfut.cancel()
 
         bg_task = self._running_tasks.get(task_id)
         if bg_task and not bg_task.done():
@@ -780,6 +846,11 @@ class CLIProcessAgentAdapter(BaseAgentAdapter):
             process.stdin.write(response)
             await process.stdin.drain()
 
+    async def handle_contract_approval(
+        self, task_id: uuid.UUID, approved: bool, reason: Optional[str] = None
+    ) -> None:
+        pass
+
     async def cancel_task(self, task_id: uuid.UUID) -> None:
         process = self._running_processes.get(task_id)
         if process:
@@ -829,6 +900,12 @@ class DispatchingAgentAdapter(BaseAgentAdapter):
     ) -> None:
         adapter = self._resolve()
         await adapter.handle_approval(task_id, approved, reason)
+
+    async def handle_contract_approval(
+        self, task_id: uuid.UUID, approved: bool, reason: Optional[str] = None
+    ) -> None:
+        adapter = self._resolve()
+        await adapter.handle_contract_approval(task_id, approved, reason)
 
     async def cancel_task(self, task_id: uuid.UUID) -> None:
         adapter = self._resolve()

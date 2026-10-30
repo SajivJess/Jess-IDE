@@ -1,6 +1,6 @@
 import uuid
 from typing import TYPE_CHECKING, List, Optional
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import Boolean, ForeignKey, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 
@@ -60,6 +60,19 @@ class Task(Base, UUIDMixin, TimestampMixin):
     )
     execution_log: Mapped[Optional[str]] = mapped_column(
         Text,
+        nullable=True,
+    )
+    require_contract: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+    contract_data: Mapped[Optional[dict]] = mapped_column(
+        JSON,
+        nullable=True,
+    )
+    verification_data: Mapped[Optional[dict]] = mapped_column(
+        JSON,
         nullable=True,
     )
 

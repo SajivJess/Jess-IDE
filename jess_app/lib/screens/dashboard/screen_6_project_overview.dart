@@ -25,6 +25,8 @@ import '../../widgets/chat/agent_progress_card.dart';
 import '../../widgets/workspace/workspace_file_editor_dialog.dart';
 import '../../services/ui_suggestions_api_service.dart';
 import '../../widgets/chat/ui_suggestion_card.dart';
+import '../../widgets/chat/contract_approval_card.dart';
+import '../../widgets/chat/verification_evidence_card.dart';
 
 // Timeline Item Model hierarchy for Conversational Chat
 abstract class ChatTimelineItem {
@@ -343,6 +345,38 @@ class ChatUiSuggestionItem extends ChatTimelineItem {
   });
 }
 
+class ChatContractItem extends ChatTimelineItem {
+  final String runId;
+  final TaskContractModel contract;
+  bool isDecided;
+  bool? wasApproved;
+  String? rejectionReason;
+
+  ChatContractItem({
+    required super.id,
+    required super.timestamp,
+    required this.runId,
+    required this.contract,
+    this.isDecided = false,
+    this.wasApproved,
+    this.rejectionReason,
+  });
+}
+
+class ChatVerificationItem extends ChatTimelineItem {
+  final String runId;
+  final VerificationEvidenceModel evidence;
+  final List<AcceptanceCriterionModel>? criteria;
+
+  ChatVerificationItem({
+    required super.id,
+    required super.timestamp,
+    required this.runId,
+    required this.evidence,
+    this.criteria,
+  });
+}
+
 class Screen6ProjectOverview extends StatefulWidget {
   final String? projectId;
   final String projectName;
@@ -515,6 +549,44 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
 
   void _reconcilePendingTaskState() {
     if (!mounted) return;
+
+    // 0. Check for pending Gate 1 contract review
+    final pendingContractTask = _tasks.where((t) => t.status == TaskStatusEnum.contractProposed).firstOrNull;
+    if (pendingContractTask != null) {
+      final alreadyPresent = _timelineItems.any(
+        (item) => item is ChatContractItem && item.runId == pendingContractTask.id,
+      );
+      if (!alreadyPresent) {
+        if (pendingContractTask.contract != null) {
+          final contractModel = TaskContractModel.fromJson(pendingContractTask.contract!);
+          _timelineItems.add(
+            ChatContractItem(
+              id: 'contract_${pendingContractTask.id}',
+              timestamp: pendingContractTask.updatedAt,
+              runId: pendingContractTask.id,
+              contract: contractModel,
+            ),
+          );
+        } else if (_projectId != null) {
+          TasksApiService.getContract(projectId: _projectId!, taskId: pendingContractTask.id).then((c) {
+            if (c != null && mounted) {
+              setState(() {
+                _timelineItems.add(
+                  ChatContractItem(
+                    id: 'contract_${pendingContractTask.id}',
+                    timestamp: pendingContractTask.updatedAt,
+                    runId: pendingContractTask.id,
+                    contract: c,
+                  ),
+                );
+              });
+            }
+          });
+        }
+      }
+      _chatStatusText = 'Waiting for contract approval';
+      return;
+    }
 
     // 1. Check for pending approval
     final pendingTask = _tasks.where((t) => t.status == TaskStatusEnum.approvalRequired).firstOrNull;
@@ -815,6 +887,54 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
           }
           break;
 
+        case 'contract.proposed':
+          _chatStatusText = 'Waiting for contract approval';
+          final contractModel = TaskContractModel.fromJson(event.data);
+          _timelineItems.add(
+            ChatContractItem(
+              id: event.eventId,
+              timestamp: event.createdAt,
+              runId: event.runId ?? _currentRunId ?? '',
+              contract: contractModel,
+            ),
+          );
+          _scrollToBottom();
+          break;
+
+        case 'contract.approved':
+          _chatStatusText = 'Contract approved. Authorizing agent...';
+          for (final item in _timelineItems) {
+            if (item is ChatContractItem && !item.isDecided) {
+              item.isDecided = true;
+              item.wasApproved = true;
+            }
+          }
+          break;
+
+        case 'contract.rejected':
+          _chatStatusText = 'Contract rejected';
+          for (final item in _timelineItems) {
+            if (item is ChatContractItem && !item.isDecided) {
+              item.isDecided = true;
+              item.wasApproved = false;
+              item.rejectionReason = event.data['reason'] as String?;
+            }
+          }
+          break;
+
+        case 'verification.completed':
+          final evidence = VerificationEvidenceModel.fromJson(event.data);
+          _timelineItems.add(
+            ChatVerificationItem(
+              id: event.eventId,
+              timestamp: event.createdAt,
+              runId: event.runId ?? _currentRunId ?? '',
+              evidence: evidence,
+            ),
+          );
+          _scrollToBottom();
+          break;
+
         case 'run.completed':
           _isRunActive = false;
           _chatStatusText = 'Completed';
@@ -966,6 +1086,42 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
           _isRunActive = false;
         }
       });
+    }
+  }
+
+  Future<void> _handleContractDecision(ChatContractItem item, bool approve, {String? reason}) async {
+    if (_projectId == null) return;
+    final taskId = item.runId.isNotEmpty ? item.runId : (_currentRunId ?? '');
+    final contractHash = item.contract.contractHash ?? '';
+
+    final success = await TasksApiService.submitContractApproval(
+      projectId: _projectId!,
+      taskId: taskId,
+      approve: approve,
+      contractHash: contractHash,
+      reason: reason,
+    );
+
+    if (mounted && success) {
+      setState(() {
+        item.isDecided = true;
+        item.wasApproved = approve;
+        item.rejectionReason = reason;
+        if (approve) {
+          _chatStatusText = 'Contract approved. Starting implementation...';
+        } else {
+          _chatStatusText = 'Cancelled';
+          _isRunActive = false;
+        }
+      });
+      _loadTasks(_projectId!);
+    } else if (mounted && !success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to submit contract decision. The contract may have been updated or stale.'),
+          backgroundColor: AppColors.statusError,
+        ),
+      );
     }
   }
 
@@ -1177,6 +1333,9 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
     switch (status) {
       case TaskStatusEnum.completed:
         return StatusType.success;
+      case TaskStatusEnum.contractProposed:
+        return StatusType.warning;
+      case TaskStatusEnum.contractApproved:
       case TaskStatusEnum.running:
         return StatusType.info;
       case TaskStatusEnum.approvalRequired:
@@ -1791,6 +1950,19 @@ class _Screen6ProjectOverviewState extends State<Screen6ProjectOverview>
                             isDecided: item.isDecided,
                             wasApproved: item.wasApproved,
                             onDecision: (approve, {reason}) => _handleApprovalDecision(item, approve, reason: reason),
+                          );
+                        } else if (item is ChatContractItem) {
+                          return ContractApprovalCard(
+                            contract: item.contract,
+                            isDecided: item.isDecided,
+                            wasApproved: item.wasApproved,
+                            rejectionReason: item.rejectionReason,
+                            onDecision: (approve, {reason}) => _handleContractDecision(item, approve, reason: reason),
+                          );
+                        } else if (item is ChatVerificationItem) {
+                          return VerificationEvidenceCard(
+                            evidence: item.evidence,
+                            criteria: item.criteria,
                           );
                         } else if (item is ChatPreviewItem) {
                           return LivePreviewCard(

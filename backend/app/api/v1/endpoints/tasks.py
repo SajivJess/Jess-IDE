@@ -23,10 +23,37 @@ from app.schemas.task import (
     TaskRead,
     TaskStatus,
 )
+from app.schemas.contract import (
+    TaskContract,
+    TaskContractApprovalRequest,
+    TaskContractApprovalResponse,
+    VerificationEvidence,
+)
 from app.services.agent_adapter import simulated_agent
+from app.services.contract_service import contract_service
 from app.services.task_events import append_task_event, get_task_events_after
 
 router = APIRouter()
+
+
+def _format_task_read(task: Task, events_count: Optional[int] = None) -> TaskRead:
+    count = events_count if events_count is not None else (len(task.events) if task.events else 0)
+    return TaskRead(
+        id=task.id,
+        project_id=task.project_id,
+        workspace_id=task.workspace_id,
+        title=task.title,
+        prompt=task.prompt,
+        status=TaskStatus(task.status),
+        active_branch=task.active_branch,
+        commit_sha=task.commit_sha,
+        contract=task.contract_data,
+        verification=task.verification_data,
+        require_contract=getattr(task, "require_contract", False),
+        created_at=task.created_at,
+        updated_at=task.updated_at,
+        events_count=count,
+    )
 
 
 async def _get_project_with_ownership(
@@ -96,6 +123,7 @@ async def create_task(
         workspace_id=ws.id if ws else None,
         title=payload.title.strip(),
         prompt=payload.prompt.strip(),
+        require_contract=payload.require_contract,
         status=TaskStatus.QUEUED.value,
     )
     db.add(task)
@@ -115,19 +143,7 @@ async def create_task(
 
     logger.info(f"Created and queued task: {task.id} ('{task.title}') in project {project_id}")
 
-    return TaskRead(
-        id=task.id,
-        project_id=task.project_id,
-        workspace_id=task.workspace_id,
-        title=task.title,
-        prompt=task.prompt,
-        status=TaskStatus(task.status),
-        active_branch=task.active_branch,
-        commit_sha=task.commit_sha,
-        created_at=task.created_at,
-        updated_at=task.updated_at,
-        events_count=1,
-    )
+    return _format_task_read(task, events_count=1)
 
 
 @router.get(
@@ -160,22 +176,7 @@ async def list_tasks(
     res = await db.execute(stmt)
     tasks = res.scalars().all()
 
-    items = [
-        TaskRead(
-            id=t.id,
-            project_id=t.project_id,
-            workspace_id=t.workspace_id,
-            title=t.title,
-            prompt=t.prompt,
-            status=TaskStatus(t.status),
-            active_branch=t.active_branch,
-            commit_sha=t.commit_sha,
-            created_at=t.created_at,
-            updated_at=t.updated_at,
-            events_count=len(t.events) if t.events else 0,
-        )
-        for t in tasks
-    ]
+    items = [_format_task_read(t) for t in tasks]
 
     return TaskListResponse(
         items=items,
@@ -198,19 +199,7 @@ async def get_project_task(
 ) -> TaskRead:
     """Retrieve details and status for a specific task."""
     task = await _get_task_with_ownership(task_id, current_user.id, project_id, db)
-    return TaskRead(
-        id=task.id,
-        project_id=task.project_id,
-        workspace_id=task.workspace_id,
-        title=task.title,
-        prompt=task.prompt,
-        status=TaskStatus(task.status),
-        active_branch=task.active_branch,
-        commit_sha=task.commit_sha,
-        created_at=task.created_at,
-        updated_at=task.updated_at,
-        events_count=len(task.events) if task.events else 0,
-    )
+    return _format_task_read(task)
 
 
 @router.get(
@@ -225,19 +214,7 @@ async def get_task_direct(
 ) -> TaskRead:
     """Direct route to fetch task by ID after validating user ownership."""
     task = await _get_task_with_ownership(task_id, current_user.id, None, db)
-    return TaskRead(
-        id=task.id,
-        project_id=task.project_id,
-        workspace_id=task.workspace_id,
-        title=task.title,
-        prompt=task.prompt,
-        status=TaskStatus(task.status),
-        active_branch=task.active_branch,
-        commit_sha=task.commit_sha,
-        created_at=task.created_at,
-        updated_at=task.updated_at,
-        events_count=len(task.events) if task.events else 0,
-    )
+    return _format_task_read(task)
 
 
 @router.post(
@@ -328,6 +305,31 @@ async def approve_task(
         )
 
     is_approved = payload.action.lower() == "approve"
+
+    # Gate 2 Enforcement: Do not permit committing unverified, failing, or scope-breached tasks
+    # when contract-first enforcement is enabled for the task
+    requires_gate2 = getattr(task, "require_contract", False) or (
+        task.contract_data is not None and task.contract_data.get("is_approved_by_user", False)
+    )
+    if is_approved and requires_gate2:
+        if not task.verification_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Gate 2 Commit Blocked: Task requires contract verification, but no verification evidence was recorded.",
+            )
+        v_data = task.verification_data
+        overall_verdict = v_data.get("overall_verdict")
+        all_criteria_met = v_data.get("all_criteria_met", False)
+        scope_status = v_data.get("scope_status")
+        if overall_verdict != "PROVEN" or not all_criteria_met or scope_status == "VIOLATED":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Gate 2 Commit Blocked: Verification verdict is '{overall_verdict}'. "
+                    "Only verified tasks with all criteria met and clean scope can be committed to repository."
+                ),
+            )
+
     await simulated_agent.handle_approval(
         task.id, approved=is_approved, reason=payload.reason
     )
@@ -377,3 +379,274 @@ async def get_task_events(
         total=len(items),
         after=after,
     )
+
+
+# ==============================================================================
+# Gate 1 Contract Endpoints (Proof, Not Vibes Foundation)
+# ==============================================================================
+
+@router.get(
+    "/projects/{project_id}/tasks/{task_id}/contract",
+    response_model=TaskContract,
+    summary="Get task contract",
+)
+async def get_task_contract(
+    project_id: uuid.UUID,
+    task_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TaskContract:
+    """Retrieve the proposed or approved task contract."""
+    task = await _get_task_with_ownership(task_id, current_user.id, project_id, db)
+    if not task.contract_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No contract has been proposed for this task yet.",
+        )
+    return TaskContract.model_validate(task.contract_data)
+
+
+@router.post(
+    "/projects/{project_id}/tasks/{task_id}/contract/approve",
+    response_model=TaskContractApprovalResponse,
+    summary="Submit Gate 1 contract approval decision",
+)
+async def submit_contract_approval(
+    project_id: uuid.UUID,
+    task_id: uuid.UUID,
+    payload: TaskContractApprovalRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TaskContractApprovalResponse:
+    """Explicitly approve or reject the proposed contract before any code modification begins."""
+    task = await _get_task_with_ownership(task_id, current_user.id, project_id, db)
+
+    if not task.contract_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No contract has been proposed for this task yet.",
+        )
+
+    current_status = TaskStatus(task.status)
+    if current_status in TERMINAL_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Task is in terminal state {current_status.value} and contract cannot be modified.",
+        )
+
+    if current_status not in (TaskStatus.CONTRACT_PROPOSED, TaskStatus.QUEUED):
+        # If already approved, return idempotent success
+        if current_status in (TaskStatus.CONTRACT_APPROVED, TaskStatus.RUNNING, TaskStatus.APPROVAL_REQUIRED):
+            c = TaskContract.model_validate(task.contract_data)
+            if c.is_approved_by_user and payload.action.lower() == "approve":
+                return TaskContractApprovalResponse(
+                    task_id=task.id,
+                    action=payload.action,
+                    approved=True,
+                    contract_version=c.contract_version,
+                    approved_at=c.approved_at,
+                    message="Contract already approved.",
+                )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Task is in {task.status} status and is not waiting for contract approval.",
+        )
+
+    try:
+        updated_contract = contract_service.record_contract_approval(
+            task=task,
+            user_id=current_user.id,
+            action=payload.action,
+            contract_hash=payload.contract_hash,
+            reason=payload.reason,
+        )
+    except ValueError as e:
+        err_msg = str(e)
+        if err_msg == "STALE_CONTRACT":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Stale approval rejected: The contract terms have changed since you reviewed it. Please review latest terms.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid approval request: {e}",
+        )
+
+    is_approved = payload.action.lower() == "approve"
+    if is_approved:
+        task.status = TaskStatus.CONTRACT_APPROVED.value
+        await append_task_event(
+            db,
+            task.id,
+            "contract.approved",
+            {"status": TaskStatus.CONTRACT_APPROVED.value, "version": updated_contract.contract_version},
+        )
+    else:
+        task.status = TaskStatus.CANCELLED.value
+        await append_task_event(
+            db,
+            task.id,
+            "contract.rejected",
+            {"reason": payload.reason or "User rejected proposed contract.", "status": TaskStatus.CANCELLED.value},
+        )
+
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+
+    # Signal agent adapter
+    await simulated_agent.handle_contract_approval(
+        task.id, approved=is_approved, reason=payload.reason
+    )
+
+    logger.info(
+        f"Contract approval '{payload.action}' recorded for task {task.id} by {current_user.email}"
+    )
+
+    return TaskContractApprovalResponse(
+        task_id=task.id,
+        action=payload.action,
+        approved=is_approved,
+        contract_version=updated_contract.contract_version,
+        approved_at=updated_contract.approved_at,
+        message=(
+            "Contract approved. Agent is authorized to implement within specified scope."
+            if is_approved
+            else "Contract rejected. Task cancelled."
+        ),
+    )
+
+
+@router.post(
+    "/projects/{project_id}/tasks/{task_id}/contract/generate",
+    response_model=TaskContract,
+    summary="Generate or regenerate a proposed contract for a task",
+)
+async def generate_task_contract(
+    project_id: uuid.UUID,
+    task_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TaskContract:
+    """Generate a structured, testable task contract before code changes begin."""
+    task = await _get_task_with_ownership(task_id, current_user.id, project_id, db)
+
+    current_status = TaskStatus(task.status)
+    if current_status in TERMINAL_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Task is in terminal state {current_status.value}.",
+        )
+
+    workspace_files = []
+    if task.workspace_id:
+        ws = await db.get(Workspace, task.workspace_id)
+        if ws:
+            from app.services.workspace import get_workspace_provider
+            try:
+                items = await get_workspace_provider().list_files(ws, "")
+                workspace_files = [i.path for i in items if not i.is_dir]
+            except Exception:
+                pass
+
+    contract = await contract_service.generate_contract_proposal(task, workspace_files)
+    task.contract_data = contract.model_dump(mode="json")
+    if current_status == TaskStatus.QUEUED:
+        task.status = TaskStatus.CONTRACT_PROPOSED.value
+
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+
+    await append_task_event(
+        db,
+        task.id,
+        "contract.proposed",
+        task.contract_data,
+    )
+
+    return contract
+
+
+@router.get(
+    "/tasks/{task_id}/contract",
+    response_model=TaskContract,
+    summary="Direct route to get task contract",
+)
+async def get_task_contract_direct(
+    task_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TaskContract:
+    """Direct route to retrieve task contract."""
+    task = await _get_task_with_ownership(task_id, current_user.id, None, db)
+    if not task.contract_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No contract has been proposed for this task yet.",
+        )
+    return TaskContract.model_validate(task.contract_data)
+
+
+@router.post(
+    "/tasks/{task_id}/contract/approve",
+    response_model=TaskContractApprovalResponse,
+    summary="Direct route to approve or reject task contract",
+)
+async def submit_contract_approval_direct(
+    task_id: uuid.UUID,
+    payload: TaskContractApprovalRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TaskContractApprovalResponse:
+    """Direct route to submit Gate 1 approval decision."""
+    task = await _get_task_with_ownership(task_id, current_user.id, None, db)
+    return await submit_contract_approval(
+        project_id=task.project_id,
+        task_id=task.id,
+        payload=payload,
+        current_user=current_user,
+        db=db,
+    )
+
+
+@router.get(
+    "/projects/{project_id}/tasks/{task_id}/verification",
+    response_model=VerificationEvidence,
+    summary="Get task verification evidence",
+)
+async def get_task_verification(
+    project_id: uuid.UUID,
+    task_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> VerificationEvidence:
+    """Retrieve actual recorded verification evidence for a task."""
+    task = await _get_task_with_ownership(task_id, current_user.id, project_id, db)
+    if not task.verification_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Verification has not been executed for this task yet.",
+        )
+    return VerificationEvidence.model_validate(task.verification_data)
+
+
+@router.get(
+    "/tasks/{task_id}/verification",
+    response_model=VerificationEvidence,
+    summary="Direct route to get task verification evidence",
+)
+async def get_task_verification_direct(
+    task_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> VerificationEvidence:
+    """Direct route to retrieve task verification evidence."""
+    task = await _get_task_with_ownership(task_id, current_user.id, None, db)
+    if not task.verification_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Verification has not been executed for this task yet.",
+        )
+    return VerificationEvidence.model_validate(task.verification_data)
+

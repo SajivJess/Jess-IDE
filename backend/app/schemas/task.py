@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class TaskStatus(str, Enum):
     QUEUED = "QUEUED"
+    CONTRACT_PROPOSED = "CONTRACT_PROPOSED"
+    CONTRACT_APPROVED = "CONTRACT_APPROVED"
     RUNNING = "RUNNING"
     APPROVAL_REQUIRED = "APPROVAL_REQUIRED"
     COMPLETED = "COMPLETED"
@@ -16,7 +18,22 @@ class TaskStatus(str, Enum):
 
 # Valid state transitions enforced by the task engine
 VALID_TRANSITIONS: Dict[TaskStatus, Set[TaskStatus]] = {
-    TaskStatus.QUEUED: {TaskStatus.RUNNING, TaskStatus.CANCELLED},
+    TaskStatus.QUEUED: {
+        TaskStatus.RUNNING,
+        TaskStatus.CONTRACT_PROPOSED,
+        TaskStatus.CANCELLED,
+    },
+    TaskStatus.CONTRACT_PROPOSED: {
+        TaskStatus.CONTRACT_APPROVED,
+        TaskStatus.RUNNING,
+        TaskStatus.CANCELLED,
+        TaskStatus.FAILED,
+    },
+    TaskStatus.CONTRACT_APPROVED: {
+        TaskStatus.RUNNING,
+        TaskStatus.CANCELLED,
+        TaskStatus.FAILED,
+    },
     TaskStatus.RUNNING: {
         TaskStatus.APPROVAL_REQUIRED,
         TaskStatus.COMPLETED,
@@ -53,6 +70,10 @@ class TaskCreate(BaseModel):
 
     title: str = Field(..., min_length=1, max_length=255, description="Brief task title")
     prompt: str = Field(..., min_length=1, max_length=10000, description="Task prompt / instructions")
+    require_contract: bool = Field(
+        default=False,
+        description="Whether this task requires Gate 1 contract approval before code modifications begin",
+    )
 
 
 class TaskApprovalRequest(BaseModel):
@@ -74,6 +95,9 @@ class TaskRead(BaseModel):
     active_branch: Optional[str] = None
     commit_sha: Optional[str] = None
     execution_log: Optional[str] = None
+    contract: Optional[Dict[str, Any]] = None
+    verification: Optional[Dict[str, Any]] = None
+    require_contract: bool = False
     created_at: datetime
     updated_at: datetime
     events_count: int = 0

@@ -439,6 +439,7 @@ class MetaAgentAdapter(BaseAgentAdapter):
 
     def __init__(self) -> None:
         self._pending_approvals: Dict[uuid.UUID, asyncio.Future] = {}
+        self._pending_contract_approvals: Dict[uuid.UUID, asyncio.Future] = {}
         self._running_tasks: Dict[uuid.UUID, asyncio.Task] = {}
         self._cancellation_events: Dict[uuid.UUID, asyncio.Event] = {}
         self._dispatch_locks: Dict[uuid.UUID, asyncio.Lock] = {}
@@ -537,6 +538,7 @@ class MetaAgentAdapter(BaseAgentAdapter):
                 self._running_tasks.pop(task_id, None)
                 self._cancellation_events.pop(task_id, None)
                 self._pending_approvals.pop(task_id, None)
+                self._pending_contract_approvals.pop(task_id, None)
 
             bg_task.add_done_callback(_cleanup)
 
@@ -551,6 +553,7 @@ class MetaAgentAdapter(BaseAgentAdapter):
         last_check_passed: Optional[bool] = None
 
         try:
+            contract_fut: Optional[asyncio.Future] = None
             async with async_session_factory() as db:
                 stmt = select(Task).where(Task.id == task_id)
                 res = await db.execute(stmt)
@@ -572,7 +575,65 @@ class MetaAgentAdapter(BaseAgentAdapter):
                     )
                     return
 
-                # 1. QUEUED -> RUNNING
+                # Gate 1: Contract Proposal & Approval
+                if getattr(task, "require_contract", False) and (
+                    not task.contract_data or not task.contract_data.get("is_approved_by_user")
+                ):
+                    from app.services.contract_service import contract_service
+                    if not task.contract_data:
+                        contract = await contract_service.generate_contract_proposal(task, [])
+                        task.contract_data = contract.model_dump(mode="json")
+                        db.add(task)
+                        await db.commit()
+                        await self._emit_task_event(
+                            db,
+                            task,
+                            "contract.proposed",
+                            task.contract_data,
+                        )
+
+                    await self._transition(db, task, TaskStatus.CONTRACT_PROPOSED)
+                    loop = asyncio.get_running_loop()
+                    contract_fut = loop.create_future()
+                    self._pending_contract_approvals[task_id] = contract_fut
+
+            if contract_fut is not None:
+                cancel_wait = asyncio.create_task(cancel_event.wait())
+                done, pending = await asyncio.wait(
+                    [contract_fut, cancel_wait],
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                for p in pending:
+                    p.cancel()
+                self._pending_contract_approvals.pop(task_id, None)
+
+                async with async_session_factory() as db:
+                    stmt = select(Task).where(Task.id == task_id)
+                    res = await db.execute(stmt)
+                    task = res.scalar_one_or_none()
+                    if not task:
+                        return
+                    if cancel_event.is_set():
+                        await self._handle_cancellation(db, task)
+                        return
+                    if contract_fut in done:
+                        is_contract_approved = contract_fut.result()
+                        if not is_contract_approved:
+                            await self._transition(db, task, TaskStatus.CANCELLED)
+                            return
+                        await self._transition(db, task, TaskStatus.CONTRACT_APPROVED)
+
+            async with async_session_factory() as db:
+                stmt = select(Task).where(Task.id == task_id)
+                res = await db.execute(stmt)
+                task = res.scalar_one_or_none()
+                if not task:
+                    return
+                if cancel_event.is_set():
+                    await self._handle_cancellation(db, task)
+                    return
+
+                # 1. QUEUED / CONTRACT_APPROVED -> RUNNING
                 success = await self._transition(db, task, TaskStatus.RUNNING)
                 if not success:
                     return
@@ -919,55 +980,94 @@ class MetaAgentAdapter(BaseAgentAdapter):
                                 elif fn_name == "write_file":
                                     file_path = args.get("path", "")
                                     file_content = args.get("content", "")
-                                    clean_rel = file_path.strip().replace("\\", "/").lstrip("/")
-                                    last_changed_file = clean_rel
 
-                                    # Record ownership and pre-existence status for safe scoped isolation
-                                    if clean_rel not in file_existed_before_task:
-                                        target_p = ws_provider.get_workspace_dir(workspace) / clean_rel
-                                        file_existed_before_task[clean_rel] = target_p.exists()
-                                    task_owned_files.add(clean_rel)
-
-                                    # Detect identical repair attempts to prevent endless loops
-                                    existing_content = ""
-                                    try:
-                                        existing_content = await ws_provider.read_file(workspace, file_path)
-                                    except Exception:
-                                        pass
-
-                                    if existing_content and existing_content == file_content:
+                                    # Security Boundary: Contract and file scope verification
+                                    from app.services.contract_service import contract_service
+                                    wdir_root = ws_provider.get_workspace_dir(workspace) if workspace else None
+                                    is_allowed, err_msg, err_code = contract_service.verify_write_permission(
+                                        task, file_path, workspace_root=wdir_root
+                                    )
+                                    if not is_allowed:
+                                        logger.warning(
+                                            f"[WriteBlocked] Task {task_id} write blocked on '{file_path}': {err_msg} ({err_code})"
+                                        )
                                         tool_output = json.dumps({
-                                            "ok": True,
+                                            "ok": False,
+                                            "error": f"SecurityPolicyEnforcement: {err_msg}",
+                                            "error_code": err_code,
                                             "path": file_path,
-                                            "warning": "Content is identical to existing file; no modifications were made. Please diagnose root cause and implement an actual change.",
                                         })
-                                    else:
-                                        await ws_provider.write_file(workspace, file_path, file_content)
-
-                                        # Generate diff snippet for the changed file
-                                        diff_res = await ws_provider.get_git_diff(workspace)
-                                        diff_snippet = diff_res.diff or f"Updated {file_path}"
-
-                                        await self._emit_conv_event(
+                                        await self._emit_task_event(
                                             db,
                                             task,
-                                            "file.changed",
+                                            "write.blocked",
                                             {
-                                                "file": file_path,
-                                                "action": "modified",
-                                                "diff": diff_snippet,
-                                                "additions": len(file_content.splitlines()),
-                                                "deletions": 0,
+                                                "path": file_path,
+                                                "reason": err_msg,
+                                                "code": err_code,
                                             },
                                         )
-                                        tool_output = json.dumps({"ok": True, "path": file_path})
+                                    else:
+                                        clean_rel = file_path.strip().replace("\\", "/").lstrip("/")
+                                        last_changed_file = clean_rel
+
+                                        # Record ownership and pre-existence status for safe scoped isolation
+                                        if clean_rel not in file_existed_before_task:
+                                            target_p = ws_provider.get_workspace_dir(workspace) / clean_rel
+                                            file_existed_before_task[clean_rel] = target_p.exists()
+                                        task_owned_files.add(clean_rel)
+
+                                        # Detect identical repair attempts to prevent endless loops
+                                        existing_content = ""
+                                        try:
+                                            existing_content = await ws_provider.read_file(workspace, file_path)
+                                        except Exception:
+                                            pass
+
+                                        if existing_content and existing_content == file_content:
+                                            tool_output = json.dumps({
+                                                "ok": True,
+                                                "path": file_path,
+                                                "warning": "Content is identical to existing file; no modifications were made. Please diagnose root cause and implement an actual change.",
+                                            })
+                                        else:
+                                            await ws_provider.write_file(workspace, file_path, file_content)
+
+                                            # Generate diff snippet for the changed file
+                                            diff_res = await ws_provider.get_git_diff(workspace)
+                                            diff_snippet = diff_res.diff or f"Updated {file_path}"
+
+                                            await self._emit_conv_event(
+                                                db,
+                                                task,
+                                                "file.changed",
+                                                {
+                                                    "file": file_path,
+                                                    "action": "modified",
+                                                    "diff": diff_snippet,
+                                                    "additions": len(file_content.splitlines()),
+                                                    "deletions": 0,
+                                                },
+                                            )
+                                            tool_output = json.dumps({"ok": True, "path": file_path})
 
                                 elif fn_name == "run_check":
                                     cmd_str = args.get("command", "")
-                                    cmd_parts = shlex.split(cmd_str, posix=False) if os.name == 'nt' else shlex.split(cmd_str)
-                                    cmd_res = await ws_provider.execute_command(workspace, cmd_parts)
-                                    exit_code = cmd_res.exit_code
-                                    tool_output = (cmd_res.stdout + "\n" + cmd_res.stderr).strip()
+
+                                    # Gate 1 Contract enforcement: command execution blocked without approval
+                                    if getattr(task, "require_contract", False) and (
+                                        not task.contract_data or not task.contract_data.get("is_approved_by_user")
+                                    ):
+                                        tool_output = "Command execution blocked: Task contract must be approved before running commands."
+                                        exit_code = 1
+                                    elif any(fc in cmd_str for fc in [";", "&&", "||", "|", "`", "$("]):
+                                        tool_output = f"Command execution rejected: Operator in '{cmd_str}' is forbidden."
+                                        exit_code = 1
+                                    else:
+                                        cmd_parts = shlex.split(cmd_str, posix=False) if os.name == 'nt' else shlex.split(cmd_str)
+                                        cmd_res = await ws_provider.execute_command(workspace, cmd_parts)
+                                        exit_code = cmd_res.exit_code
+                                        tool_output = (cmd_res.stdout + "\n" + cmd_res.stderr).strip()
 
                                     last_check_command = cmd_str
                                     last_check_exit_code = exit_code
@@ -1169,7 +1269,25 @@ class MetaAgentAdapter(BaseAgentAdapter):
                     },
                 )
 
-                # 6. RUNNING -> APPROVAL_REQUIRED
+                # 6. Execute Proof, Not Vibes Verification Runner
+                from app.services.verification_runner import verification_runner
+                verification_evidence = await verification_runner.run_verification(
+                    task=task,
+                    workspace=workspace,
+                    task_owned_files=task_owned_files,
+                    diff_stat={"additions": final_diff.count("\n+"), "deletions": final_diff.count("\n-")},
+                )
+                db.add(task)
+                await db.commit()
+
+                await self._emit_task_event(
+                    db,
+                    task,
+                    "verification.completed",
+                    verification_evidence.model_dump(mode="json"),
+                )
+
+                # 7. RUNNING -> APPROVAL_REQUIRED
                 loop = asyncio.get_running_loop()
                 approval_fut: asyncio.Future = loop.create_future()
                 self._pending_approvals[task_id] = approval_fut
@@ -1187,6 +1305,9 @@ class MetaAgentAdapter(BaseAgentAdapter):
                     "check_command": last_check_command,
                     "check_exit_code": last_check_exit_code,
                     "check_passed": last_check_passed,
+                    "verification": verification_evidence.model_dump(mode="json"),
+                    "all_criteria_met": verification_evidence.all_criteria_met,
+                    "overall_verdict": verification_evidence.overall_verdict,
                 }
                 await self._emit_task_event(
                     db,
@@ -1547,6 +1668,49 @@ class MetaAgentAdapter(BaseAgentAdapter):
                         ))
                         await db.commit()
 
+    async def handle_contract_approval(
+        self, task_id: uuid.UUID, approved: bool, reason: Optional[str] = None
+    ) -> None:
+        """Fulfill the pending Gate 1 contract approval future for task_id."""
+        fut = self._pending_contract_approvals.get(task_id)
+        if fut and not fut.done():
+            fut.set_result(approved)
+            return
+
+        logger.warning(
+            f"No active pending contract approval future for task {task_id}. Applying DB fallback resolution."
+        )
+        async with async_session_factory() as db:
+            stmt = select(Task).where(Task.id == task_id)
+            res = await db.execute(stmt)
+            task = res.scalar_one_or_none()
+            if not task:
+                return
+
+            if task.status == TaskStatus.CONTRACT_PROPOSED.value:
+                if approved:
+                    await self._transition(db, task, TaskStatus.CONTRACT_APPROVED)
+                    await self._emit_task_event(
+                        db,
+                        task,
+                        "contract.approved",
+                        {"status": TaskStatus.CONTRACT_APPROVED.value},
+                    )
+                else:
+                    await self._transition(db, task, TaskStatus.CANCELLED)
+                    await self._emit_task_event(
+                        db,
+                        task,
+                        "contract.rejected",
+                        {"reason": reason or "User rejected proposed contract."},
+                    )
+                    await self._emit_task_event(
+                        db,
+                        task,
+                        "task.cancelled",
+                        {"reason": "Task cancelled following contract rejection."},
+                    )
+
     async def cancel_task(self, task_id: uuid.UUID) -> None:
         cancel_event = self._cancellation_events.get(task_id)
         if cancel_event:
@@ -1555,6 +1719,10 @@ class MetaAgentAdapter(BaseAgentAdapter):
         fut = self._pending_approvals.get(task_id)
         if fut and not fut.done():
             fut.cancel()
+
+        fut_contract = self._pending_contract_approvals.get(task_id)
+        if fut_contract and not fut_contract.done():
+            fut_contract.cancel()
 
         bg_task = self._running_tasks.get(task_id)
         if bg_task and not bg_task.done():

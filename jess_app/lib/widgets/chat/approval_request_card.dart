@@ -494,14 +494,41 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
                 ],
               ),
             ),
+            if (widget.checkPassed == false) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.statusError.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.statusError.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.block, size: 16, color: AppColors.statusError),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Commit Blocked: Verification failed. You must reject or request changes before this task can be committed.',
+                        style: AppTypography.codeSm.copyWith(
+                          color: AppColors.statusError,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.statusSuccess,
-                      foregroundColor: Colors.white,
+                      backgroundColor: widget.checkPassed == false ? AppColors.surfaceElevated : AppColors.statusSuccess,
+                      foregroundColor: widget.checkPassed == false ? AppColors.textMuted : Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       elevation: 0,
@@ -512,12 +539,12 @@ class _ApprovalRequestCardState extends State<ApprovalRequestCard> {
                             height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Icon(Icons.check, size: 16),
-                    label: const Text(
-                      'Approve Action',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                        : Icon(widget.checkPassed == false ? Icons.lock_outline : Icons.check, size: 16),
+                    label: Text(
+                      widget.checkPassed == false ? 'Commit Blocked' : 'Approve Action',
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                     ),
-                    onPressed: (_isSubmitting || widget.isStale) ? null : () => _handle(true),
+                    onPressed: (_isSubmitting || widget.isStale || widget.checkPassed == false) ? null : () => _handle(true),
                   ),
                 ),
                 const SizedBox(width: 8),

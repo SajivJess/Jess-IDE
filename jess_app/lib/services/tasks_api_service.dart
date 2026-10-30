@@ -5,6 +5,8 @@ import 'auth_api_service.dart';
 
 enum TaskStatusEnum {
   queued,
+  contractProposed,
+  contractApproved,
   running,
   approvalRequired,
   completed,
@@ -16,6 +18,10 @@ enum TaskStatusEnum {
     switch (val.toUpperCase()) {
       case 'QUEUED':
         return TaskStatusEnum.queued;
+      case 'CONTRACT_PROPOSED':
+        return TaskStatusEnum.contractProposed;
+      case 'CONTRACT_APPROVED':
+        return TaskStatusEnum.contractApproved;
       case 'RUNNING':
         return TaskStatusEnum.running;
       case 'APPROVAL_REQUIRED':
@@ -35,6 +41,10 @@ enum TaskStatusEnum {
     switch (this) {
       case TaskStatusEnum.queued:
         return 'Queued';
+      case TaskStatusEnum.contractProposed:
+        return 'Contract Review';
+      case TaskStatusEnum.contractApproved:
+        return 'Contract Approved';
       case TaskStatusEnum.running:
         return 'Running';
       case TaskStatusEnum.approvalRequired:
@@ -64,6 +74,9 @@ class TaskModel {
   final DateTime createdAt;
   final DateTime updatedAt;
   final int eventsCount;
+  final Map<String, dynamic>? contract;
+  final Map<String, dynamic>? verification;
+  final bool requireContract;
 
   TaskModel({
     required this.id,
@@ -78,6 +91,9 @@ class TaskModel {
     required this.createdAt,
     required this.updatedAt,
     this.eventsCount = 0,
+    this.contract,
+    this.verification,
+    this.requireContract = false,
   });
 
   factory TaskModel.fromJson(Map<String, dynamic> json) {
@@ -98,6 +114,204 @@ class TaskModel {
           ? DateTime.tryParse(json['updated_at'] as String) ?? DateTime.now()
           : DateTime.now(),
       eventsCount: json['events_count'] as int? ?? 0,
+      contract: json['contract'] as Map<String, dynamic>?,
+      verification: json['verification'] as Map<String, dynamic>?,
+      requireContract: json['require_contract'] as bool? ?? false,
+    );
+  }
+}
+
+class AcceptanceCriterionModel {
+  final String id;
+  final String description;
+  final bool verified;
+  final String? evidenceNote;
+
+  AcceptanceCriterionModel({
+    required this.id,
+    required this.description,
+    this.verified = false,
+    this.evidenceNote,
+  });
+
+  factory AcceptanceCriterionModel.fromJson(Map<String, dynamic> json) {
+    return AcceptanceCriterionModel(
+      id: json['id'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      verified: json['verified'] as bool? ?? false,
+      evidenceNote: json['evidence_note'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'description': description,
+    'verified': verified,
+    if (evidenceNote != null) 'evidence_note': evidenceNote,
+  };
+}
+
+class TaskContractModel {
+  final String taskId;
+  final int contractVersion;
+  final String summary;
+  final List<AcceptanceCriterionModel> criteria;
+  final List<String> allowedFiles;
+  final bool allowNewFiles;
+  final List<String> protectedFiles;
+  final List<String> testCommands;
+  final List<String> ambiguities;
+  final bool isApprovedByUser;
+  final String? contractHash;
+  final DateTime? approvedAt;
+
+  TaskContractModel({
+    required this.taskId,
+    this.contractVersion = 1,
+    required this.summary,
+    required this.criteria,
+    required this.allowedFiles,
+    this.allowNewFiles = true,
+    this.protectedFiles = const ['auth.py', '.env', 'config.py', 'database.py'],
+    this.testCommands = const ['python -m unittest'],
+    this.ambiguities = const [],
+    this.isApprovedByUser = false,
+    this.contractHash,
+    this.approvedAt,
+  });
+
+  factory TaskContractModel.fromJson(Map<String, dynamic> json) {
+    final criteriaRaw = json['criteria'] as List<dynamic>? ?? [];
+    return TaskContractModel(
+      taskId: json['task_id'] as String? ?? '',
+      contractVersion: json['contract_version'] as int? ?? 1,
+      summary: json['summary'] as String? ?? '',
+      criteria: criteriaRaw
+          .map((c) => AcceptanceCriterionModel.fromJson(c as Map<String, dynamic>))
+          .toList(),
+      allowedFiles: (json['allowed_files'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      allowNewFiles: json['allow_new_files'] as bool? ?? true,
+      protectedFiles: (json['protected_files'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      testCommands: (json['test_commands'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      ambiguities: (json['ambiguities'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      isApprovedByUser: json['is_approved_by_user'] as bool? ?? false,
+      contractHash: json['contract_hash'] as String?,
+      approvedAt: json['approved_at'] != null
+          ? DateTime.tryParse(json['approved_at'] as String)
+          : null,
+    );
+  }
+}
+
+class CommandEvidenceModel {
+  final String command;
+  final int exitCode;
+  final int durationMs;
+  final String stdoutSnippet;
+  final String? stderrSnippet;
+  final String status;
+
+  CommandEvidenceModel({
+    required this.command,
+    required this.exitCode,
+    required this.durationMs,
+    required this.stdoutSnippet,
+    this.stderrSnippet,
+    required this.status,
+  });
+
+  factory CommandEvidenceModel.fromJson(Map<String, dynamic> json) {
+    return CommandEvidenceModel(
+      command: json['command'] as String? ?? '',
+      exitCode: json['exit_code'] as int? ?? 0,
+      durationMs: json['duration_ms'] as int? ?? 0,
+      stdoutSnippet: json['stdout_snippet'] as String? ?? '',
+      stderrSnippet: json['stderr_snippet'] as String?,
+      status: json['status'] as String? ?? 'PASSED',
+    );
+  }
+}
+
+class BreakItCheckModel {
+  final String name;
+  final String inputDescription;
+  final String expectedBehavior;
+  final String actualBehavior;
+  final bool passed;
+
+  BreakItCheckModel({
+    required this.name,
+    required this.inputDescription,
+    required this.expectedBehavior,
+    required this.actualBehavior,
+    required this.passed,
+  });
+
+  factory BreakItCheckModel.fromJson(Map<String, dynamic> json) {
+    return BreakItCheckModel(
+      name: json['name'] as String? ?? '',
+      inputDescription: json['input_description'] as String? ?? '',
+      expectedBehavior: json['expected_behavior'] as String? ?? '',
+      actualBehavior: json['actual_behavior'] as String? ?? '',
+      passed: json['passed'] as bool? ?? false,
+    );
+  }
+}
+
+class VerificationEvidenceModel {
+  final String taskId;
+  final String scopeStatus;
+  final List<String> unexpectedFilesModified;
+  final List<String> protectedFilesViolated;
+  final List<CommandEvidenceModel> commandRuns;
+  final List<BreakItCheckModel> breakItChecks;
+  final Map<String, dynamic> diffStat;
+  final bool allCriteriaMet;
+  final String overallVerdict;
+
+  VerificationEvidenceModel({
+    required this.taskId,
+    required this.scopeStatus,
+    this.unexpectedFilesModified = const [],
+    this.protectedFilesViolated = const [],
+    this.commandRuns = const [],
+    this.breakItChecks = const [],
+    this.diffStat = const {},
+    this.allCriteriaMet = false,
+    this.overallVerdict = 'PENDING',
+  });
+
+  factory VerificationEvidenceModel.fromJson(Map<String, dynamic> json) {
+    final cmds = json['command_runs'] as List<dynamic>? ?? [];
+    final breaks = json['break_it_checks'] as List<dynamic>? ?? [];
+    return VerificationEvidenceModel(
+      taskId: json['task_id'] as String? ?? '',
+      scopeStatus: json['scope_status'] as String? ?? 'CLEAN',
+      unexpectedFilesModified: (json['unexpected_files_modified'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      protectedFilesViolated: (json['protected_files_violated'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      commandRuns: cmds
+          .map((c) => CommandEvidenceModel.fromJson(c as Map<String, dynamic>))
+          .toList(),
+      breakItChecks: breaks
+          .map((b) => BreakItCheckModel.fromJson(b as Map<String, dynamic>))
+          .toList(),
+      diffStat: json['diff_stat'] is Map<String, dynamic>
+          ? json['diff_stat'] as Map<String, dynamic>
+          : {},
+      allCriteriaMet: json['all_criteria_met'] as bool? ?? false,
+      overallVerdict: json['overall_verdict'] as String? ?? 'PENDING',
     );
   }
 }
@@ -343,4 +557,75 @@ class TasksApiService {
       return [];
     }
   }
+
+  /// Retrieve proposed or approved task contract
+  static Future<TaskContractModel?> getContract({
+    required String projectId,
+    required String taskId,
+  }) async {
+    try {
+      final uri = Uri.parse(
+        '${AuthApiService.baseUrl}/projects/$projectId/tasks/$taskId/contract',
+      );
+      final response = await _client.get(uri, headers: _headers());
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return TaskContractModel.fromJson(data);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[TasksApiService] getContract error: $e');
+      return null;
+    }
+  }
+
+  /// Submit Gate 1 contract approval decision tied to the current contract hash
+  static Future<bool> submitContractApproval({
+    required String projectId,
+    required String taskId,
+    required bool approve,
+    required String contractHash,
+    String? reason,
+  }) async {
+    try {
+      final uri = Uri.parse(
+        '${AuthApiService.baseUrl}/projects/$projectId/tasks/$taskId/contract/approve',
+      );
+      final response = await _client.post(
+        uri,
+        headers: _headers(),
+        body: jsonEncode({
+          'action': approve ? 'approve' : 'reject',
+          'contract_hash': contractHash,
+          if (reason != null && reason.isNotEmpty) 'reason': reason,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('[TasksApiService] submitContractApproval error: $e');
+      return false;
+    }
+  }
+
+  /// Retrieve actual recorded verification evidence for a task
+  static Future<VerificationEvidenceModel?> getVerification({
+    required String projectId,
+    required String taskId,
+  }) async {
+    try {
+      final uri = Uri.parse(
+        '${AuthApiService.baseUrl}/projects/$projectId/tasks/$taskId/verification',
+      );
+      final response = await _client.get(uri, headers: _headers());
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return VerificationEvidenceModel.fromJson(data);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[TasksApiService] getVerification error: $e');
+      return null;
+    }
+  }
 }
+
